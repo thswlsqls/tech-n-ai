@@ -1,0 +1,151 @@
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f0f9ff', 'primaryTextColor':'#0c4a6e', 'primaryBorderColor':'#0284c7', 'lineColor':'#0ea5e9', 'secondaryColor':'#7dd3fc', 'tertiaryColor':'#bae6fd'}}}%%
+graph TB
+    subgraph "Client Layer"
+        WEB[Web Client]
+        MOBILE[Mobile Client]
+    end
+
+    subgraph "API Gateway Layer"
+        GATEWAY[API Gateway<br/>Spring Cloud Gateway<br/>JWT 인증 필터<br/>CORS 처리<br/>라우팅]
+    end
+
+    subgraph "API Services Layer"
+        AUTH_API[API Auth<br/>JWT + OAuth 2.0]
+        ARCHIVE_API[API Archive<br/>사용자 아카이브]
+        CONTEST_API[API Contest<br/>대회 정보]
+        NEWS_API[API News<br/>뉴스 정보]
+        CHATBOT_API[API Chatbot<br/>RAG 챗봇]
+    end
+
+    subgraph "Application Layer"
+        AUTH_SVC[Auth Service]
+        ARCHIVE_SVC[Archive Service]
+        CONTEST_SVC[Contest Service]
+        NEWS_SVC[News Service]
+        CHATBOT_SVC[Chatbot Service]
+    end
+
+    subgraph "Domain Layer - Command Side"
+        AURORA_DOMAIN[Domain Aurora<br/>JPA + MyBatis]
+        AURORA_REPO[Repository<br/>Writer/Reader]
+    end
+
+    subgraph "Domain Layer - Query Side"
+        MONGO_DOMAIN[Domain MongoDB<br/>Spring Data MongoDB]
+        MONGO_REPO[Repository<br/>읽기 최적화]
+    end
+
+    subgraph "Event Layer"
+        KAFKA_PUB[Event Publisher<br/>Kafka Producer]
+        KAFKA_BROKER[Apache Kafka<br/>Event Broker<br/>Topics: user-events<br/>archive-events<br/>contest-events<br/>news-events]
+        KAFKA_CONS[Event Consumer<br/>Kafka Consumer]
+    end
+
+    subgraph "Command Side Database"
+        AURORA[(Amazon Aurora MySQL<br/>Command Side<br/>TSID Primary Key<br/>높은 정규화 3NF)]
+        AURORA_WRITER[Aurora Writer<br/>Endpoint]
+        AURORA_READER[Aurora Reader<br/>Endpoint]
+    end
+
+    subgraph "Query Side Database"
+        MONGO[(MongoDB Atlas<br/>Query Side<br/>읽기 최적화<br/>비정규화 구조)]
+    end
+
+    subgraph "Cache Layer"
+        REDIS[(Redis<br/>캐싱<br/>멱등성 보장<br/>TTL: 7 days)]
+    end
+
+    subgraph "External Services"
+        SLACK[Slack API<br/>알림]
+        FEIGN[OpenFeign<br/>외부 API]
+        RSS[RSS Parser]
+        SCRAPER[Web Scraper]
+    end
+
+    subgraph "Batch Layer"
+        BATCH[Spring Batch<br/>정보 출처 업데이트]
+        AI_LLM[AI LLM<br/>Anthropic Claude]
+    end
+
+    %% Client to Gateway
+    WEB --> GATEWAY
+    MOBILE --> GATEWAY
+
+    %% Gateway to APIs (라우팅)
+    GATEWAY -->|/api/v1/auth/**| AUTH_API
+    GATEWAY -->|/api/v1/archive/**| ARCHIVE_API
+    GATEWAY -->|/api/v1/contest/**| CONTEST_API
+    GATEWAY -->|/api/v1/news/**| NEWS_API
+    GATEWAY -->|/api/v1/chatbot/**| CHATBOT_API
+
+    %% API to Service
+    AUTH_API --> AUTH_SVC
+    ARCHIVE_API --> ARCHIVE_SVC
+    CONTEST_API --> CONTEST_SVC
+    NEWS_API --> NEWS_SVC
+    CHATBOT_API --> CHATBOT_SVC
+
+    %% Service to Domain (Command Side)
+    AUTH_SVC --> AURORA_DOMAIN
+    ARCHIVE_SVC --> AURORA_DOMAIN
+    AURORA_DOMAIN --> AURORA_REPO
+    AURORA_REPO --> AURORA_WRITER
+    AURORA_REPO --> AURORA_READER
+    AURORA_WRITER --> AURORA
+    AURORA_READER --> AURORA
+
+    %% Service to Domain (Query Side)
+    CONTEST_SVC --> MONGO_DOMAIN
+    NEWS_SVC --> MONGO_DOMAIN
+    ARCHIVE_SVC --> MONGO_DOMAIN
+    CHATBOT_SVC --> MONGO_DOMAIN
+    MONGO_DOMAIN --> MONGO_REPO
+    MONGO_REPO --> MONGO
+
+    %% Command Side to Kafka
+    AURORA_DOMAIN --> KAFKA_PUB
+    KAFKA_PUB --> KAFKA_BROKER
+
+    %% Kafka to Query Side
+    KAFKA_BROKER --> KAFKA_CONS
+    KAFKA_CONS --> MONGO_DOMAIN
+
+    %% Redis for caching and idempotency
+    KAFKA_CONS --> REDIS
+    AUTH_SVC --> REDIS
+    ARCHIVE_SVC --> REDIS
+    CONTEST_SVC --> REDIS
+    NEWS_SVC --> REDIS
+    CHATBOT_SVC --> REDIS
+
+    %% External Services
+    CONTEST_SVC --> FEIGN
+    NEWS_SVC --> FEIGN
+    NEWS_SVC --> RSS
+    NEWS_SVC --> SCRAPER
+    CHATBOT_SVC --> AI_LLM
+    BATCH --> SLACK
+    BATCH --> AI_LLM
+
+    %% Batch to Command Side
+    BATCH --> AURORA_DOMAIN
+
+    %% Styling
+    style AURORA fill:#eff6ff,stroke:#1e3a8a,stroke-width:3px,color:#1e3a8a
+    style MONGO fill:#f0fdf4,stroke:#166534,stroke-width:3px,color:#166534
+    style KAFKA_BROKER fill:#fef3c7,stroke:#d97706,stroke-width:3px,color:#92400e
+    style REDIS fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#991b1b
+    style AURORA_DOMAIN fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    style MONGO_DOMAIN fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534
+    style KAFKA_PUB fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#92400e
+    style KAFKA_CONS fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#92400e
+    style GATEWAY fill:#e0e7ff,stroke:#6366f1,stroke-width:3px,color:#312e81
+    style AUTH_API fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+    style ARCHIVE_API fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+    style CONTEST_API fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+    style NEWS_API fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+    style CHATBOT_API fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+    style BATCH fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#581c87
+
+
+
