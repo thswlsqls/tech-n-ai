@@ -1,0 +1,24 @@
+group = 'com.tech.n.ai.common'
+version = '0.0.1-SNAPSHOT'
+description = 'kafka'
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+	implementation project(':common-core')
+	implementation project(':datasource-mongodb')
+	// api로 선언하여 의존성이 전이되도록 설정 (다른 모듈에서 사용 가능)
+	api 'org.springframework.boot:spring-boot-starter-kafka'
+	api 'org.apache.kafka:kafka-streams'
+	
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	
+	testImplementation 'org.springframework.boot:spring-boot-starter-kafka-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}

@@ -1,0 +1,17 @@
+group = 'com.tech.n.ai.common'
+version = '0.0.1-SNAPSHOT'
+description = 'common-exception'
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+    implementation project(':common-core')
+    implementation project(':datasource-mongodb')
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}

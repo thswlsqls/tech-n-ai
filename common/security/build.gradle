@@ -1,0 +1,36 @@
+group = 'com.tech.n.ai.common'
+version = '0.0.1-SNAPSHOT'
+description = 'common-security'
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+	implementation project(':common-core')
+	// api로 선언하여 의존성이 전이되도록 설정 (다른 모듈에서 사용 가능)
+	api 'org.springframework.boot:spring-boot-starter-security'
+	api 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server'
+	api 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
+	api 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+	
+	// JWT 라이브러리 (jjwt)
+	api 'io.jsonwebtoken:jjwt-api:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+	
+	// Jackson for JSON processing
+	api 'com.fasterxml.jackson.core:jackson-databind'
+	
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}
