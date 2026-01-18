@@ -1,0 +1,63 @@
+apply plugin: 'org.asciidoctor.jvm.convert'
+
+configurations {
+    asciidoctorExt // 디펜던시 적용 추가
+}
+
+dependencies{
+    // 디펜던시 적용 : .adoc 파일을 .adoc 내에서 임포트 할수 있도록 .html 파일로 변환
+    asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
+    // MockMvc 생성 필요
+    implementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+}
+
+tasks.named('asciidoctor') {
+    dependsOn test  // asciidoctor 전 test 실행
+    configurations 'asciidoctorExt' // 디펜던시 적용
+
+    // source가 없으면 .adoc파일을 전부 html로 만들어버림
+    sources { // source 지정시 특정 adoc만 HTML로 만든다.
+        include("**/index.adoc", "**/common/*.adoc")
+    }
+
+    // snippetsDir 를 입력으로 구성
+    inputs.dir snippetsDir
+    // 다른 모듈들의 테스트 태스크들을 입력으로 선언
+    inputs.files project(':domain').tasks.named('test')
+    inputs.files project(':common-api').tasks.named('test')
+    inputs.files project(':common-all').tasks.named('test')
+    inputs.files project(':clients-excel').tasks.named('test')
+    inputs.files project(':clients-aws-s3').tasks.named('test')
+
+    // frontoffice-api 모듈인 경우 backoffice-api의 테스트 태스크도 입력으로 추가
+    if (project.name == 'servers-frontoffice-api') {
+        inputs.files project(':servers-backoffice-api').tasks.named('test')
+    }
+    
+    // 특정 .adoc에 다른 adoc 파일을 가져와서(include) 사용하고 싶을 경우 경로를 baseDir로 맞춰주는 설정
+    baseDirFollowsSourceFile() // (개별 adoc으로 운영한다면 필요 없는 옵션)
+
+    doFirst {
+        delete file('src/main/resources/static/docs')
+    }
+}
+
+//tasks.resolveMainClassName {
+//    dependsOn 'copyDocument'
+//}
+//
+//tasks.register('copyDocument', Copy) {
+//    dependsOn 'asciidoctor'
+//    from file("build/docs/asciidoc")
+//    into file("build/resources/main/static/public")
+//}
+//
+//
+//bootJar {
+//    dependsOn copyDocument
+//}
+//
+//// build 시, copyDocument 작업 수행 (프로젝트를 실행 했을 때, 문서에 접근할 수 있게 하려고 복사하는 과정)
+//build {
+//    dependsOn copyDocument
+//}

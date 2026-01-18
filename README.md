@@ -1,0 +1,737 @@
+# Tech N AI Demo
+
+## 개요
+
+tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 제공하는 RESTful API 서버입니다. **CQRS 패턴 기반의 마이크로서비스 아키텍처**로 설계되어 있으며, **langchain4j RAG 기반 멀티턴 챗봇**을 핵심 기능으로 제공합니다. Spring Boot 4.0.1과 Java 21을 기반으로 구축되었습니다.
+
+### 핵심 기능
+
+- **🌟 langchain4j RAG 기반 멀티턴 챗봇**: MongoDB Atlas Vector Search와 OpenAI GPT-4o-mini를 활용한 지식 검색 챗봇
+- **CQRS 패턴 기반 아키텍처**: Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 분리
+- **Kafka 기반 실시간 동기화**: 이벤트 기반 CQRS 동기화 (1초 이내 목표)
+- **OAuth 2.0 인증**: Google, Naver, Kakao 소셜 로그인 지원
+- **API Gateway**: 중앙화된 라우팅 및 인증 처리
+- **개발자 대회 정보 수집 및 제공**: 해커톤, 알고리즘 대회, 오픈소스 대회 등의 정보를 수집하고 API로 제공
+- **최신 IT 테크 뉴스 수집 및 제공**: 최신 IT 기술 뉴스를 수집하고 API로 제공
+- **사용자 아카이브 기능**: 사용자가 관심 있는 대회/뉴스를 개인 아카이브에 저장 및 관리
+- **정보 출처 자동 업데이트**: AI LLM을 활용한 정보 출처 자동 탐색 및 업데이트
+
+## 시스템 아키텍처
+
+### 전체 시스템 아키텍처
+
+![System Architecture Diagram](contents/System-architecture-diagram.png)
+
+### CQRS 패턴 기반 아키텍처
+
+이 프로젝트는 **CQRS (Command Query Responsibility Segregation) 패턴**을 적용하여 읽기와 쓰기 작업을 완전히 분리합니다.
+
+#### Command Side (쓰기 전용)
+- **데이터베이스**: Amazon Aurora MySQL 3.x
+- **역할**: 모든 쓰기 작업 (CREATE, UPDATE, DELETE) 수행
+- **특징**:
+  - TSID (Time-Sorted Unique Identifier) Primary Key 전략
+  - 높은 정규화 수준 (최소 3NF)
+  - Soft Delete 지원
+  - 히스토리 테이블을 통한 변경 이력 추적
+
+#### Query Side (읽기 전용)
+- **데이터베이스**: MongoDB Atlas 7.0+
+- **역할**: 모든 읽기 작업 (SELECT) 수행
+- **특징**:
+  - 읽기 최적화된 비정규화 구조
+  - ESR 규칙을 준수한 인덱스 설계
+  - 프로젝션을 통한 네트워크 트래픽 최소화
+  - **Vector Search 지원** (RAG 챗봇용)
+
+#### CQRS 패턴 데이터 플로우
+
+![CQRS Pattern Diagram](contents/cqrs-pattern-diagram.png)
+
+#### Kafka 기반 실시간 동기화
+
+**Apache Kafka**를 통한 이벤트 기반 CQRS 동기화 메커니즘:
+
+- **Event Publisher**: Command Side의 모든 쓰기 작업을 Kafka 이벤트로 발행
+- **Event Consumer**: Kafka 이벤트를 수신하여 Query Side (MongoDB Atlas)에 동기화
+- **멱등성 보장**: Redis 기반 중복 처리 방지 (TTL: 7일)
+- **동기화 지연 시간**: 실시간 동기화 목표 (1초 이내)
+
+![CQRS Kafka Sync Flow](contents/cqrs-kafka-sync-flow.png)
+
+![Kafka Events Diagram](contents/Kafka-events-diagram.png)
+
+자세한 CQRS 및 Kafka 동기화 설계는 다음 문서를 참고하세요:
+- [CQRS Kafka 동기화 설계서](docs/step11/cqrs-kafka-sync-design.md)
+
+## 🌟 langchain4j RAG 기반 멀티턴 챗봇
+
+### 개요
+
+**langchain4j RAG 기반 멀티턴 챗봇**은 이 프로젝트의 핵심 기능으로, MongoDB Atlas Vector Search와 OpenAI GPT-4o-mini를 활용하여 사용자가 자연어로 대회 정보, 뉴스 기사, 자신의 아카이브를 검색하고 질문할 수 있도록 합니다.
+
+### 주요 특징
+
+- **RAG (Retrieval-Augmented Generation)**: MongoDB Atlas Vector Search를 통한 지식 검색
+- **멀티턴 대화 히스토리 관리**: 세션 기반 대화 컨텍스트 유지
+- **OpenAI GPT-4o-mini**: 비용 최적화된 LLM (128K 컨텍스트 윈도우)
+- **OpenAI text-embedding-3-small**: LLM과 동일한 Provider 사용으로 통합성 최적화 ($0.02 per 1M tokens)
+- **토큰 기반 메모리 관리**: TokenWindowChatMemory를 통한 효율적인 컨텍스트 관리
+- **의도 분류**: RAG 필요 여부 자동 판단
+- **비용 통제**: 토큰 사용량 추적 및 제한
+
+### RAG 파이프라인 아키텍처
+
+![Chatbot LLM RAG Pipeline](contents/api-chatbot/chatbot-llm-rag-pipeline.png)
+
+### 전체 시스템 아키텍처
+
+![Overall System Architecture](contents/api-chatbot/overall-system-architecture.png)
+
+### 데이터 소스
+
+챗봇은 다음 MongoDB Atlas 컬렉션의 벡터 검색을 지원합니다:
+
+- **ContestDocument**: 개발자 대회 정보 (`title + description + metadata.tags`)
+- **NewsArticleDocument**: IT 테크 뉴스 기사 (`title + summary + content`)
+- **ArchiveDocument**: 사용자 아카이브 항목 (`itemTitle + itemSummary + tag + memo`, 사용자별 필터링)
+
+### API 엔드포인트
+
+#### 챗봇 대화 API
+
+- `POST /api/v1/chatbot/chat` - 챗봇 대화 (RAG 기반 응답 생성)
+- `GET /api/v1/chatbot/sessions` - 대화 세션 목록 조회
+- `GET /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 상세 조회
+- `DELETE /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 삭제
+
+### 기술 스택
+
+- **langchain4j**: 0.35.0 (RAG 프레임워크)
+- **MongoDB Atlas Vector Search**: 벡터 검색 인덱스 (1536차원, cosine similarity)
+- **OpenAI GPT-4o-mini**: LLM Provider (기본 선택)
+- **OpenAI text-embedding-3-small**: Embedding Model (기본 선택, LLM과 동일 Provider)
+
+자세한 RAG 챗봇 설계는 다음 문서를 참고하세요:
+- [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+
+## API Gateway
+
+### 개요
+
+**API Gateway**는 Spring Cloud Gateway 기반의 중앙화된 API Gateway 서버로, 모든 외부 요청을 중앙에서 관리하고 적절한 백엔드 API 서버로 라우팅하는 역할을 수행합니다. JWT 토큰 기반 인증, CORS 정책 관리, 연결 풀 최적화 등의 기능을 제공합니다.
+
+### 주요 기능
+
+- **URI 기반 라우팅**: 요청 URI 경로를 기준으로 5개 API 서버(auth, archive, contest, news, chatbot)로 요청 전달
+- **JWT 토큰 검증**: `common-security` 모듈의 `JwtTokenProvider`를 활용한 JWT 토큰 검증
+- **인증 필요/불필요 경로 구분**: 공개 API와 인증 필요 API 자동 구분
+- **사용자 정보 헤더 주입**: 검증 성공 시 사용자 정보를 헤더에 주입하여 백엔드 서버로 전달
+- **Global CORS 설정**: 모든 경로에 대한 CORS 정책 적용, 환경별 차별화
+- **연결 풀 최적화**: Reactor Netty 연결 풀 설정으로 Connection reset by peer 에러 방지
+- **공통 예외 처리**: `WebExceptionHandler`를 통한 Reactive 기반 예외 처리
+
+### 인프라 아키텍처
+
+```
+Client (웹 브라우저, 모바일 앱)
+  ↓ HTTP/HTTPS
+ALB (AWS Application Load Balancer, 600초 timeout)
+  ↓
+API Gateway (Spring Cloud Gateway)
+  ├── JWT 인증 필터
+  ├── CORS 처리
+  └── 라우팅
+  ↓
+  ├─ /api/v1/auth/** → @api/auth (인증 불필요)
+  ├─ /api/v1/archive/** → @api/archive (인증 필요)
+  ├─ /api/v1/contest/** → @api/contest (공개 API)
+  ├─ /api/v1/news/** → @api/news (공개 API)
+  └─ /api/v1/chatbot/** → @api/chatbot (인증 필요)
+```
+
+### 라우팅 규칙
+
+| 경로 패턴 | 대상 서버 | 인증 필요 | 설명 |
+|----------|---------|---------|------|
+| `/api/v1/auth/**` | `@api/auth` | ❌ | 인증 서버 (회원가입, 로그인, 토큰 갱신 등) |
+| `/api/v1/archive/**` | `@api/archive` | ✅ | 사용자 아카이브 관리 API |
+| `/api/v1/contest/**` | `@api/contest` | ❌ | 대회 정보 조회 API (공개) |
+| `/api/v1/news/**` | `@api/news` | ❌ | 뉴스 정보 조회 API (공개) |
+| `/api/v1/chatbot/**` | `@api/chatbot` | ✅ | RAG 기반 챗봇 API |
+
+### 요청 처리 흐름
+
+**인증이 필요한 요청 처리**:
+1. Client → ALB → Gateway: 요청 수신
+2. Gateway: 라우팅 규칙 매칭 (`/api/v1/archive/**`)
+3. Gateway: JWT 인증 필터 실행
+   - JWT 토큰 추출 (Authorization 헤더)
+   - JWT 토큰 검증 (`JwtTokenProvider.validateToken`)
+   - 사용자 정보 추출 및 헤더 주입 (`x-user-id`, `x-user-email`, `x-user-role`)
+4. Gateway → Archive 서버: 인증된 요청 전달 (사용자 정보 헤더 포함)
+5. Archive 서버 → Gateway: API 응답
+6. Gateway → ALB → Client: 최종 응답 (CORS 헤더 포함)
+
+**인증이 불필요한 요청 처리**:
+1. Client → ALB → Gateway: 요청 수신
+2. Gateway: 라우팅 규칙 매칭 (`/api/v1/contest/**`)
+3. Gateway: 인증 필터 우회 (공개 API)
+4. Gateway → Contest 서버: 요청 전달
+5. Contest 서버 → Gateway: API 응답
+6. Gateway → ALB → Client: 최종 응답
+
+### Gateway 모듈 구조
+
+```
+api/gateway/
+├── GatewayApplication.java                    # Spring Boot 메인 클래스
+├── config/
+│   └── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정
+├── filter/
+│   └── JwtAuthenticationGatewayFilter.java    # JWT 인증 Gateway Filter
+├── common/
+│   └── exception/
+│       └── ApiGatewayExceptionHandler.java    # 공통 예외 처리
+└── src/main/resources/
+    ├── application.yml                        # 기본 설정 (라우팅, 연결 풀, CORS)
+    ├── application-local.yml                  # 로컬 환경 설정
+    ├── application-dev.yml                    # 개발 환경 설정
+    ├── application-beta.yml                   # 베타 환경 설정
+    └── application-prod.yml                  # 운영 환경 설정
+```
+
+### 기술 스택
+
+- **Spring Cloud Gateway**: API Gateway 프레임워크 (Netty 기반)
+- **Reactor Netty**: 비동기 네트워크 프레임워크
+- **Java**: 21
+- **Spring Boot**: 4.0.1
+- **Spring Cloud**: 2025.1.0
+
+자세한 Gateway 설계는 다음 문서를 참고하세요:
+- [Gateway 설계서](docs/step14/gateway-design.md)
+- [Gateway 구현 계획](docs/step14/gateway-implementation-plan.md)
+- [Gateway API 모듈 README](api/gateway/README.md)
+
+## OAuth 2.0 인증 시스템
+
+### 개요
+
+**OAuth 2.0 인증 시스템**은 Google, Naver, Kakao 소셜 로그인을 지원하며, 기존 JWT 토큰 기반 인증 시스템과 완전히 통합됩니다.
+
+### 지원 Provider
+
+- **Google OAuth 2.0**: Google 계정을 통한 로그인
+- **Naver OAuth 2.0**: 네이버 계정을 통한 로그인
+- **Kakao OAuth 2.0**: 카카오 계정을 통한 로그인
+
+### OAuth 로그인 플로우
+
+#### OAuth 로그인 시작
+
+![OAuth Login Start](contents/api-auth/oauth-login-start.png)
+
+#### OAuth 로그인 콜백
+
+![OAuth Login Callback Flow](contents/api-auth/oauth-login-callback-flow.png)
+
+### 인증/인가 플로우
+
+![Authentication Authorization Flow](contents/api-auth/authentication-authorization-flow.png)
+
+### 컴포넌트 의존성 관계
+
+![Component Dependency Relationship](contents/api-auth/component-dependency-relationship.png)
+
+### 인증 API 엔드포인트 구조
+
+![Authentication API Endpoint Structure](contents/api-auth/authentication-api-endpoint-structure.png)
+
+### 주요 인증 플로우
+
+#### 회원가입 플로우
+
+![Signup Flow](contents/api-auth/signup-flow.png)
+
+#### 로그인 플로우
+
+![Login Flow](contents/api-auth/login-flow.png)
+
+#### 로그아웃 플로우
+
+![Logout Flow](contents/api-auth/logout-flow.png)
+
+#### 토큰 갱신 플로우
+
+![Token Refresh Flow](contents/api-auth/token-refresh-flow.png)
+
+#### 이메일 인증 플로우
+
+![Email Verification Flow](contents/api-auth/email-verification-flow.png)
+
+#### 비밀번호 재설정 요청 플로우
+
+![Password Reset Request Flow](contents/api-auth/password-reset-request-flow.png)
+
+#### 비밀번호 재설정 확인 플로우
+
+![Password Reset Confirm Flow](contents/api-auth/password-reset-confirm-flow.png)
+
+### State 파라미터 관리
+
+OAuth 2.0 인증 플로우에서 **CSRF 공격 방지**를 위한 State 파라미터는 **Redis**에 저장됩니다:
+
+- **Key 형식**: `oauth:state:{state_value}`
+- **Value**: Provider 이름 (예: "GOOGLE", "NAVER", "KAKAO")
+- **TTL**: 10분 (자동 만료)
+- **일회성 사용**: 검증 완료 후 즉시 삭제
+
+자세한 OAuth 구현은 다음 문서를 참고하세요:
+- [OAuth Provider 구현 가이드](docs/step6/oauth-provider-implementation-guide.md)
+- [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
+
+## 기술 스택
+
+### 언어 및 프레임워크
+- **Java**: 21
+- **Spring Boot**: 4.0.1
+- **Spring Cloud**: 2025.1.0
+- **Gradle**: Groovy DSL (Kotlin DSL 사용 금지)
+
+### 데이터베이스
+- **Amazon Aurora MySQL**: 3.x (MySQL 8.0+ 호환) - Command Side (쓰기 전용)
+- **MongoDB Atlas**: 7.0+ - Query Side (읽기 전용, Vector Search 지원)
+
+### 메시징 시스템
+- **Apache Kafka**: 이벤트 기반 CQRS 동기화
+
+### AI/ML 라이브러리
+- **langchain4j**: 0.35.0 (RAG 프레임워크)
+- **OpenAI API**: GPT-4o-mini (LLM), text-embedding-3-small (Embedding)
+
+### 기타 주요 라이브러리
+- **Spring Security**: 인증/인가
+- **Spring Batch**: 배치 처리
+- **Spring Data JPA**: 데이터 접근 계층
+- **Spring Data MongoDB**: MongoDB 접근 계층
+- **MyBatis**: 복잡한 조회 쿼리 전용
+- **Spring REST Docs**: API 문서화
+- **OpenFeign**: 외부 API 클라이언트
+- **Redis**: 캐싱, OAuth State 관리, 멱등성 보장, 세션 관리
+
+## 프로젝트 구조
+
+이 프로젝트는 Gradle 멀티모듈 구조로 구성되어 있으며, `settings.gradle`의 자동 모듈 검색 로직을 통해 모듈이 자동으로 등록됩니다.
+
+```
+tech-n-ai/
+├── api/                    # REST API 서버 모듈
+│   ├── auth/               # 인증 API (OAuth 2.0 지원)
+│   ├── contest/            # 대회 정보 API
+│   ├── gateway/            # API Gateway
+│   ├── news/               # 뉴스 정보 API
+│   ├── archive/            # 사용자 아카이브 API
+│   └── chatbot/            # langchain4j RAG 기반 챗봇 API
+├── batch/                  # 배치 처리 모듈
+│   └── source/            # 정보 출처 업데이트 배치
+├── client/                 # 외부 API 연동 모듈
+│   ├── feign/              # OpenFeign 클라이언트 (OAuth Provider API)
+│   ├── rss/                # RSS 피드 파서
+│   ├── scraper/            # 웹 스크래핑
+│   └── slack/              # Slack 알림 클라이언트
+├── common/                 # 공통 모듈
+│   ├── core/               # 핵심 유틸리티
+│   ├── exception/          # 예외 처리
+│   ├── kafka/              # Kafka 설정 및 이벤트 모델
+│   └── security/           # 보안 관련 (JWT, Spring Security)
+└── domain/                 # 도메인 모듈 (데이터 접근 계층)
+    ├── aurora/             # Amazon Aurora MySQL (Command Side)
+    └── mongodb/            # MongoDB Atlas (Query Side)
+```
+
+### 모듈 간 의존성
+
+의존성 방향: **API → Domain → Common → Client**
+
+- **API 모듈**: Domain, Common, Client 모듈 의존
+- **Domain 모듈**: Common 모듈 의존
+- **Common 모듈**: 독립적 (다른 모듈에 의존하지 않음)
+- **Client 모듈**: 독립적 (다른 모듈에 의존하지 않음)
+
+### 모듈 네이밍 규칙
+
+`settings.gradle`의 자동 모듈 검색 로직에 따라 모듈 이름은 `{parentDir}-{moduleDir}` 형식으로 자동 생성됩니다.
+
+- 예: `api/auth` → `api-auth`
+- 예: `domain/aurora` → `domain-aurora`
+
+## 데이터베이스
+
+### Aurora MySQL 스키마 개요
+
+Command Side (쓰기 전용)로 사용되는 Aurora MySQL의 주요 테이블:
+
+- **User**: 사용자 정보
+- **Admin**: 관리자 정보
+- **Archive**: 사용자 아카이브 정보
+- **RefreshToken**: JWT Refresh Token
+- **EmailVerification**: 이메일 인증 토큰
+- **Provider**: OAuth Provider 정보
+- **ConversationSession**: 대화 세션 정보 (RAG 챗봇용)
+- **ConversationMessage**: 대화 메시지 히스토리 (RAG 챗봇용)
+- **히스토리 테이블**: UserHistory, AdminHistory, ArchiveHistory
+
+#### TSID Primary Key 전략
+
+모든 테이블의 Primary Key는 TSID (Time-Sorted Unique Identifier) 방식을 사용합니다:
+
+- **타입**: `BIGINT UNSIGNED`
+- **생성 방식**: 애플리케이션 레벨에서 자동 생성
+- **장점**: 시간 기반 정렬, 분산 환경에서 고유성 보장, 인덱스 효율성 향상
+
+#### Aurora MySQL ERD
+
+![Aurora MySQL ERD](contents/Aurora-erd-diagram.png)
+
+자세한 스키마 설계는 다음 문서를 참고하세요:
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
+
+### MongoDB Atlas 스키마 개요
+
+Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
+
+- **SourcesDocument**: 정보 출처 정보
+- **ContestDocument**: 대회 정보 (읽기 최적화, Vector Search 지원)
+- **NewsArticleDocument**: 뉴스 기사 정보 (읽기 최적화, Vector Search 지원)
+- **ArchiveDocument**: 사용자 아카이브 정보 (읽기 최적화, Vector Search 지원)
+- **UserProfileDocument**: 사용자 프로필 정보 (읽기 최적화)
+- **ConversationSessionDocument**: 대화 세션 정보 (RAG 챗봇용)
+- **ConversationMessageDocument**: 대화 메시지 히스토리 (RAG 챗봇용)
+- **ExceptionLogDocument**: 예외 로그
+
+#### 읽기 최적화 전략
+
+- **비정규화**: 자주 함께 조회되는 데이터를 하나의 도큐먼트에 포함
+- **인덱스 전략**: ESR 규칙 (Equality → Sort → Range) 준수
+- **프로젝션**: 필요한 필드만 선택하여 네트워크 트래픽 최소화
+- **Vector Search**: RAG 챗봇을 위한 벡터 검색 인덱스 (1536차원, cosine similarity)
+
+#### MongoDB Atlas ERD
+
+![MongoDB Atlas ERD](contents/MongoDB-erd-diagram.png)
+
+자세한 스키마 설계는 다음 문서를 참고하세요:
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
+
+### 마이그레이션
+
+Aurora MySQL의 스키마 변경은 Flyway를 통해 관리됩니다. 마이그레이션 스크립트는 각 모듈의 `src/main/resources/db/migration/` 디렉토리에 위치합니다.
+
+## 시작하기
+
+### 필수 요구사항
+
+- **Java**: 21 이상
+- **Gradle**: 프로젝트에 포함된 Gradle Wrapper 사용
+- **데이터베이스**:
+  - Amazon Aurora MySQL 클러스터 (또는 MySQL 8.0+ 호환 데이터베이스)
+  - MongoDB Atlas 클러스터 (또는 MongoDB 7.0+)
+- **메시징 시스템**: Apache Kafka
+- **캐싱**: Redis
+
+### 환경 변수 설정
+
+```bash
+# Aurora DB Cluster 연결 정보
+export AURORA_WRITER_ENDPOINT=aurora-cluster.cluster-xxxxx.ap-northeast-2.rds.amazonaws.com
+export AURORA_READER_ENDPOINT=aurora-cluster.cluster-ro-xxxxx.ap-northeast-2.rds.amazonaws.com
+export AURORA_USERNAME=admin
+export AURORA_PASSWORD=your-password-here
+export AURORA_OPTIONS=useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+
+# MongoDB Atlas 연결 정보
+export MONGODB_ATLAS_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority&readPreference=secondaryPreferred&ssl=true
+
+# Kafka 연결 정보
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+
+# Redis 연결 정보
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+
+# JWT 설정
+export JWT_SECRET=your-jwt-secret-key
+export JWT_ACCESS_TOKEN_EXPIRATION=900000  # 15분 (밀리초)
+export JWT_REFRESH_TOKEN_EXPIRATION=604800000  # 7일 (밀리초)
+
+# OAuth 설정
+export GOOGLE_CLIENT_ID=your-google-client-id
+export GOOGLE_CLIENT_SECRET=your-google-client-secret
+export NAVER_CLIENT_ID=your-naver-client-id
+export NAVER_CLIENT_SECRET=your-naver-client-secret
+export KAKAO_CLIENT_ID=your-kakao-client-id
+export KAKAO_CLIENT_SECRET=your-kakao-client-secret
+
+# OpenAI API 설정 (RAG 챗봇용)
+export OPENAI_API_KEY=your-openai-api-key
+
+# AI LLM 설정 (배치 작업용)
+export ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Slack 알림 설정 (선택적)
+export SLACK_WEBHOOK_URL=your-slack-webhook-url
+```
+
+### 빌드 및 실행
+
+#### 전체 프로젝트 빌드
+
+```bash
+./gradlew clean build
+```
+
+#### 특정 모듈 빌드
+
+```bash
+# API 모듈 빌드
+./gradlew :api-auth:build
+./gradlew :api-archive:build
+./gradlew :api-contest:build
+./gradlew :api-news:build
+./gradlew :api-gateway:build
+./gradlew :api-chatbot:build
+
+# 배치 모듈 빌드
+./gradlew :batch-source:build
+```
+
+#### 애플리케이션 실행
+
+```bash
+# 인증 API 서버 실행 (포트: 8082)
+./gradlew :api-auth:bootRun
+
+# 아카이브 API 서버 실행 (포트: 8083)
+./gradlew :api-archive:bootRun
+
+# 대회 정보 API 서버 실행 (포트: 8084)
+./gradlew :api-contest:bootRun
+
+# 뉴스 정보 API 서버 실행 (포트: 8085)
+./gradlew :api-news:bootRun
+
+# API Gateway 실행 (포트: 8081)
+./gradlew :api-gateway:bootRun
+
+# RAG 챗봇 API 서버 실행 (포트: 8086)
+./gradlew :api-chatbot:bootRun
+
+# 배치 작업 실행
+./gradlew :batch-source:bootRun
+```
+
+#### 테스트 실행
+
+```bash
+# 전체 테스트 실행
+./gradlew test
+
+# 특정 모듈 테스트 실행
+./gradlew :api-auth:test
+```
+
+## API 목록
+
+### API Gateway를 통한 접근
+
+모든 API는 **API Gateway**를 통해 접근합니다:
+- **Gateway Base URL**: `http://localhost:8081` (Local 환경)
+- **Gateway 경로**: Gateway는 요청 URI 경로를 기준으로 적절한 백엔드 API 서버로 라우팅합니다.
+
+### 주요 API 엔드포인트
+
+#### 인증 API (`/api/v1/auth`)
+
+- `POST /api/v1/auth/signup` - 회원가입
+- `POST /api/v1/auth/login` - 로그인
+- `POST /api/v1/auth/logout` - 로그아웃
+- `POST /api/v1/auth/refresh` - 토큰 갱신
+- `GET /api/v1/auth/verify-email` - 이메일 인증
+- `POST /api/v1/auth/reset-password` - 비밀번호 재설정 요청
+- `POST /api/v1/auth/reset-password/confirm` - 비밀번호 재설정 확인
+- `GET /api/v1/auth/oauth2/{provider}` - OAuth 로그인 시작
+- `GET /api/v1/auth/oauth2/{provider}/callback` - OAuth 로그인 콜백
+
+#### 대회 정보 API (`/api/v1/contest`)
+
+- `GET /api/v1/contest` - 대회 목록 조회 (공개 API, 인증 불필요)
+- `GET /api/v1/contest/{id}` - 대회 상세 조회 (공개 API, 인증 불필요)
+- `GET /api/v1/contest/search` - 대회 검색 (공개 API, 인증 불필요)
+
+#### 뉴스 정보 API (`/api/v1/news`)
+
+- `GET /api/v1/news` - 뉴스 목록 조회 (공개 API, 인증 불필요)
+- `GET /api/v1/news/{id}` - 뉴스 상세 조회 (공개 API, 인증 불필요)
+- `GET /api/v1/news/search` - 뉴스 검색 (공개 API, 인증 불필요)
+
+#### 사용자 아카이브 API (`/api/v1/archive`)
+
+- `POST /api/v1/archive` - 아카이브 저장 (인증 필요)
+- `GET /api/v1/archive` - 아카이브 목록 조회 (인증 필요)
+- `GET /api/v1/archive/{id}` - 아카이브 상세 조회 (인증 필요)
+- `PUT /api/v1/archive/{id}` - 아카이브 수정 (인증 필요)
+- `DELETE /api/v1/archive/{id}` - 아카이브 삭제 (인증 필요)
+- `GET /api/v1/archive/deleted` - 삭제된 아카이브 목록 조회 (인증 필요)
+- `POST /api/v1/archive/{id}/restore` - 아카이브 복구 (인증 필요)
+- `GET /api/v1/archive/search` - 아카이브 검색 (인증 필요)
+
+#### 🌟 챗봇 API (`/api/v1/chatbot`)
+
+- `POST /api/v1/chatbot/chat` - 챗봇 대화 (RAG 기반 응답 생성)
+- `GET /api/v1/chatbot/sessions` - 대화 세션 목록 조회
+- `GET /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 상세 조회
+- `DELETE /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 삭제
+
+### 인증 방법
+
+**인증이 필요한 API**는 JWT (JSON Web Token) 기반 인증을 사용합니다. **공개 API**는 인증 없이 접근할 수 있습니다.
+
+#### 인증 필요 여부
+
+- **인증 필요**: `/api/v1/archive/**`, `/api/v1/chatbot/**`
+- **인증 불필요**: `/api/v1/auth/**`, `/api/v1/contest/**`, `/api/v1/news/**`
+
+#### 인증 헤더
+
+```
+Authorization: Bearer {access_token}
+```
+
+#### 토큰 발급
+
+1. 회원가입 또는 로그인을 통해 `access_token`과 `refresh_token`을 받습니다.
+2. `access_token`은 15분 후 만료됩니다.
+3. `refresh_token`을 사용하여 새로운 `access_token`을 발급받을 수 있습니다.
+4. `refresh_token`은 7일 후 만료됩니다.
+
+자세한 인증/인가 구현 방법은 다음 문서를 참고하세요:
+- [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
+- [OAuth Provider 구현 가이드](docs/step6/oauth-provider-implementation-guide.md)
+
+### API 문서 생성
+
+Spring REST Docs를 사용하여 API 문서를 자동 생성할 수 있습니다:
+
+```bash
+./gradlew asciidoctor
+```
+
+생성된 문서는 `build/docs/asciidoc/html5/index.html`에서 확인할 수 있습니다.
+
+## 배치 작업
+
+### 배치 작업 개요
+
+- **목적**: `json/sources.json` 파일을 주기적으로 업데이트하여 최신 정보 출처를 유지
+- **실행 주기**: 월 1회 (권장)
+- **기술**: Spring Batch + AI LLM (Anthropic Claude)
+
+### 실행 방법
+
+```bash
+# 배치 작업 실행
+./gradlew :batch-source:bootRun
+```
+
+### Jenkins 연동
+
+배치 작업은 Jenkins를 통해 스케줄링할 수 있습니다. Jenkins Pipeline 설정은 프로젝트의 CI/CD 설정을 참고하세요.
+
+자세한 배치 작업 구현은 다음 문서를 참고하세요:
+- [AI LLM 통합 분석 문서](docs/step11/ai-integration-analysis.md)
+- [배치 잡 통합 설계서](docs/step10/batch-job-integration-design.md)
+
+## 배포
+
+### 배포 환경
+
+- **개발 환경**: 로컬 개발 환경
+- **베타 환경**: 베타 테스트 환경
+- **프로덕션 환경**: 운영 환경
+
+각 환경별 설정 파일은 각 API 모듈의 `src/main/resources/` 디렉토리에 위치합니다:
+- `application.yml`: 공통 설정
+- `application-local.yml`: 로컬 환경 설정
+- `application-dev.yml`: 개발 환경 설정
+- `application-beta.yml`: 베타 환경 설정
+- `application-prod.yml`: 프로덕션 환경 설정
+
+**API Gateway 설정**:
+- Gateway는 모든 클라이언트 요청의 단일 진입점으로, 환경별 백엔드 서비스 URL을 설정합니다.
+- Local 환경: `http://localhost:8082~8086` (각 API 서버별 포트)
+- Dev/Beta/Prod 환경: `http://api-{service}-service:8080` (Kubernetes Service 이름)
+
+### 배포 절차
+
+1. 환경 변수 설정 확인
+2. 데이터베이스 마이그레이션 실행 (필요 시)
+3. 애플리케이션 빌드 및 패키징
+4. 애플리케이션 배포
+5. 헬스 체크 확인
+
+### 환경 변수 관리
+
+프로덕션 환경에서는 환경 변수를 직접 설정하거나, AWS Secrets Manager, Parameter Store 등을 활용하여 관리합니다.
+
+## 참고 문서
+
+### 설계 문서
+
+#### 핵심 아키텍처 설계
+- [CQRS Kafka 동기화 설계서](docs/step11/cqrs-kafka-sync-design.md)
+- [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
+
+#### 인증/인가 설계
+- [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
+- [OAuth Provider 구현 가이드](docs/step6/oauth-provider-implementation-guide.md)
+
+#### Gateway 설계
+- [Gateway 설계서](docs/step14/gateway-design.md)
+- [Gateway 구현 계획](docs/step14/gateway-implementation-plan.md)
+
+#### API 설계
+- [Contest 및 News API 설계서](docs/step9/contest-news-api-design.md)
+- [사용자 아카이브 기능 설계서](docs/step13/user-archive-feature-design.md)
+
+#### 기타 설계
+- [AI LLM 통합 분석 문서](docs/step11/ai-integration-analysis.md)
+- [배치 잡 통합 설계서](docs/step10/batch-job-integration-design.md)
+- [Redis 최적화 베스트 프랙티스](docs/step7/redis-optimization-best-practices.md)
+- [RSS/Scraper 모듈 분석](docs/step8/rss-scraper-modules-analysis.md)
+- [Slack 연동 설계 가이드](docs/step8/slack-integration-design-guide.md)
+
+### 프롬프트 문서
+
+- [Tech N AI 프롬프트 가이드](prompts/README.md)
+- [전체 프로젝트 워크플로우](prompts/shrimp-task-prompt.md)
+- [최종 프로젝트 목표](docs/reference/shrimp-task-prompts-final-goal.md)
+
+### 공식 문서
+
+- [Spring Boot 공식 문서](https://spring.io/projects/spring-boot)
+- [Spring Cloud Gateway 공식 문서](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/)
+- [Spring Security 공식 문서](https://spring.io/projects/spring-security)
+- [Reactor Netty 공식 문서](https://projectreactor.io/docs/netty/release/reference/index.html)
+- [langchain4j 공식 문서](https://docs.langchain4j.dev/)
+- [Amazon Aurora MySQL 공식 문서](https://docs.aws.amazon.com/ko_kr/AmazonRDS/latest/AuroraUserGuide/Aurora.AuroraMySQL.Overview.html)
+- [MongoDB Atlas 공식 문서](https://www.mongodb.com/docs/atlas/)
+- [Apache Kafka 공식 문서](https://kafka.apache.org/documentation/)
+- [OpenAI API 공식 문서](https://platform.openai.com/docs)
+
+---
+
+**프로젝트 버전**: 0.0.1-SNAPSHOT  
+**최종 업데이트**: 2026-01-16

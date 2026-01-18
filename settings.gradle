@@ -1,0 +1,21 @@
+rootProject.name = 'tech-n-ai'
+
+[
+        "api", "batch", "common", "client", "datasource"
+].forEach(module -> {
+    searchModules(file("${rootDir.absolutePath}/${module}") as File)
+})
+
+private void searchModules(final File moduleDir, final String parentStr = "") {
+    if (moduleDir.list()?.contains("src")) {
+        def indexOf = parentStr.indexOf('-')
+        def baseDir = indexOf < 0 ? parentStr : parentStr.substring(indexOf + 1)
+        def moduleName = baseDir.empty ? moduleDir.name : "${baseDir}-${moduleDir.name}"
+        include moduleName
+        project(":${moduleName}").projectDir = moduleDir as File
+    } else {
+        for (File subModule in moduleDir.listFiles()) {
+            searchModules(subModule, parentStr.empty ? moduleDir.name : "${parentStr}-${moduleDir.name}")
+        }
+    }
+}
