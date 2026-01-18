@@ -1,0 +1,22 @@
+group = 'com.tech.n.ai.datasource'
+version = '0.0.1-SNAPSHOT'
+description = 'domain-mongodb'
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+    implementation project(':common-core')
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
+    implementation 'org.springframework.boot:spring-boot-starter-mongodb'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-mongodb-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-mongodb-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}

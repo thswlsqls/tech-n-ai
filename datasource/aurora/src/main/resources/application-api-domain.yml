@@ -1,0 +1,139 @@
+spring:
+  jpa:
+    api:
+      open-in-view: false
+      generate-ddl: false
+      database: mysql
+      database-platform: org.hibernate.dialect.MySQLDialect
+      hibernate.ddl-auto: none
+      show-sql: true
+      properties:
+        hibernate:
+          storage_engine: innodb
+          hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
+          default_batch_fetch_size: ${DB_FETCH_CHUNKSIZE:250}
+          format_sql: true
+          highlight_sql: true
+          use_sql_comments: true
+          connection.provider_disables_autocommit: true
+          connection.provider_disables_autocommit_false: false
+          globally_quoted_identifiers: true
+          order_inserts: true
+          order_updates: true
+          implicit_naming_strategy: com.tech.n.ai.datasource.aurora.utils.JpaImplicitNamingStrategyCustom
+          physical_naming_strategy: com.tech.n.ai.datasource.aurora.utils.JpaPhysicalNamingStrategyCustom
+          jdbc:
+            batch_size: ${DB_BATCH_SIZE:50}
+            time_zone: ${TZ:Asia/Seoul}
+
+  datasource:
+    api:
+      writer:
+        hikari:
+          driver-class-name: software.aws.rds.jdbc.mysql.Driver
+          connection-timeout: 5000
+          validation-timeout: 5000
+          max-lifetime: 28795000
+          idle-timeout: 300000
+          minimum-idle: 5
+          maximum-pool-size: 20
+          auto-commit: false
+          transaction-isolation: TRANSACTION_READ_UNCOMMITTED
+          data-source-properties:
+            connectTimeout: 5000
+            socketTimeout: 60000
+            useUnicode: true
+            characterEncoding: utf-8
+            rewriteBatchedStatements: true
+            cachePrepStmts: true
+            prepStmtCacheSize: 250
+            prepStmtCacheSqlLimit: 2048
+            useServerPrepStmts: true
+            wrapperPlugins: readWriteSplitting,failover,efm
+            failoverMode: reader-or-writer
+      reader:
+        hikari:
+          driver-class-name: software.aws.rds.jdbc.mysql.Driver
+          connection-timeout: 5000
+          validation-timeout: 5000
+          max-lifetime: 28795000
+          idle-timeout: 300000
+          minimum-idle: 5
+          maximum-pool-size: 20
+          auto-commit: false
+          transaction-isolation: TRANSACTION_READ_UNCOMMITTED
+          data-source-properties:
+            connectTimeout: 5000
+            socketTimeout: 60000
+            useUnicode: true
+            characterEncoding: utf-8
+            rewriteBatchedStatements: true
+            cachePrepStmts: true
+            prepStmtCacheSize: 250
+            prepStmtCacheSqlLimit: 2048
+            useServerPrepStmts: true
+            wrapperPlugins: readWriteSplitting,failover,efm
+            failoverMode: reader-or-writer
+
+management:
+  health:
+    db:
+      enabled: false
+
+logging:
+  level:
+    org.hibernate.type: trace
+    org.hibernate.sql: debug
+    org.hibernate.type.descriptor.sql: trace
+
+mybatis:
+  config-location: "classpath:mapper-config.xml"
+
+---
+spring:
+  config.activate.on-profile: local,dev
+
+  datasource:
+    writer:
+      url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME} 
+      password: ${AURORA_PASSWORD} 
+    reader:
+      url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME}
+      password: ${AURORA_PASSWORD}
+
+
+---
+spring:
+  config.activate.on-profile: beta
+
+  datasource:
+    writer:
+      url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME} 
+      password: ${AURORA_PASSWORD} 
+    reader:
+      url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME}
+      password: ${AURORA_PASSWORD}
+
+---
+spring:
+  config.activate.on-profile: prod
+
+  datasource:
+    writer:
+      url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME} 
+      password: ${AURORA_PASSWORD} 
+    reader:
+      url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}
+      username: ${AURORA_USERNAME}
+      password: ${AURORA_PASSWORD}
+
+
+logging:
+level:
+  org.hibernate.type: error
+  org.hibernate.sql: error
