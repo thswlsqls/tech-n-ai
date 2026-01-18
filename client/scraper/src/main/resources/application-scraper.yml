@@ -1,0 +1,46 @@
+scraper:
+  timeout-seconds: 30
+  max-retries: 3
+  retry-delay-ms: 1000
+  user-agent: "ShrimpTM-Demo/1.0 (+https://github.com/your-repo)"
+  sources:
+    leetcode:
+      base-url: https://leetcode.com
+      data-format: GraphQL
+      min-interval-seconds: 1
+      requires-selenium: false
+    google-summer-of-code:
+      base-url: https://summerofcode.withgoogle.com
+      data-format: HTML
+      min-interval-seconds: 1
+      requires-selenium: false
+    devpost:
+      base-url: https://devpost.com
+      data-format: HTML
+      min-interval-seconds: 1
+      requires-selenium: false
+    mlh:
+      base-url: https://mlh.io
+      data-format: HTML
+      min-interval-seconds: 1
+      requires-selenium: false
+    atcoder:
+      base-url: https://atcoder.jp
+      data-format: HTML
+      min-interval-seconds: 1
+      requires-selenium: false
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1000ms
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientException
+          - java.io.IOException
+          - org.jsoup.HttpStatusException
+    instances:
+      scraperRetry:
+        base-config: default

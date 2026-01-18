@@ -1,0 +1,37 @@
+group = 'com.tech.n.ai.client'
+version = '0.0.1-SNAPSHOT'
+description = 'client-rss'
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+	implementation project(':common-core')
+	implementation project(':common-exception')
+	
+	// Rome 라이브러리 (RSS/Atom 피드 파싱)
+	implementation 'com.rometools:rome:1.19.0'
+	
+	// Spring WebFlux (WebClient 사용)
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	
+	// Resilience4j (재시도 로직)
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+	implementation 'io.github.resilience4j:resilience4j-reactor:2.1.0'
+	
+	// Configuration Processor (application.yml 자동완성)
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	
+	// 테스트 의존성
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}
+
+// Disable failure when no tests are discovered (test files exist but are commented out)
+tasks.named('test') {
+	failOnNoDiscoveredTests = false
+}

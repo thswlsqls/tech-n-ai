@@ -1,0 +1,132 @@
+feign-clients:
+  oauth:
+    mode: rest
+    google:
+      uri: https://oauth2.googleapis.com
+    naver:
+      uri: https://nid.naver.com
+      userinfo:
+        uri: https://openapi.naver.com
+    kakao:
+      uri: https://kauth.kakao.com
+      userinfo:
+        uri: https://kapi.kakao.com
+
+---
+spring:
+  config.activate.on-profile: test
+feign-clients:
+  oauth:
+    mode: mock
+    google:
+      uri: https://oauth2.googleapis.com
+    naver:
+      uri: https://nid.naver.com
+      userinfo:
+        uri: https://openapi.naver.com
+    kakao:
+      uri: https://kauth.kakao.com
+      userinfo:
+        uri: https://kapi.kakao.com
+
+---
+spring:
+  config.activate.on-profile: local, dev
+  cloud:
+    openfeign:
+      client:
+        config:
+          GoogleOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          NaverOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          KakaoOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+
+feign-clients:
+  oauth:
+    mode: rest
+    google:
+      uri: ${FEIGN_CLIENTS_OAUTH_GOOGLE_URI:https://oauth2.googleapis.com}
+    naver:
+      uri: ${FEIGN_CLIENTS_OAUTH_NAVER_URI:https://nid.naver.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_NAVER_USERINFO_URI:https://openapi.naver.com}
+    kakao:
+      uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_URI:https://kauth.kakao.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_USERINFO_URI:https://kapi.kakao.com}
+
+---
+spring:
+  config.activate.on-profile: beta
+  cloud:
+    openfeign:
+      client:
+        config:
+          GoogleOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          NaverOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          KakaoOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+
+feign-clients:
+  oauth:
+    mode: rest
+    google:
+      uri: ${FEIGN_CLIENTS_OAUTH_GOOGLE_URI:https://oauth2.googleapis.com}
+    naver:
+      uri: ${FEIGN_CLIENTS_OAUTH_NAVER_URI:https://nid.naver.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_NAVER_USERINFO_URI:https://openapi.naver.com}
+    kakao:
+      uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_URI:https://kauth.kakao.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_USERINFO_URI:https://kapi.kakao.com}
+
+---
+spring:
+  config.activate.on-profile: prod
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+      httpclient:
+        max-connections: 35000
+        max-connections-per-route: 35000
+        connection-timeout: 120000
+        hc5:
+          connection-request-timeout: 120000
+          socket-timeout: 120000
+      client:
+        config:
+          GoogleOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          NaverOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+          KakaoOAuth:
+            readTimeout: 30000
+            connectTimeout: 3000
+
+feign-clients:
+  oauth:
+    mode: rest
+    google:
+      uri: ${FEIGN_CLIENTS_OAUTH_GOOGLE_URI:https://oauth2.googleapis.com}
+    naver:
+      uri: ${FEIGN_CLIENTS_OAUTH_NAVER_URI:https://nid.naver.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_NAVER_USERINFO_URI:https://openapi.naver.com}
+    kakao:
+      uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_URI:https://kauth.kakao.com}
+      userinfo:
+        uri: ${FEIGN_CLIENTS_OAUTH_KAKAO_USERINFO_URI:https://kapi.kakao.com}

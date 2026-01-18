@@ -1,0 +1,20 @@
+feign:
+  client:
+    config:
+      contest-internal-api:
+        url: http://localhost:8081  # api-contest 서버 URL
+        connectTimeout: 5000
+        readTimeout: 30000
+        loggerLevel: full
+      news-internal-api:
+        url: http://localhost:8082  # api-news 서버 URL
+        connectTimeout: 5000
+        readTimeout: 30000
+        loggerLevel: full
+
+# 내부 API 키 설정
+internal-api:
+  contest:
+    api-key: ${INTERNAL_API_CONTEST_KEY:default-contest-api-key}
+  news:
+    api-key: ${INTERNAL_API_NEWS_KEY:default-news-api-key}

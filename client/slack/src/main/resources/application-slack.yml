@@ -1,0 +1,27 @@
+slack:
+  webhook:
+    url: ${SLACK_WEBHOOK_URL:}
+    enabled: ${SLACK_WEBHOOK_ENABLED:true}
+  bot:
+    token: ${SLACK_BOT_TOKEN:}
+    enabled: ${SLACK_BOT_ENABLED:false}
+  default-channel: ${SLACK_DEFAULT_CHANNEL:#general}
+  notification:
+    level: ${SLACK_NOTIFICATION_LEVEL:INFO}  # INFO, WARN, ERROR
+  rate-limit:
+    min-interval-ms: ${SLACK_RATE_LIMIT_MIN_INTERVAL_MS:1000}
+    enabled: ${SLACK_RATE_LIMIT_ENABLED:true}
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientException
+          - java.net.ConnectException
+    instances:
+      slackRetry:
+        base-config: default
