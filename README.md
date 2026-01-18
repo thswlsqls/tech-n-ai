@@ -20,7 +20,7 @@ tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 
 
 ### 전체 시스템 아키텍처
 
-![System Architecture Diagram](contents/System-architecture-diagram.png)
+![System Architecture Diagram](contents/system-architecture-diagram.png)
 
 ### CQRS 패턴 기반 아키텍처
 
@@ -59,7 +59,7 @@ tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 
 
 ![CQRS Kafka Sync Flow](contents/cqrs-kafka-sync-flow.png)
 
-![Kafka Events Diagram](contents/Kafka-events-diagram.png)
+![Kafka Events Diagram](contents/kafka-events-diagram.png)
 
 자세한 CQRS 및 Kafka 동기화 설계는 다음 문서를 참고하세요:
 - [CQRS Kafka 동기화 설계서](docs/step11/cqrs-kafka-sync-design.md)
@@ -392,7 +392,7 @@ Command Side (쓰기 전용)로 사용되는 Aurora MySQL의 주요 테이블:
 
 #### Aurora MySQL ERD
 
-![Aurora MySQL ERD](contents/Aurora-erd-diagram.png)
+![Aurora MySQL ERD](contents/aurora-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
 - [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
@@ -419,7 +419,7 @@ Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
 
 #### MongoDB Atlas ERD
 
-![MongoDB Atlas ERD](contents/MongoDB-erd-diagram.png)
+![MongoDB Atlas ERD](contents/mongodb-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
 - [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
