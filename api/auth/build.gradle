@@ -1,0 +1,23 @@
+group = 'com.tech.n.ai.api'
+version = '0.0.1-SNAPSHOT'
+description = 'api-auth'
+
+bootJar.enabled = true
+jar.enabled = false
+
+apply from: "${rootDir.absolutePath}/docs.gradle"
+apply from: "${rootDir.absolutePath}/jpa.gradle"
+
+dependencies {
+	implementation project(':datasource-aurora')
+	implementation project(':common-core')
+	implementation project(':common-security')
+	implementation project(':common-kafka')
+	implementation project(':common-exception')
+	implementation project(':client-feign')
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}

@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: news-api
+  profiles:
+    include:
+      - common-core
+      - mongodb-domain
+
+news:
+  internal:
+    api-key: ${NEWS_INTERNAL_API_KEY:default-internal-api-key-change-in-production}

@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: chatbot-api
+  profiles:
+    include:
+      - common-core
+      - api-domain
+      - mongodb-domain
+
+module:
+  aurora:
+    schema: chatbot
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${OPENAI_API_KEY}
+      model-name: gpt-4o-mini  # 기본 모델 (비용 최적화)
+      temperature: 0.7
+      max-tokens: 2000
+      timeout: 60s
+    embedding-model:
+      api-key: ${OPENAI_API_KEY}  # LLM과 동일한 API Key 사용 가능
+      model-name: text-embedding-3-small  # 기본 모델 (비용 최적화: $0.02 per 1M tokens)
+      dimensions: 1536  # 기본 차원 (필요시 dimensions 파라미터로 조정 가능)
+      timeout: 30s
+
+chatbot:
+  # RAG 설정 (OpenAI GPT-4o-mini 기준: 128K 컨텍스트)
+  rag:
+    max-search-results: 5  # 검색 결과 최대 개수
+    min-similarity-score: 0.7  # 최소 유사도 점수
+    max-context-tokens: 3000  # 컨텍스트 최대 토큰 수
+  
+  # 입력 전처리 설정
+  input:
+    max-length: 500  # 최대 입력 길이
+    min-length: 1  # 최소 입력 길이
+  
+  # 토큰 제어 설정 (OpenAI GPT-4o-mini 기준: 128K 컨텍스트)
+  token:
+    max-input-tokens: 4000  # 최대 입력 토큰
+    max-output-tokens: 2000  # 최대 출력 토큰
+    warning-threshold: 0.8  # 경고 임계값 (80%)
+  
+  # 캐싱 설정
+  cache:
+    enabled: true
+    ttl-hours: 1  # TTL (시간 단위, 기본값: 1시간 = 3600초)
+    max-size: 1000  # 최대 캐시 크기
+  
+  # 세션 생명주기 설정
+  session:
+    inactive-threshold-minutes: 30  # 비활성화 임계값 (마지막 메시지 후 N분 경과 시 비활성)
+    expiration-days: 90  # 만료 기간 (마지막 메시지 후 N일 경과 시 만료)
+    batch-enabled: true  # 배치 작업 활성화 여부 (세션 만료 처리용)
+  
+  # ChatMemory 설정 (토큰 수 기준 메시지 유지 방식 - 기본 전략)
+  chat-memory:
+    max-tokens: 2000  # 최대 토큰 수 (OpenAI GPT-4o-mini 컨텍스트 128K 고려)
+    strategy: token-window  # 기본 전략: token-window (토큰 수 기준), 대안: message-window (메시지 개수 기준)

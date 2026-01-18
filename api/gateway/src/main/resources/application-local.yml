@@ -1,0 +1,38 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: 8081
+
+gateway:
+  routes:
+    auth:
+      uri: http://localhost:8082
+    archive:
+      uri: http://localhost:8083
+    contest:
+      uri: http://localhost:8084
+    news:
+      uri: http://localhost:8085
+    chatbot:
+      uri: http://localhost:8086
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowCredentials: true
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
+            allowedHeaders: "*"
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+            maxAge: 3600
+
+logging:
+  level:
+    com.tech.n.ai.api.gateway: DEBUG

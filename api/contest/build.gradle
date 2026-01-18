@@ -1,0 +1,20 @@
+group = 'com.tech.n.ai.api'
+version = '0.0.1-SNAPSHOT'
+description = 'api-contest'
+
+bootJar.enabled = true
+jar.enabled = false
+
+apply from: "${rootDir.absolutePath}/docs.gradle"
+apply from: "${rootDir.absolutePath}/jpa.gradle"
+
+dependencies {
+	implementation project(':common-core')
+	implementation project(':common-exception')
+	implementation project(':datasource-mongodb')
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}

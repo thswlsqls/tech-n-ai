@@ -1,0 +1,35 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+gateway:
+  routes:
+    auth:
+      uri: http://api-auth-service:8080
+    archive:
+      uri: http://api-archive-service:8080
+    contest:
+      uri: http://api-contest-service:8080
+    news:
+      uri: http://api-news-service:8080
+    chatbot:
+      uri: http://api-chatbot-service:8080
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowCredentials: true
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
+            allowedHeaders: "*"
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+            maxAge: 3600
+
+logging:
+  level:
+    com.tech.n.ai.api.gateway: INFO

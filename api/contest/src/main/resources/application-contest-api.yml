@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: contest-api
+  profiles:
+    include:
+      - common-core
+      - mongodb-domain
+
+contest:
+  internal:
+    api-key: ${CONTEST_INTERNAL_API_KEY:default-internal-api-key-change-in-production}

@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: auth-api
+  profiles:
+    include:
+      - common-core
+
+oauth:
+  google:
+    authorization-endpoint: ${OAUTH_GOOGLE_AUTHORIZATION_ENDPOINT}
+    redirect-uri: ${OAUTH_GOOGLE_REDIRECT_URI}
+    scope: ${OAUTH_GOOGLE_SCOPE:openid email profile}
+  naver:
+    authorization-endpoint: ${OAUTH_NAVER_AUTHORIZATION_ENDPOINT}
+    redirect-uri: ${OAUTH_NAVER_REDIRECT_URI}
+  kakao:
+    authorization-endpoint: ${OAUTH_KAKAO_AUTHORIZATION_ENDPOINT}
+    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI}

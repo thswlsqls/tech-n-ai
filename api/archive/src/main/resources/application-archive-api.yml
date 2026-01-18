@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: archive-api
+  profiles:
+    include:
+      - common-core
+
+module:
+  aurora:
+    schema: archive
+
+archive:
+  restore:
+    max-days: 30
