@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: batch-source
+  profiles:
+    include:
+      - common-core
+      - batch-domain 

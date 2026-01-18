@@ -1,0 +1,10 @@
+spring:
+  config.activate.on-profile: local
+  main.web-application-type: none
+  batch:
+    job:
+      enabled: true
+      name: ${job.name:NONE}
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml

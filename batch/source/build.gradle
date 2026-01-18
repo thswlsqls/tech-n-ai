@@ -1,0 +1,34 @@
+group = 'com.tech.n.ai.batch'
+version = '0.0.1-SNAPSHOT'
+description = 'batch-source'
+
+bootJar.enabled = true
+jar.enabled = false
+
+apply from: "${rootDir.absolutePath}/docs.gradle"
+apply from: "${rootDir.absolutePath}/jpa.gradle"
+
+dependencies {
+	implementation project(':common-core')
+	implementation project(':common-security')
+	implementation project(':common-kafka')
+	implementation project(':datasource-aurora')
+	implementation project(':datasource-mongodb')
+	implementation project(':client-feign')
+	implementation project(':client-rss')
+	implementation project(':client-scraper')
+	implementation project(':api-contest')
+	implementation project(':api-news')
+
+	implementation 'org.springframework.boot:spring-boot-starter-batch'
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-batch-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}
+
