@@ -274,13 +274,6 @@ api/gateway/
 
 ![Authentication Authorization Flow](contents/api-auth/authentication-authorization-flow.png)
 
-### 컴포넌트 의존성 관계
-
-![Component Dependency Relationship](contents/api-auth/component-dependency-relationship.png)
-
-### 인증 API 엔드포인트 구조
-
-![Authentication API Endpoint Structure](contents/api-auth/authentication-api-endpoint-structure.png)
 
 ### 주요 인증 플로우
 
@@ -292,25 +285,14 @@ api/gateway/
 
 ![Login Flow](contents/api-auth/login-flow.png)
 
-#### 로그아웃 플로우
-
-![Logout Flow](contents/api-auth/logout-flow.png)
-
 #### 토큰 갱신 플로우
 
 ![Token Refresh Flow](contents/api-auth/token-refresh-flow.png)
-
-#### 이메일 인증 플로우
-
-![Email Verification Flow](contents/api-auth/email-verification-flow.png)
 
 #### 비밀번호 재설정 요청 플로우
 
 ![Password Reset Request Flow](contents/api-auth/password-reset-request-flow.png)
 
-#### 비밀번호 재설정 확인 플로우
-
-![Password Reset Confirm Flow](contents/api-auth/password-reset-confirm-flow.png)
 
 ### State 파라미터 관리
 
@@ -462,9 +444,7 @@ Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
 
 Aurora MySQL의 스키마 변경은 Flyway를 통해 관리됩니다. 마이그레이션 스크립트는 각 모듈의 `src/main/resources/db/migration/` 디렉토리에 위치합니다.
 
-## 시작하기
-
-### 필수 요구사항
+### 요구스택
 
 - **Java**: 21 이상
 - **Gradle**: 프로젝트에 포함된 Gradle Wrapper 사용
@@ -517,63 +497,6 @@ export ANTHROPIC_API_KEY=your-anthropic-api-key
 export SLACK_WEBHOOK_URL=your-slack-webhook-url
 ```
 
-### 빌드 및 실행
-
-#### 전체 프로젝트 빌드
-
-```bash
-./gradlew clean build
-```
-
-#### 특정 모듈 빌드
-
-```bash
-# API 모듈 빌드
-./gradlew :api-auth:build
-./gradlew :api-archive:build
-./gradlew :api-contest:build
-./gradlew :api-news:build
-./gradlew :api-gateway:build
-./gradlew :api-chatbot:build
-
-# 배치 모듈 빌드
-./gradlew :batch-source:build
-```
-
-#### 애플리케이션 실행
-
-```bash
-# 인증 API 서버 실행 (포트: 8082)
-./gradlew :api-auth:bootRun
-
-# 아카이브 API 서버 실행 (포트: 8083)
-./gradlew :api-archive:bootRun
-
-# 대회 정보 API 서버 실행 (포트: 8084)
-./gradlew :api-contest:bootRun
-
-# 뉴스 정보 API 서버 실행 (포트: 8085)
-./gradlew :api-news:bootRun
-
-# API Gateway 실행 (포트: 8081)
-./gradlew :api-gateway:bootRun
-
-# RAG 챗봇 API 서버 실행 (포트: 8086)
-./gradlew :api-chatbot:bootRun
-
-# 배치 작업 실행
-./gradlew :batch-source:bootRun
-```
-
-#### 테스트 실행
-
-```bash
-# 전체 테스트 실행
-./gradlew test
-
-# 특정 모듈 테스트 실행
-./gradlew :api-auth:test
-```
 
 ## API 목록
 
@@ -653,38 +576,6 @@ Authorization: Bearer {access_token}
 - [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
 - [OAuth Provider 구현 가이드](docs/step6/oauth-provider-implementation-guide.md)
 
-### API 문서 생성
-
-Spring REST Docs를 사용하여 API 문서를 자동 생성할 수 있습니다:
-
-```bash
-./gradlew asciidoctor
-```
-
-생성된 문서는 `build/docs/asciidoc/html5/index.html`에서 확인할 수 있습니다.
-
-## 배치 작업
-
-### 배치 작업 개요
-
-- **목적**: `json/sources.json` 파일을 주기적으로 업데이트하여 최신 정보 출처를 유지
-- **실행 주기**: 월 1회 (권장)
-- **기술**: Spring Batch + AI LLM (Anthropic Claude)
-
-### 실행 방법
-
-```bash
-# 배치 작업 실행
-./gradlew :batch-source:bootRun
-```
-
-### Jenkins 연동
-
-배치 작업은 Jenkins를 통해 스케줄링할 수 있습니다. Jenkins Pipeline 설정은 프로젝트의 CI/CD 설정을 참고하세요.
-
-자세한 배치 작업 구현은 다음 문서를 참고하세요:
-- [AI LLM 통합 분석 문서](docs/step11/ai-integration-analysis.md)
-- [배치 잡 통합 설계서](docs/step10/batch-job-integration-design.md)
 
 ## 배포
 
@@ -706,17 +597,6 @@ Spring REST Docs를 사용하여 API 문서를 자동 생성할 수 있습니다
 - Local 환경: `http://localhost:8082~8086` (각 API 서버별 포트)
 - Dev/Beta/Prod 환경: `http://api-{service}-service:8080` (Kubernetes Service 이름)
 
-### 배포 절차
-
-1. 환경 변수 설정 확인
-2. 데이터베이스 마이그레이션 실행 (필요 시)
-3. 애플리케이션 빌드 및 패키징
-4. 애플리케이션 배포
-5. 헬스 체크 확인
-
-### 환경 변수 관리
-
-프로덕션 환경에서는 환경 변수를 직접 설정하거나, AWS Secrets Manager, Parameter Store 등을 활용하여 관리합니다.
 
 ## 참고 문서
 
@@ -765,7 +645,3 @@ Spring REST Docs를 사용하여 API 문서를 자동 생성할 수 있습니다
 - [Apache Kafka 공식 문서](https://kafka.apache.org/documentation/)
 - [OpenAI API 공식 문서](https://platform.openai.com/docs)
 
----
-
-**프로젝트 버전**: 0.0.1-SNAPSHOT  
-**최종 업데이트**: 2026-01-16
