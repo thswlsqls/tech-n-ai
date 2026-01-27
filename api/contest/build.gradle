@@ -2,15 +2,21 @@ group = 'com.tech.n.ai.api'
 version = '0.0.1-SNAPSHOT'
 description = 'api-contest'
 
-bootJar.enabled = true
-jar.enabled = false
+bootJar.enabled = false
+// bootJar와 일반 jar를 동시에 생성
+// bootJar: 실행용, jar: 다른 모듈의 의존성용
+jar {
+    enabled = true
+    archiveClassifier = '' // 기본 classifier 제거
+}
 
 apply from: "${rootDir.absolutePath}/docs.gradle"
-apply from: "${rootDir.absolutePath}/jpa.gradle"
+//apply from: "${rootDir.absolutePath}/jpa.gradle"
 
 dependencies {
 	implementation project(':common-core')
 	implementation project(':common-exception')
+	implementation project(':common-kafka')
 	implementation project(':datasource-mongodb')
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }

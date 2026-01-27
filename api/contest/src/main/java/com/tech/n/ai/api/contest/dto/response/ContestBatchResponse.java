@@ -1,10 +1,13 @@
 package com.tech.n.ai.api.contest.dto.response;
 
 import java.util.List;
+import lombok.Builder;
+import lombok.Data;
 
 /**
  * Contest 다건 생성 응답 DTO (내부 API용)
  */
+@Builder
 public record ContestBatchResponse(
     Integer totalCount,
     Integer successCount,
