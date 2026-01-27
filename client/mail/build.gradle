@@ -1,0 +1,38 @@
+group = 'com.tech.n.ai.client'
+version = '0.0.1-SNAPSHOT'
+description = 'client-mail'
+
+bootJar.enabled = false
+jar.enabled = true
+
+apply from: "${rootDir.absolutePath}/docs.gradle"
+apply from: "${rootDir.absolutePath}/jpa.gradle"
+
+
+dependencies {
+	// 공통 모듈
+	implementation project(':common-core')
+	implementation project(':common-exception')
+	
+	// Spring Mail
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	
+	// Thymeleaf (템플릿 엔진)
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	
+	// Configuration Processor (application.yml 자동완성)
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	
+	// 테스트 의존성
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task prepareKotlinBuildScriptModel {
+
+}
+
+// Disable failure when no tests are discovered (test files exist but are commented out)
+tasks.named('test') {
+	failOnNoDiscoveredTests = false
+}
