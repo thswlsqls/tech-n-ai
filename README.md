@@ -167,28 +167,19 @@ tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 
 
 ### 3단계 자동화 파이프라인
 
-```mermaid
-flowchart LR
-    subgraph Phase1["Phase 1: 데이터 수집<br/>(batch-source)"]
-        BatchJobs["Spring Batch Jobs<br/>• GitHub Release Job<br/>• Web Scraping Job"]
-    end
+![AI Agent Automation Pipeline](contents/api-agent/sytem-architecture.png)
 
-    subgraph Phase2["Phase 2: 저장 및 관리<br/>(api-ai-update)"]
-        API["REST API<br/>• 목록/상세 조회<br/>• 검색<br/>• 상태 관리"]
-        MongoDB[(MongoDB<br/>AiUpdateDocument)]
-    end
+**Phase 1: 데이터 수집 (batch-source)**
+- Spring Batch Jobs를 통한 GitHub Release 및 Web Scraping
 
-    subgraph Phase3["Phase 3: AI Agent<br/>(api-agent)"]
-        Agent["LangChain4j Agent<br/>• 자율 실행<br/>• Tool 선택<br/>• 중복 검증"]
-        Tools["Agent Tools<br/>• GitHub API<br/>• Web Scraper<br/>• Search<br/>• Create/Publish"]
-    end
+**Phase 2: 저장 및 관리 (api-ai-update)**
+- MongoDB에 AiUpdateDocument 저장
+- REST API를 통한 목록/상세 조회, 검색, 상태 관리
 
-    BatchJobs --> MongoDB
-    MongoDB --> API
-    API --> Agent
-    Agent --> Tools
-    Tools --> API
-```
+**Phase 3: AI Agent (api-agent)**
+- LangChain4j Agent의 자율 실행
+- Tool 선택 및 중복 검증
+- GitHub API, Web Scraper, Search, Create/Publish 기능 통합
 
 ### Agent 동작 방식
 
