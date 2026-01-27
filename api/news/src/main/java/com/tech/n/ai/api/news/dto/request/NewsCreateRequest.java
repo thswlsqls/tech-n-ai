@@ -19,7 +19,7 @@ public record NewsCreateRequest(
     String content,
     String summary,
     
-    @NotNull(message = "발행일은 필수입니다.")
+//    @NotNull(message = "발행일은 필수입니다.")
     LocalDateTime publishedAt,
     
     @NotBlank(message = "URL은 필수입니다.")

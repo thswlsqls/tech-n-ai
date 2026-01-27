@@ -1,0 +1,12 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: news-api
+  profiles:
+    include:
+      - common-core
+      - kafka
+      - mongodb-domain
+      - news-api

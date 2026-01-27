@@ -2,6 +2,7 @@ package com.tech.n.ai.api.news.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * News API 설정
