@@ -614,7 +614,7 @@ Command Side (쓰기 전용)로 사용되는 Aurora MySQL의 주요 테이블:
 ![Aurora MySQL ERD](contents/aurora-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
-- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3. aurora-schema-design.md)
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3-aurora-schema-design.md)
 
 ### MongoDB Atlas 스키마 개요
 
@@ -642,7 +642,7 @@ Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
 ![MongoDB Atlas ERD](contents/mongodb-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
-- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2. mongodb-schema-design.md)
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2-mongodb-schema-design.md)
 
 ### 마이그레이션
 
@@ -830,8 +830,8 @@ Authorization: Bearer {access_token}
   - [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
   - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
   - [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
-- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2. mongodb-schema-design.md)
-- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3. aurora-schema-design.md)
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2-mongodb-schema-design.md)
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3-aurora-schema-design.md)
 
 #### 인증/인가 설계
 - [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
