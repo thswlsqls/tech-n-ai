@@ -1,7 +1,7 @@
 package com.tech.n.ai.common.exception.logging;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -9,61 +9,67 @@ import org.springframework.stereotype.Service;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * 예외 로깅 서비스
  * MongoDB Atlas에 예외 로그를 저장
+ * MongoDB 연결이 실패하거나 사용할 수 없는 경우 로컬 로그로 대체
  * 
  * 참고: Spring Data MongoDB 공식 문서
  * https://docs.spring.io/spring-data/mongodb/docs/current/reference/html/
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ExceptionLoggingService {
     
-    private final MongoTemplate mongoTemplate;
+    private final Optional<MongoTemplate> mongoTemplate;
+    
+    @Autowired(required = false)
+    public ExceptionLoggingService(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = Optional.ofNullable(mongoTemplate);
+    }
     
     /**
      * MongoDB Atlas 읽기 예외 저장
+     * MongoDB 연결이 실패하거나 사용할 수 없는 경우 로컬 로그로 대체
      * 
      * @param exception 발생한 예외
      * @param context 컨텍스트 정보
      */
     @Async
     public void logReadException(Exception exception, ExceptionContext.ContextInfo context) {
-        try {
-            ExceptionContext exceptionContext = buildExceptionContext(
-                "READ",
-                exception,
-                context,
-                determineSeverity(exception)
-            );
-            saveToMongoDB(exceptionContext);
-        } catch (Exception e) {
-            log.error("Failed to log read exception to MongoDB, falling back to local log", e);
+        ExceptionContext exceptionContext = buildExceptionContext(
+            "READ",
+            exception,
+            context,
+            determineSeverity(exception)
+        );
+        
+        // MongoDB에 저장 시도, 실패 시 로컬 로그로 대체
+        if (!saveToMongoDB(exceptionContext)) {
             logExceptionLocally("READ", exception, context);
         }
     }
     
     /**
      * Amazon Aurora MySQL 쓰기 예외 저장
+     * MongoDB 연결이 실패하거나 사용할 수 없는 경우 로컬 로그로 대체
      * 
      * @param exception 발생한 예외
      * @param context 컨텍스트 정보
      */
     @Async
     public void logWriteException(Exception exception, ExceptionContext.ContextInfo context) {
-        try {
-            ExceptionContext exceptionContext = buildExceptionContext(
-                "WRITE",
-                exception,
-                context,
-                determineSeverity(exception)
-            );
-            saveToMongoDB(exceptionContext);
-        } catch (Exception e) {
-            log.error("Failed to log write exception to MongoDB, falling back to local log", e);
+        ExceptionContext exceptionContext = buildExceptionContext(
+            "WRITE",
+            exception,
+            context,
+            determineSeverity(exception)
+        );
+        
+        // MongoDB에 저장 시도, 실패 시 로컬 로그로 대체
+        if (!saveToMongoDB(exceptionContext)) {
             logExceptionLocally("WRITE", exception, context);
         }
     }
@@ -92,9 +98,25 @@ public class ExceptionLoggingService {
     
     /**
      * MongoDB에 저장
+     * MongoDB 연결이 실패하거나 사용할 수 없는 경우 false 반환
+     * 
+     * @param exceptionContext 예외 컨텍스트
+     * @return 저장 성공 여부
      */
-    private void saveToMongoDB(ExceptionContext exceptionContext) {
-        mongoTemplate.save(exceptionContext, "exception_logs");
+    private boolean saveToMongoDB(ExceptionContext exceptionContext) {
+        if (mongoTemplate.isEmpty()) {
+            log.debug("MongoDB is not available, skipping MongoDB logging");
+            return false;
+        }
+        
+        try {
+            mongoTemplate.get().save(exceptionContext, "exception_logs");
+            return true;
+        } catch (Exception e) {
+            // MongoDB 연결 실패 등 예외 발생 시 로컬 로그로 대체
+            log.debug("Failed to save exception to MongoDB: {}", e.getMessage());
+            return false;
+        }
     }
     
     /**

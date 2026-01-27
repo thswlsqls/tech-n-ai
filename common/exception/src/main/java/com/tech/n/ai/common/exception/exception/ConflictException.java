@@ -9,12 +9,24 @@ import com.tech.n.ai.common.core.exception.BaseException;
  */
 public class ConflictException extends BaseException {
     
+    private final String fieldName;
+    
+    public ConflictException(String fieldName, String message) {
+        super(
+            ErrorCodeConstants.CONFLICT,
+            ErrorCodeConstants.MESSAGE_CODE_CONFLICT,
+            message
+        );
+        this.fieldName = fieldName;
+    }
+    
     public ConflictException(String message) {
         super(
             ErrorCodeConstants.CONFLICT,
             ErrorCodeConstants.MESSAGE_CODE_CONFLICT,
             message
         );
+        this.fieldName = "field";
     }
     
     public ConflictException(String message, Throwable cause) {
@@ -24,5 +36,10 @@ public class ConflictException extends BaseException {
             message,
             cause
         );
+        this.fieldName = "field";
+    }
+    
+    public String getFieldName() {
+        return fieldName;
     }
 }

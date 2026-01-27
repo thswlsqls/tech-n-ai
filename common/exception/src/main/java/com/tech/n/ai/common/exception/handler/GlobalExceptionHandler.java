@@ -5,6 +5,7 @@ import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.core.dto.MessageCode;
 import com.tech.n.ai.common.core.exception.BaseException;
 import com.tech.n.ai.common.core.exception.BusinessException;
+import com.tech.n.ai.common.exception.exception.ConflictException;
 import com.tech.n.ai.common.exception.exception.ExternalApiException;
 import com.tech.n.ai.common.exception.exception.ForbiddenException;
 import com.tech.n.ai.common.exception.exception.RateLimitExceededException;
@@ -96,6 +97,31 @@ public class GlobalExceptionHandler {
         return handleBaseException(e, request);
     }
     
+    /**
+     * ConflictException 처리 - ValidationException과 동일한 형식
+     */
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleConflictException(
+        ConflictException e, HttpServletRequest request) {
+        logException(e, request, "READ");
+        
+        Map<String, String> errors = new HashMap<>();
+        errors.put(e.getFieldName(), e.getMessage());
+        
+        MessageCode messageCode = new MessageCode(
+            ErrorCodeConstants.MESSAGE_CODE_VALIDATION_ERROR,
+            "유효성 검증에 실패했습니다."
+        );
+        
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(
+            ErrorCodeConstants.VALIDATION_ERROR,
+            messageCode,
+            null,
+            errors
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
     
     /**
      * 유효성 검증 예외 처리
