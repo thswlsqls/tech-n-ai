@@ -347,10 +347,7 @@ api/
         └── AiUpdateServiceImpl.java
 ```
 
-자세한 AI Agent 설계는 다음 문서를 참고하세요:
-- [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
-- [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
-- [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
+자세한 AI Agent 설계는 [참고 문서](#참고-문서) 섹션의 "AI Agent 자동화 파이프라인 설계서"를 참고하세요.
 
 ## API Gateway
 
@@ -829,6 +826,10 @@ Authorization: Bearer {access_token}
 #### 핵심 아키텍처 설계
 - [CQRS Kafka 동기화 설계서](docs/step11/cqrs-kafka-sync-design.md)
 - [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+- [AI Agent 자동화 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/)
+  - [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
+  - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
+  - [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
 - [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
 - [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
 
@@ -850,12 +851,6 @@ Authorization: Bearer {access_token}
 - [Redis 최적화 베스트 프랙티스](docs/step7/redis-optimization-best-practices.md)
 - [RSS/Scraper 모듈 분석](docs/step8/rss-scraper-modules-analysis.md)
 - [Slack 연동 설계 가이드](docs/step8/slack-integration-design-guide.md)
-
-### 프롬프트 문서
-
-- [Tech N AI 프롬프트 가이드](prompts/README.md)
-- [전체 프로젝트 워크플로우](prompts/shrimp-task-prompt.md)
-- [최종 프로젝트 목표](docs/reference/shrimp-task-prompts-final-goal.md)
 
 ### 공식 문서
 
