@@ -167,19 +167,24 @@ tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 
 
 ### 3단계 자동화 파이프라인
 
-![AI Agent Automation Pipeline](contents/api-agent/sytem-architecture.png)
+AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 통해 동작합니다:
 
 **Phase 1: 데이터 수집 (batch-source)**
 - Spring Batch Jobs를 통한 GitHub Release 및 Web Scraping
+- 주기적으로 OpenAI, Anthropic, Google, Meta의 업데이트 정보 수집
 
 **Phase 2: 저장 및 관리 (api-ai-update)**
 - MongoDB에 AiUpdateDocument 저장
 - REST API를 통한 목록/상세 조회, 검색, 상태 관리
+- Draft/Published 상태 관리
 
 **Phase 3: AI Agent (api-agent)**
 - LangChain4j Agent의 자율 실행
 - Tool 선택 및 중복 검증
 - GitHub API, Web Scraper, Search, Create/Publish 기능 통합
+- 자연어 목표 기반 자율 의사결정
+
+전체 시스템 아키텍처는 [시스템 아키텍처](#시스템-아키텍처) 섹션을 참고하세요.
 
 ### Agent 동작 방식
 
