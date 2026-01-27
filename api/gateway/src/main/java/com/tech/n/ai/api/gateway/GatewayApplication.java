@@ -1,9 +1,30 @@
 package com.tech.n.ai.api.gateway;
 
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+import org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 
-@SpringBootApplication
+
+@SpringBootApplication(exclude = {
+	DataSourceAutoConfiguration.class,
+	FlywayAutoConfiguration.class,
+	MongoAutoConfiguration.class,
+	MongoDataAutoConfiguration.class,
+	MongoReactiveAutoConfiguration.class,
+	MongoReactiveDataAutoConfiguration.class,
+	RedisAutoConfiguration.class,
+	RedisReactiveAutoConfiguration.class,
+	SecurityAutoConfiguration.class
+})
 public class GatewayApplication {
 
 	public static void main(String[] args) {

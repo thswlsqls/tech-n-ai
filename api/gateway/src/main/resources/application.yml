@@ -1,12 +1,9 @@
 spring:
   application:
     name: gateway-api
-  profiles:
-    include:
-      - common-core
-      - domain-api
-      - mongodb-domain
-  
+  main:
+    web-application-type: reactive
+
   cloud:
     gateway:
       # 라우팅 설정
@@ -35,6 +32,11 @@ spring:
           uri: ${gateway.routes.chatbot.uri:http://localhost:8086}
           predicates:
             - Path=/api/v1/chatbot/**
+
+        - id: agent-route
+          uri: ${gateway.routes.agent.uri:http://localhost:8087}
+          predicates:
+            - Path=/api/v1/agent/**
       
       # HTTP 클라이언트 연결 풀 설정
       httpclient:

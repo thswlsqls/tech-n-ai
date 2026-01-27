@@ -6,15 +6,11 @@ bootJar.enabled = true
 jar.enabled = false
 
 apply from: "${rootDir.absolutePath}/docs.gradle"
-apply from: "${rootDir.absolutePath}/jpa.gradle"
 
 dependencies {
 	implementation project(':common-core')
 	implementation project(':common-security')
-	implementation project(':common-kafka')
-	implementation project(':datasource-aurora')
-	implementation project(':datasource-mongodb')
-	
+
 	// Spring Cloud Gateway
 	implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
 

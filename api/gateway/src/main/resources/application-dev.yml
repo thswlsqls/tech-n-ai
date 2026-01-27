@@ -15,6 +15,8 @@ gateway:
       uri: http://api-news-service:8080
     chatbot:
       uri: http://api-chatbot-service:8080
+    agent:
+      uri: http://api-agent-service:8080
 
 spring:
   cloud:

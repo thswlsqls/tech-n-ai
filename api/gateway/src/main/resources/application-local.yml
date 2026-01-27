@@ -18,6 +18,8 @@ gateway:
       uri: http://localhost:8085
     chatbot:
       uri: http://localhost:8086
+    agent:
+      uri: http://localhost:8087
 
 spring:
   cloud:
@@ -32,6 +34,11 @@ spring:
             allowedHeaders: "*"
             allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
             maxAge: 3600
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY:default-secret-key-change-in-production-minimum-256-bits}
+  access-token-validity-minutes: ${JWT_ACCESS_TOKEN_VALIDITY_MINUTES:60}
+  refresh-token-validity-days: ${JWT_REFRESH_TOKEN_VALIDITY_DAYS:7}
 
 logging:
   level:

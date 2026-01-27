@@ -92,6 +92,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
         return path.startsWith("/api/v1/auth") ||
                path.startsWith("/api/v1/contest") ||
                path.startsWith("/api/v1/news") ||
+               path.startsWith("/api/v1/agent") ||  // 내부 API Key 인증 사용
                path.startsWith("/actuator");
     }
     
