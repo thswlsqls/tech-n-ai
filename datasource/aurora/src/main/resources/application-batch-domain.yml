@@ -4,7 +4,7 @@ spring:
       open-in-view: false
       generate-ddl: false
       database: mysql
-      database-platform: org.hibernate.dialect.MySQLDialect
+      # database-platform 제거 - Hibernate 6.x 자동 감지 사용
       hibernate.ddl-auto: none
       show-sql: true
       properties:
@@ -20,8 +20,8 @@ spring:
           globally_quoted_identifiers: true
           order_inserts: true
           order_updates: true
-          implicit_naming_strategy: com.tech.n.ai.datasource.aurora.utils.JpaImplicitNamingStrategyCustom
-          physical_naming_strategy: com.tech.n.ai.datasource.aurora.utils.JpaPhysicalNamingStrategyCustom
+          implicit_naming_strategy: com.tech.n.ai.domain.mariadb.utils.JpaImplicitNamingStrategyCustom
+          physical_naming_strategy: com.tech.n.ai.domain.mariadb.utils.JpaPhysicalNamingStrategyCustom
           jdbc:
             batch_size: ${DB_BATCH_SIZE:50}
             time_zone: ${TZ:Asia/Seoul}
@@ -106,9 +106,16 @@ management:
 
 logging:
   level:
-    org.hibernate.type: trace
-    org.hibernate.sql: debug
-    org.hibernate.type.descriptor.sql: trace
+    # Hibernate 내부 로그 최소화 (TRACE/DEBUG → WARN)
+    org.hibernate: warn
+    org.hibernate.SQL: info
+    org.hibernate.type: warn
+    org.hibernate.type.descriptor.sql: warn
+    org.hibernate.orm.deprecation: error
+    # MongoDB 로그 최소화
+    org.mongodb.driver: warn
+    # Spring Data 로그 최소화
+    org.springframework.data: warn
 
 mybatis:
   config-location: "classpath:mapper-config.xml"
@@ -120,22 +127,22 @@ spring:
   datasource:
     writer:
       meta:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
     reader:
       meta:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
 
 
 ---
@@ -145,22 +152,22 @@ spring:
   datasource:
     writer:
       meta:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
     reader:
       meta:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
 
 
 ---
@@ -173,22 +180,22 @@ spring:
   datasource:
     writer:
       meta:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
     reader:
       meta:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
       business:
-        url: jdbc:mysql://${AURORA_READER_ENDPOINT}:3306/${module.aurora.business.schema}?${AURORA_OPTIONS}
-        username: ${AURORA_USERNAME}
-        password: ${AURORA_PASSWORD}
+        url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+        username: admin
+        password: admin12341!
 
 logging:
 level:
