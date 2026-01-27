@@ -1,0 +1,62 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
+    # Producer 설정
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 1
+      retries: 3
+      batch-size: 16384
+      linger-ms: 10
+      buffer-memory: 33554432
+      properties:
+        max.in.flight.requests.per.connection: 5
+        enable.idempotence: true
+    
+    # Consumer 설정
+    consumer:
+      group-id: ${spring.application.name:shrimp-tm-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      properties:
+        spring.json.trusted.packages: com.tech.n.ai.common.kafka.event,com.tech.n.ai.*.event
+        isolation.level: read_committed
+        max.poll.interval.ms: 600000
+      # Consumer가 구독할 Topic 목록
+      topics: shrimp-tm.conversation.session.created,shrimp-tm.conversation.session.updated,shrimp-tm.conversation.session.deleted,shrimp-tm.conversation.message.created
+    
+    # Listener 설정
+    listener:
+      ack-mode: manual
+      concurrency: 3
+      missing-topics-fatal: false
+    
+    # Admin 설정
+    admin:
+      auto-create: true
+
+  # Redis 설정
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 2
+          max-wait: 3000ms
+
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.apache.kafka.clients: WARN
+    org.apache.kafka.clients.NetworkClient: ERROR
+    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
+    org.springframework.kafka: INFO

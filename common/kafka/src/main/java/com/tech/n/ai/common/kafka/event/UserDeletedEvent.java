@@ -1,6 +1,7 @@
 package com.tech.n.ai.common.kafka.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,8 +30,10 @@ public record UserDeletedEvent(
     public record UserDeletedPayload(
         @JsonProperty("userTsid") String userTsid,
         @JsonProperty("userId") String userId,
-        @JsonProperty("deletedAt") Instant deletedAt
+        @JsonProperty("email") String email,
+        @JsonProperty("username") String username,
+        @JsonProperty("deletedAt") Instant deletedAt,
+        @JsonProperty("deletedBy") String deletedBy
     ) {
     }
 }
-

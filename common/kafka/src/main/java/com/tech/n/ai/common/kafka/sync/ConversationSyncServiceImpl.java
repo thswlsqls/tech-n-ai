@@ -10,6 +10,7 @@ import com.tech.n.ai.datasource.mongodb.repository.ConversationMessageRepository
 import com.tech.n.ai.datasource.mongodb.repository.ConversationSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -19,10 +20,12 @@ import java.util.Map;
 
 /**
  * 대화 세션 및 메시지 동기화 서비스 구현 클래스
+ * MongoDB Repository가 있을 때만 활성화됨
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(ConversationSessionRepository.class)
 public class ConversationSyncServiceImpl implements ConversationSyncService {
     
     private final ConversationSessionRepository conversationSessionRepository;
