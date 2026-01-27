@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
@@ -16,6 +17,21 @@ import org.springframework.util.StringUtils;
 public class OAuthConfig implements ApplicationListener<ApplicationReadyEvent> {
 
     private final OAuthProperties oauthProperties;
+
+    @Bean
+    public OAuthProperties.GoogleOAuthProperties googleOAuthProperties() {
+        return oauthProperties.getGoogle();
+    }
+
+    @Bean
+    public OAuthProperties.NaverOAuthProperties naverOAuthProperties() {
+        return oauthProperties.getNaver();
+    }
+
+    @Bean
+    public OAuthProperties.KakaoOAuthProperties kakaoOAuthProperties() {
+        return oauthProperties.getKakao();
+    }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {

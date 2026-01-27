@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: auth-api
+  profiles:
+    include:
+      - auth-api
+      - common-core
+      - api-domain
+      - feign-oauth
+      - mail

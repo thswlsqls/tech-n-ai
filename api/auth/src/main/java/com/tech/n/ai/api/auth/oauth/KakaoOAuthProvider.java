@@ -14,7 +14,7 @@ public class KakaoOAuthProvider implements OAuthProvider {
 
     private final OAuthProperties.KakaoOAuthProperties kakaoProperties;
     
-    @Qualifier("KakaoOAuthApi")
+    @Qualifier("kakaoOAuthContract")
     private final OAuthProviderContract kakaoOAuthApi;
 
     @Override

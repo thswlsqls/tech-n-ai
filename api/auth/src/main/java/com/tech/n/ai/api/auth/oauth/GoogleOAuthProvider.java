@@ -5,6 +5,7 @@ import com.tech.n.ai.api.auth.dto.OAuthUserInfo;
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -13,8 +14,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class GoogleOAuthProvider implements OAuthProvider {
 
     private final OAuthProperties.GoogleOAuthProperties googleProperties;
-    
-    @Qualifier("GoogleOAuthApi")
+
+    @Qualifier("googleOAuthContract")
     private final OAuthProviderContract googleOAuthApi;
 
     @Override

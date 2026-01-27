@@ -1,18 +1,69 @@
-spring:
-  application:
-    name: auth-api
-  profiles:
-    include:
-      - common-core
+server:
+  port: 8080
+
+module:
+  aurora:
+    schema: auth
 
 oauth:
   google:
-    authorization-endpoint: ${OAUTH_GOOGLE_AUTHORIZATION_ENDPOINT}
-    redirect-uri: ${OAUTH_GOOGLE_REDIRECT_URI}
+    authorization-endpoint: ${OAUTH_GOOGLE_AUTHORIZATION_ENDPOINT:https://accounts.google.com/o/oauth2/v2/auth}
+    redirect-uri: ${OAUTH_GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth/callback/google}
     scope: ${OAUTH_GOOGLE_SCOPE:openid email profile}
   naver:
-    authorization-endpoint: ${OAUTH_NAVER_AUTHORIZATION_ENDPOINT}
-    redirect-uri: ${OAUTH_NAVER_REDIRECT_URI}
+    authorization-endpoint: ${OAUTH_NAVER_AUTHORIZATION_ENDPOINT:https://nid.naver.com/oauth2.0/authorize}
+    redirect-uri: ${OAUTH_NAVER_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth/callback/naver}
   kakao:
-    authorization-endpoint: ${OAUTH_KAKAO_AUTHORIZATION_ENDPOINT}
-    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI}
+    authorization-endpoint: ${OAUTH_KAKAO_AUTHORIZATION_ENDPOINT:https://kauth.kakao.com/oauth/authorize}
+    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth/callback/kakao}
+
+management:
+  health:
+    mongo:
+      enabled: false
+
+logging:
+  level:
+    # Application 로그
+    com.tech.n.ai: INFO
+    
+    # MongoDB 로그 최소화
+    org.mongodb.driver: WARN
+    org.mongodb.driver.cluster: ERROR
+    org.mongodb.driver.client: WARN
+    
+    # Spring Session 로그
+    org.springframework.session: ERROR
+    org.springframework.scheduling: ERROR
+    
+    # JPA/Hibernate 로그
+    org.hibernate: WARN
+    org.hibernate.orm: WARN
+    org.springframework.orm: WARN
+    
+    # Spring Data 로그
+    org.springframework.data: INFO
+    
+    # Flyway 로그
+    org.flywaydb: INFO
+    
+    # HikariCP 로그
+    com.zaxxer.hikari: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  
+  # Spring Session 비활성화 (local 환경에서는 불필요)
+  session:
+    store-type: none
+
+logging:
+  level:
+    # Local 환경 추가 로그 설정
+    com.tech.n.ai: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+

@@ -14,7 +14,7 @@ public class NaverOAuthProvider implements OAuthProvider {
 
     private final OAuthProperties.NaverOAuthProperties naverProperties;
     
-    @Qualifier("NaverOAuthApi")
+    @Qualifier("naverOAuthContract")
     private final OAuthProviderContract naverOAuthApi;
 
     @Override

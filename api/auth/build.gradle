@@ -12,9 +12,9 @@ dependencies {
 	implementation project(':datasource-aurora')
 	implementation project(':common-core')
 	implementation project(':common-security')
-	implementation project(':common-kafka')
 	implementation project(':common-exception')
 	implementation project(':client-feign')
+	implementation project(':client-mail')
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }
 
