@@ -248,15 +248,9 @@ Agent가 사용할 수 있는 6가지 Tool:
 
 ### 시스템 아키텍처
 
-#### AI Agent 전체 아키텍처
-
 ![AI Agent System Architecture](contents/api-agent/sytem-architecture.png)
 
 AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-ai-update API, Slack과 상호작용하며, 최종적으로 MongoDB에 데이터를 저장합니다.
-
-#### AI Update API 아키텍처
-
-![AI Update API Architecture](contents/api-ai-update/system-architecture.png)
 
 ai-update API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Slack 알림 기능도 통합되어 있습니다.
 
