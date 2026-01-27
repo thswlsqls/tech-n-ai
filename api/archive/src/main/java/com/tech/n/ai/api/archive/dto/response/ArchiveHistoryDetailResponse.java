@@ -1,6 +1,6 @@
 package com.tech.n.ai.api.archive.dto.response;
 
-import com.tech.n.ai.datasource.aurora.entity.archive.ArchiveHistoryEntity;
+import com.tech.n.ai.datasource.mariadb.entity.archive.ArchiveHistoryEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;

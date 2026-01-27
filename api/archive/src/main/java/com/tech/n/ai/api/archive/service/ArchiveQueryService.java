@@ -2,7 +2,7 @@ package com.tech.n.ai.api.archive.service;
 
 import com.tech.n.ai.api.archive.dto.request.ArchiveListRequest;
 import com.tech.n.ai.api.archive.dto.request.ArchiveSearchRequest;
-import com.tech.n.ai.datasource.mongodb.document.ArchiveDocument;
+import com.tech.n.ai.datasource.mariadb.entity.archive.ArchiveEntity;
 import org.springframework.data.domain.Page;
 
 /**
@@ -17,16 +17,16 @@ public interface ArchiveQueryService {
      * @param request ArchiveListRequest
      * @return 아카이브 목록
      */
-    Page<ArchiveDocument> findArchives(String userId, ArchiveListRequest request);
+    Page<ArchiveEntity> findArchives(Long userId, ArchiveListRequest request);
     
     /**
      * 아카이브 상세 조회
      * 
      * @param userId 사용자 ID
-     * @param id 아카이브 ID (archiveTsid 또는 ObjectId)
-     * @return ArchiveDocument
+     * @param id 아카이브 ID (TSID)
+     * @return ArchiveEntity
      */
-    ArchiveDocument findArchiveById(String userId, String id);
+    ArchiveEntity findArchiveById(Long userId, Long id);
     
     /**
      * 아카이브 검색
@@ -35,5 +35,5 @@ public interface ArchiveQueryService {
      * @param request ArchiveSearchRequest
      * @return 검색 결과
      */
-    Page<ArchiveDocument> searchArchives(String userId, ArchiveSearchRequest request);
+    Page<ArchiveEntity> searchArchives(Long userId, ArchiveSearchRequest request);
 }

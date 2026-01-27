@@ -2,7 +2,7 @@ package com.tech.n.ai.api.archive.service;
 
 import com.tech.n.ai.api.archive.dto.request.ArchiveCreateRequest;
 import com.tech.n.ai.api.archive.dto.request.ArchiveUpdateRequest;
-import com.tech.n.ai.datasource.aurora.entity.archive.ArchiveEntity;
+import com.tech.n.ai.datasource.mariadb.entity.archive.ArchiveEntity;
 
 /**
  * Archive Command Service 인터페이스

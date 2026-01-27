@@ -1,0 +1,12 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: archive-api
+  profiles:
+    include:
+      - common-core
+      - kafka
+      - api-domain
+      - archive-api

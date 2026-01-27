@@ -1,8 +1,8 @@
 package com.tech.n.ai.api.archive.service;
 
 import com.tech.n.ai.api.archive.dto.request.ArchiveHistoryListRequest;
-import com.tech.n.ai.datasource.aurora.entity.archive.ArchiveEntity;
-import com.tech.n.ai.datasource.aurora.entity.archive.ArchiveHistoryEntity;
+import com.tech.n.ai.datasource.mariadb.entity.archive.ArchiveEntity;
+import com.tech.n.ai.datasource.mariadb.entity.archive.ArchiveHistoryEntity;
 import org.springframework.data.domain.Page;
 
 /**
