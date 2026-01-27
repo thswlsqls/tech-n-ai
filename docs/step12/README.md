@@ -1,24 +1,34 @@
-# Step 12: langchain4j를 활용한 RAG 기반 챗봇 구현
+# Step 12: 사용자 아카이브 기능 구현
+
+## Plan Task
+
+```
+plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
+```
 
 ## 개요
 
-이 단계는 langchain4j 오픈소스를 활용하여 MongoDB Atlas Vector Search 기반의 RAG(Retrieval-Augmented Generation) 챗봇 시스템을 구현합니다.
+`api-archive` 모듈의 사용자 아카이브 기능을 구현합니다. 로그인한 사용자가 조회할 수 있는 모든 contest, news 정보를 개인 아카이브에 저장하고, 태그와 메모를 수정하며, 삭제 및 복구할 수 있는 기능을 제공합니다. 또한 태그와 메모를 기준으로 검색하고, 원본 아이템 정보를 기준으로 정렬할 수 있는 기능을 포함합니다.
+
+## 작업 목표
+
+- `api-archive` 모듈의 11개 API 엔드포인트 구현
+- ArchiveCommandService, ArchiveQueryService, ArchiveHistoryService 구현
+- ArchiveFacade 및 ArchiveController 구현
+- DTO 및 예외 처리 구현
+- Domain 모듈 확장 (ArchiveDocument 스키마 확장)
 
 ## 관련 설계서
 
-- `rag-chatbot-design.md`: RAG 챗봇 설계서
-
-## 주요 내용
-
-- langchain4j 오픈소스 통합
-- MongoDB Atlas Vector Search 설정 및 최적화
-- 멀티턴 대화 히스토리 관리
-- Provider별 메시지 포맷 변환 (OpenAI, Anthropic)
-- RAG 파이프라인 구현
-- 토큰 제어 및 비용 통제 전략
+- `user-archive-feature-design.md`: 사용자 아카이브 기능 설계서
 
 ## 의존성
 
+- 5단계: 사용자 인증 시스템 구현 완료 필수
+- 4단계: Domain 모듈 구현 완료 필수
 - 11단계: CQRS 패턴 구현 완료 필수
 - 9단계: Contest 및 News API 모듈 구현 완료 필수
-- 12단계: 사용자 아카이브 기능 구현 완료 권장
+
+## 다음 단계
+
+- 13단계 (RAG 기반 챗봇 구현)

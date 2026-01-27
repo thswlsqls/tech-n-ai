@@ -54,14 +54,24 @@
 ### Step 13: 사용자 아카이브 기능 구현
 - 사용자 아카이브 기능 구현 설계서
 
-### Step 14: API 컨트롤러 및 서비스 구현
-- (설계서 없음 - 구현 단계)
+### Step 14: API Gateway 서버 구현
+- API Gateway 설계서
+- Gateway 구현 계획
 
-### Step 15: Batch 모듈 및 Jenkins 연동 구현
-- (설계서 없음 - 구현 단계)
+### Step 15: Sources 동기화 Batch Job 구현
+- Sources 동기화 배치 잡 설계서
 
-### Step 16: 테스트 및 Spring REST Docs 기반 API 문서화
-- (설계서 없음 - 구현 단계)
+### Step 16: 이메일 인증 기능 구현 (api/auth 모듈)
+- 이메일 인증 기능 구현 설계서 (step19/email-verification-implementation-design.md)
+
+### Step 17: 테스트 및 Spring REST Docs 기반 API 문서화
+- MongoDB Atlas Vector Search 구현 가이드 (step18/)
+
+
+## 개발 환경 가이드
+
+- [로컬 개발 환경 설정 가이드](./local-development-setup-guide.md): Kafka, Redis, 애플리케이션 실행 절차
+- [Kafka Docker 로컬 설정 가이드](./kafka-docker-local-setup-guide.md): Kafka 상세 설정 및 트러블슈팅
 
 ## 참고 문서
 

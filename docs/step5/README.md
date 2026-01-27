@@ -1,27 +1,39 @@
 # Step 5: 사용자 인증 및 관리 시스템 구현
 
+## Plan Task
+
+```
+plan task: 사용자 인증 및 관리 시스템 구현
+```
+
 ## 개요
 
-이 단계는 사용자 인증 및 관리 시스템을 구현합니다. 회원가입, 로그인, 로그아웃, 토큰 갱신, 비밀번호 재설정 기능을 포함합니다.
+사용자 인증 및 관리 시스템을 구현하여 회원가입, 로그인, 로그아웃, 토큰 갱신, 이메일 인증, 비밀번호 재설정, OAuth 2.0 SNS 로그인 기능을 제공합니다. CQRS 패턴을 기반으로 Command Side(Aurora MySQL)에서 쓰기 작업을 처리하고, Kafka 이벤트를 통해 Query Side(MongoDB Atlas)와 동기화합니다.
 
-## 관련 설계서
+## 역할
 
-### 참조 문서
-- `reference/shrimp-task-prompts-final-goal.md`: 최종 프로젝트 목표
-- `../step1/3. aurora-schema-design.md`: Aurora MySQL 스키마 설계
-- `../step2/1. api-endpoint-design.md`: API 엔드포인트 설계
-- `../step2/4. error-handling-strategy-design.md`: 에러 처리 전략 설계
+- **백엔드 개발자 (인증 시스템 구현)**
 
-## 주요 내용
+## 책임
 
-- 회원가입 및 이메일 인증
-- 로그인 및 JWT 토큰 발급
-- 로그아웃 및 토큰 무효화
-- 토큰 갱신
-- 비밀번호 재설정
+- 사용자 인증 및 관리 기능 구현
+- JWT 기반 인증 시스템 구축
+- OAuth 2.0을 통한 소셜 로그인 지원
+- 모든 쓰기 작업에 대한 히스토리 추적 및 Kafka 이벤트 발행
+
+## 예상 결과
+
+- 사용자 인증 및 관리 기능이 정상적으로 동작하는 API 서버
+- Aurora MySQL에 사용자 정보가 정상적으로 저장/조회됨
+- Kafka 이벤트를 통한 Query Side 동기화가 정상적으로 동작함
+- 모든 엔티티 및 Repository가 정상적으로 빌드 및 컴파일됨
 
 ## 의존성
 
 - 1단계: 프로젝트 구조 생성
 - 3단계: Common 모듈 구현 완료 필수
 - 4단계: Domain 모듈 - User 엔티티 구현 완료 필수
+
+## 다음 단계
+
+- 11단계 (CQRS 패턴 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (API 컨트롤러 구현)

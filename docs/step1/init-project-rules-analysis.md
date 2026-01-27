@@ -2,7 +2,7 @@
 
 ## 개요
 
-`init project rules` 명령을 실행하면 Tech N AI MCP Server는 프로젝트 표준 문서(`shrimp-rules.md`)를 생성하기 위한 작업을 수행합니다.
+`init project rules` 명령을 실행하면 Shrimp Task Manager MCP Server는 프로젝트 표준 문서(`shrimp-rules.md`)를 생성하기 위한 작업을 수행합니다.
 
 ## 실행 단계
 
@@ -215,7 +215,7 @@ AI Agent: shrimp-rules.md 파일 생성
 - 프로젝트 특정 규칙이 명확히 정의되어야 함
 - **빌드 검증**: 프로젝트 규칙 초기화 후 빌드가 정상적으로 동작해야 함 (`./gradlew clean build` 명령이 성공해야 함)
 
-## Tech N AI MCP Server 작업 상세 분석
+## Shrimp Task Manager MCP Server 작업 상세 분석
 
 ### MCP Server 응답 구조
 
@@ -385,7 +385,7 @@ AI Agent: shrimp-rules.md 파일 생성
 
 **도구**: `write` 또는 `mcp_filesystem_write_file`
 
-**생성 위치**: 프로젝트 루트 디렉토리 (`/Users/r00442/Documents/workspace/tech-n-ai/shrimp-rules.md`)
+**생성 위치**: 프로젝트 루트 디렉토리 (`/Users/r00442/Documents/workspace/shrimp-tm-demo/shrimp-rules.md`)
 
 **생성 내용 구조**:
 1. **Project Overview**: 목적, 기술 스택, 핵심 기능

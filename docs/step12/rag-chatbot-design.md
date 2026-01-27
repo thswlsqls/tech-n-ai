@@ -197,7 +197,7 @@
 
 ## 아키텍처 설계
 
-### Overall System Architecture
+### 전체 시스템 아키텍처
 
 ```mermaid
 graph TB
@@ -233,8 +233,8 @@ graph TB
     end
     
     subgraph "External"
-        LLM["LLM Provider<br/>OpenAI (default)/Anthropic/Google"]
-        EMB["Embedding Model<br/>OpenAI (default)/Voyage AI/Cohere"]
+        LLM[LLM Provider<br/>OpenAI (기본)/Anthropic/Google]
+        EMB[Embedding Model<br/>OpenAI (기본)/Voyage AI/Cohere]
     end
     
     U -->|POST /api/v1/chatbot| C
@@ -242,8 +242,8 @@ graph TB
     F --> CS
     CS --> IPS
     IPS --> ICS
-    ICS -->|RAG Required| IC
-    ICS -->|General Conversation| LS
+    ICS -->|RAG 필요| IC
+    ICS -->|일반 대화| LS
     IC --> VSS
     VSS --> MDB
     VSS --> RD
@@ -1589,9 +1589,9 @@ langchain4j는 `ChatMemory` 인터페이스를 통해 대화 메모리를 관리
 **Command Side (Aurora MySQL) - ConversationSession 엔티티**:
 
 ```java
-package com.tech.n.ai.domain.mariadb.entity.chatbot;
+package com.tech.n.ai.datasource.mariadb.entity.chatbot;
 
-import com.tech.n.ai.domain.mariadb.entity.BaseEntity;
+import com.tech.n.ai.datasource.mariadb.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -1632,7 +1632,7 @@ public class ConversationSessionEntity extends BaseEntity {
 **Query Side (MongoDB Atlas) - ConversationSessionDocument**:
 
 ```java
-package com.tech.n.ai.domain.mongodb.document;
+package com.tech.n.ai.datasource.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -1691,7 +1691,7 @@ public class ConversationSessionDocument {
 **Command Side (Aurora MySQL) - ConversationMessage 엔티티**:
 
 ```java
-package com.tech.n.ai.domain.mariadb.entity.chatbot;
+package com.tech.n.ai.datasource.mariadb.entity.chatbot;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -1746,7 +1746,7 @@ public class ConversationMessageEntity {
 **Query Side (MongoDB Atlas) - ConversationMessageDocument**:
 
 ```java
-package com.tech.n.ai.domain.mongodb.document;
+package com.tech.n.ai.datasource.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -2404,8 +2404,8 @@ import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
 import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
 import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundException;
 import com.tech.n.ai.api.chatbot.common.exception.UnauthorizedException;
-import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
+import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -2581,9 +2581,9 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
 세션 생명주기 관리를 위한 Repository 메서드 추가:
 
 ```java
-package com.tech.n.ai.domain.mariadb.repository.writer.chatbot;
+package com.tech.n.ai.datasource.mariadb.repository.writer.chatbot;
 
-import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

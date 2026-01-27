@@ -105,6 +105,29 @@
 
 **상세 설계**: Slack 모듈의 Rate Limiting 구현 상세는 `docs/step8/slack-integration-design-guide.md` 문서의 "Rate Limiting 구현 (Redis 활용)" 섹션을 참고하세요.
 
+#### Sources 메타데이터 캐싱 (`SourcesSyncJob Step2`)
+
+**사용 사례**: `batch/source` 모듈의 SourcesSyncJob에서 MongoDB sources 컬렉션의 데이터를 Redis에 캐싱합니다.
+
+**구현 예시**:
+- Key 형식: `{url}:{category}`
+- TTL: 없음 (배치 실행 시 자동 갱신)
+- 작업: 저장 (배치), 조회 (API/배치)
+- 구현 패턴: MongoDB → Redis 동기화
+  ```java
+  String sourceId = document.getId().toString();
+  String key = document.getUrl() + ":" + document.getCategory();
+  redisTemplate.opsForValue().set(key, sourceId);
+  ```
+
+**분석 결과**:
+- ✅ URL+카테고리 복합 키로 유니크 보장
+- ✅ 배치 작업에서 소스 검증에 활용
+- ✅ TTL 없이 영구 저장 (배치 재실행 시 덮어쓰기)
+- ✅ 메모리 효율적 (100개 소스 기준 약 7KB)
+
+**상세 설계**: Sources 캐싱 구현 상세는 `docs/step18/sources-sync-step2-redis-caching-design.md` 문서를 참고하세요.
+
 #### Kafka 이벤트 멱등성 보장 (`EventConsumer`)
 
 **현재 구현**:

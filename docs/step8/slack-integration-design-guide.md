@@ -171,7 +171,7 @@ client/slack/
 프로젝트는 멀티모듈 MSA 아키텍처를 따르며, 다음과 같은 구조를 가집니다:
 
 ```
-tech-n-ai/
+shrimp-tm-demo/
 ├── api/              # API 서버 모듈들
 ├── batch/            # 배치 작업 모듈
 ├── common/           # 공통 모듈들

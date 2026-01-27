@@ -1,8 +1,9 @@
 # CQRS 패턴 기반 Kafka 동기화 설계서
 
-**작성 일시**: 2026-01-XX  
+**작성 일시**: 2026-01-22  
 **대상 모듈**: `common-kafka`, `domain-mongodb`  
-**목적**: Kafka를 통한 Amazon Aurora MySQL과 MongoDB Atlas 간 실시간 동기화 구현 설계
+**목적**: Kafka를 통한 Amazon Aurora MySQL과 MongoDB Atlas 간 실시간 동기화 구현 설계  
+**최종 업데이트**: 2026-01-22 (구현 완료 기준 업데이트)
 
 ## 목차
 
@@ -33,24 +34,30 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 ### 현재 구현 상태 요약
 
 - ✅ **Kafka Producer (`EventPublisher`)**: 완료
-- ✅ **Kafka Consumer 기본 구조 (`EventConsumer`)**: 완료 (멱등성 보장 포함)
-- ✅ **이벤트 모델**: 모든 이벤트 타입 정의 완료
+- ✅ **Kafka Consumer (`EventConsumer`)**: 완료 (EventHandlerRegistry 패턴 적용)
+- ✅ **멱등성 보장 (`IdempotencyService`)**: 완료 (Redis 기반)
+- ✅ **이벤트 핸들러 패턴**: 완료 (EventHandler 인터페이스 + EventHandlerRegistry)
+- ✅ **이벤트 모델**: Conversation 관련 이벤트 정의 완료
 - ✅ **MongoDB Document 및 Repository**: 완료
 - ✅ **MongoDB 인덱스 설정 (`MongoIndexConfig`)**: 완료
 - ✅ **MongoDB Atlas 연결 설정**: 완료
-  - ✅ 연결 설정 파일 (`application-mongodb-domain.yml`)
-  - ✅ 연결 풀 최적화 Config (`MongoClientConfig`)
-  - ✅ Read Preference 설정 (`secondaryPreferred`)
-  - ✅ API 모듈 Profile 설정 업데이트
-- ❌ **동기화 서비스**: 미구현 (`UserSyncService`, `ArchiveSyncService`)
-- ❌ **이벤트 처리 로직**: `EventConsumer.processEvent` 빈 구현
+- ✅ **동기화 서비스**: `ConversationSyncService` 완료
+- ✅ **이벤트 핸들러**: 4개 구현 완료
+
+### 현재 구현된 이벤트
+
+| 이벤트 타입 | 이벤트 클래스 | 핸들러 | Kafka Topic |
+|------------|--------------|--------|-------------|
+| `CONVERSATION_SESSION_CREATED` | `ConversationSessionCreatedEvent` | `ConversationSessionCreatedEventHandler` | `shrimp-tm.conversation.session.created` |
+| `CONVERSATION_SESSION_UPDATED` | `ConversationSessionUpdatedEvent` | `ConversationSessionUpdatedEventHandler` | `shrimp-tm.conversation.session.updated` |
+| `CONVERSATION_SESSION_DELETED` | `ConversationSessionDeletedEvent` | `ConversationSessionDeletedEventHandler` | `shrimp-tm.conversation.session.deleted` |
+| `CONVERSATION_MESSAGE_CREATED` | `ConversationMessageCreatedEvent` | `ConversationMessageCreatedEventHandler` | `shrimp-tm.conversation.message.created` |
 
 ### 설계서 범위
 
 **포함 사항**:
-- User 및 Archive 엔티티의 MongoDB 동기화 서비스 설계
-- `EventConsumer.processEvent` 메서드 구현 설계
-- 이벤트 타입별 처리 로직 설계
+- Conversation 엔티티의 MongoDB 동기화 서비스 설계
+- EventHandler 패턴 기반 이벤트 처리 아키텍처
 - `updatedFields` (Map<String, Object>) 처리 전략
 
 **제외 사항**:
@@ -58,8 +65,6 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 - 복잡한 DLQ 처리 (기본 재시도로 충분, 필요 시 후속 단계에서 추가)
 - 복잡한 모니터링 시스템 (기본 로깅으로 충분)
 - Contest/News 동기화 서비스 (배치 작업을 통해 직접 MongoDB에 저장되므로 Kafka 동기화 불필요)
-  - `ContestSyncedEvent`, `NewsArticleSyncedEvent`는 배치 작업에서 직접 MongoDB에 저장
-  - 이벤트는 로깅 목적으로만 사용될 수 있음
 
 ---
 
@@ -69,30 +74,32 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 
 1. **단일 책임 원칙 (SRP)**
    - 각 동기화 서비스는 하나의 엔티티 타입만 담당
-   - `UserSyncService`: User 엔티티 동기화만 담당
-   - `ArchiveSyncService`: Archive 엔티티 동기화만 담당
+   - `ConversationSyncService`: Conversation 엔티티 동기화만 담당
+   - 향후 확장: `UserSyncService`, `ArchiveSyncService` 등
 
 2. **의존성 역전 원칙 (DIP)**
    - 인터페이스 기반 설계
    - 동기화 서비스는 인터페이스로 정의하고 구현체 분리
-   - `EventConsumer`는 동기화 서비스 인터페이스에만 의존
+   - EventHandler는 동기화 서비스 인터페이스에만 의존
 
 3. **개방-폐쇄 원칙 (OCP)**
    - 새로운 이벤트 타입 추가 시 기존 코드 수정 없이 확장 가능
-   - 전략 패턴을 통한 이벤트 처리 로직 확장
+   - EventHandler 패턴을 통한 이벤트 처리 로직 확장
 
 ### 2. 객체지향 설계 기법
 
-1. **전략 패턴**
+1. **전략 패턴 (Strategy Pattern)**
    - 이벤트 타입별 처리 전략 분리
-   - `EventConsumer`에서 이벤트 타입에 따라 적절한 동기화 서비스 선택
+   - EventHandler 인터페이스를 통한 전략 구현
+   - EventHandlerRegistry가 이벤트 타입에 따라 적절한 핸들러 선택
 
-2. **팩토리 패턴 (선택사항)**
-   - 이벤트 타입 → 동기화 서비스 매핑을 팩토리로 캡슐화 가능
-   - 현재는 단순 if-else 또는 switch로 구현 (오버엔지니어링 방지)
+2. **레지스트리 패턴 (Registry Pattern)**
+   - EventHandlerRegistry가 모든 EventHandler 구현체를 자동 등록
+   - Spring DI를 통한 핸들러 자동 주입
+   - 런타임에 이벤트 타입으로 핸들러 조회
 
-3. **템플릿 메서드 패턴**
-   - 공통 동기화 흐름 정의 (이벤트 수신 → 멱등성 확인 → 동기화 → 완료 표시)
+3. **템플릿 메서드 패턴 (Template Method Pattern)**
+   - 공통 동기화 흐름 정의 (이벤트 수신 → 멱등성 확인 → 핸들러 실행 → 완료 표시)
    - `EventConsumer`에서 이미 구현됨
 
 ### 3. CQRS 패턴 원칙
@@ -106,23 +113,26 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
    - 모든 쓰기 작업 후 Kafka 이벤트 발행
    - 비동기 처리로 Command Side 성능 영향 최소화
 
-3. **TSID 필드 기반 1:1 매핑 보장**
-   - `User.id(TSID)` → `UserProfileDocument.userTsid`
-   - `Archive.id(TSID)` → `ArchiveDocument.archiveTsid`
+3. **세션 ID 기반 1:1 매핑 보장**
+   - `ConversationSession.id(TSID)` → `ConversationSessionDocument.sessionId`
+   - `ConversationMessage.messageId(TSID)` → `ConversationMessageDocument.messageId`
    - UNIQUE 인덱스를 통한 정확성 보장
 
 ### 4. 최소 구현 원칙
 
 1. **현재 필요한 기능만 구현**
-   - User 및 Archive 동기화만 구현
-   - Contest/News는 배치 작업으로 직접 저장되므로 제외
+   - Conversation 동기화만 구현 (대화 세션 및 메시지)
+   - Contest/News는 배치 작업으로 직접 저장되므로 Kafka 동기화 불필요
+   - 향후 확장: User, Archive 동기화 추가 가능
 
 2. **단순하고 명확한 구조**
    - 복잡한 추상화 레이어 지양
    - 직접적이고 이해하기 쉬운 코드
+   - EventHandler 패턴으로 확장성 확보
 
 3. **단계적 확장 가능한 구조**
    - 향후 다른 엔티티 동기화 추가 시 동일한 패턴 적용 가능
+   - 새 EventHandler 구현체만 추가하면 자동으로 등록됨
 
 ---
 
@@ -145,22 +155,62 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 - Partition Key를 통한 이벤트 순서 보장 지원
 - 비동기 처리로 Command Side 성능 영향 최소화
 
-#### 1.2 EventConsumer 기본 구조
+#### 1.2 EventConsumer 및 EventHandler 패턴 구현 상태
 
-**위치**: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
+**위치**: 
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventHandlerRegistry.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventHandler.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/IdempotencyService.java`
 
-**구현 내용**:
-- ✅ `@KafkaListener` 설정: 여러 토픽 수신 (`user-events`, `archive-events`, `conversation-events`, `contest-events`, `news-events`)
-- ✅ 멱등성 보장: Redis 기반 중복 처리 방지
-  - `isEventProcessed(String eventId)`: Redis에서 처리 여부 확인
-  - `markEventAsProcessed(String eventId)`: Redis에 처리 완료 표시 (TTL: 7일)
+**EventConsumer 구현 내용**:
+- ✅ `@KafkaListener` 설정: Conversation 관련 토픽 수신
+  - `shrimp-tm.conversation.session.created`
+  - `shrimp-tm.conversation.session.updated`
+  - `shrimp-tm.conversation.session.deleted`
+  - `shrimp-tm.conversation.message.created`
+- ✅ 멱등성 보장: `IdempotencyService`를 통한 Redis 기반 중복 처리 방지
 - ✅ 수동 커밋: `Acknowledgment.acknowledge()` 사용
 - ✅ 에러 핸들링: 예외 발생 시 로깅 및 예외 전파 (Spring Kafka 재시도 활용)
-- ❌ `processEvent(BaseEvent event)`: 빈 구현 (로깅만 수행)
+- ✅ EventHandlerRegistry에 이벤트 처리 위임
+
+**EventHandler 패턴 구조**:
+```java
+// EventHandler 인터페이스
+public interface EventHandler<T extends BaseEvent> {
+    void handle(T event);
+    String getEventType();
+}
+
+// EventHandlerRegistry
+@Component
+public class EventHandlerRegistry {
+    private final Map<String, EventHandler<? extends BaseEvent>> handlers;
+    
+    // Spring DI를 통해 모든 EventHandler 구현체 자동 등록
+    public EventHandlerRegistry(List<EventHandler<? extends BaseEvent>> handlerList) {
+        handlerList.forEach(handler -> 
+            handlers.put(handler.getEventType(), handler)
+        );
+    }
+    
+    public <T extends BaseEvent> void handle(T event) {
+        // 이벤트 타입으로 핸들러 조회 및 실행
+    }
+}
+```
+
+**구현된 EventHandler 구현체**:
+- ✅ `ConversationSessionCreatedEventHandler`
+- ✅ `ConversationSessionUpdatedEventHandler`
+- ✅ `ConversationSessionDeletedEventHandler`
+- ✅ `ConversationMessageCreatedEventHandler`
 
 **특징**:
-- 멱등성 보장 로직이 이미 구현되어 있어 중복 처리 방지
-- `processEvent` 메서드만 구현하면 됨
+- EventHandler 패턴으로 이벤트 타입별 처리 로직 완전 분리
+- 새 이벤트 추가 시 EventHandler 구현체만 추가하면 자동 등록
+- IdempotencyService를 통한 멱등성 보장 (Redis, TTL 7일)
+- 각 핸들러는 ConversationSyncService에 동기화 위임
 
 #### 1.3 이벤트 모델 구조
 
@@ -173,108 +223,167 @@ public interface BaseEvent {
 }
 ```
 
-**User 관련 이벤트**:
-- ✅ `UserCreatedEvent`: `userTsid`, `userId`, `username`, `email`, `profileImageUrl`
-- ✅ `UserUpdatedEvent`: `userTsid`, `userId`, `updatedFields` (Map<String, Object>)
-- ✅ `UserDeletedEvent`: `userTsid`, `userId`, `deletedAt`
-- ✅ `UserRestoredEvent`: `userTsid`, `userId`, `username`, `email`, `profileImageUrl`
+**Conversation 관련 이벤트 (현재 구현됨)**:
 
-**Archive 관련 이벤트**:
-- ✅ `ArchiveCreatedEvent`: `archiveTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `archivedAt`
-- ✅ `ArchiveUpdatedEvent`: `archiveTsid`, `userId`, `updatedFields` (Map<String, Object>)
-  - **주의**: `updatedFields`에는 `tag`, `memo`만 포함 가능 (ArchiveEntity에 있는 필드만)
-  - `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 `updatedFields`에 포함될 수 없음
-- ✅ `ArchiveDeletedEvent`: `archiveTsid`, `userId`, `deletedAt`
-- ✅ `ArchiveRestoredEvent`: `archiveTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `archivedAt`
+1. **ConversationSessionCreatedEvent**: 대화 세션 생성
+   - Payload: `sessionId`, `userId`, `title`, `lastMessageAt`, `isActive`
+   - 이벤트 타입: `CONVERSATION_SESSION_CREATED`
 
-**Conversation 관련 이벤트**:
-- ✅ `ConversationSessionCreatedEvent`: `sessionId`, `userId`, `title`, `lastMessageAt`, `isActive`, `createdAt`
-- ✅ `ConversationSessionUpdatedEvent`: `sessionId`, `userId`, `updatedFields` (Map<String, Object>)
-  - **주의**: `updatedFields`에는 `title`, `lastMessageAt`, `isActive`만 포함 가능 (ConversationSessionEntity에 있는 필드만)
-- ✅ `ConversationSessionDeletedEvent`: `sessionId`, `userId`, `deletedAt`
-- ✅ `ConversationMessageCreatedEvent`: `messageId`, `sessionId`, `role`, `content`, `tokenCount`, `sequenceNumber`, `createdAt`
+2. **ConversationSessionUpdatedEvent**: 대화 세션 수정
+   - Payload: `sessionId`, `userId`, `updatedFields` (Map<String, Object>)
+   - 이벤트 타입: `CONVERSATION_SESSION_UPDATED`
+   - updatedFields 가능 필드: `title`, `lastMessageAt`, `isActive`
+
+3. **ConversationSessionDeletedEvent**: 대화 세션 삭제 (Soft Delete)
+   - Payload: `sessionId`, `userId`, `deletedAt`
+   - 이벤트 타입: `CONVERSATION_SESSION_DELETED`
+
+4. **ConversationMessageCreatedEvent**: 대화 메시지 생성
+   - Payload: `messageId`, `sessionId`, `role`, `content`, `tokenCount`, `sequenceNumber`, `createdAt`
+   - 이벤트 타입: `CONVERSATION_MESSAGE_CREATED`
+
+**이벤트 구조 예시**:
+```java
+public record ConversationSessionCreatedEvent(
+    @JsonProperty("eventId") String eventId,
+    @JsonProperty("eventType") String eventType,
+    @JsonProperty("timestamp") Instant timestamp,
+    @JsonProperty("payload") ConversationSessionCreatedPayload payload
+) implements BaseEvent {
+    
+    public ConversationSessionCreatedEvent(ConversationSessionCreatedPayload payload) {
+        this(
+            UUID.randomUUID().toString(),
+            "CONVERSATION_SESSION_CREATED",
+            Instant.now(),
+            payload
+        );
+    }
+    
+    public record ConversationSessionCreatedPayload(
+        @JsonProperty("sessionId") String sessionId,
+        @JsonProperty("userId") String userId,
+        @JsonProperty("title") String title,
+        @JsonProperty("lastMessageAt") Instant lastMessageAt,
+        @JsonProperty("isActive") Boolean isActive
+    ) {}
+}
+```
 
 **특징**:
 - 모든 이벤트는 `record` 타입으로 정의 (불변성 보장)
 - `updatedFields`는 `Map<String, Object>` 타입으로 부분 업데이트 지원
+- `eventId`, `eventType`, `timestamp`는 생성자에서 자동 생성
+- `@JsonProperty`로 직렬화/역직렬화 명확성 보장
 
 #### 1.4 MongoDB Repository 인터페이스
 
-**UserProfileRepository**:
+**ConversationSessionRepository**:
 ```java
-public interface UserProfileRepository extends MongoRepository<UserProfileDocument, ObjectId> {
-    Optional<UserProfileDocument> findByUserTsid(String userTsid);
-    Optional<UserProfileDocument> findByUserId(String userId);
-    Optional<UserProfileDocument> findByUsername(String username);
-    Optional<UserProfileDocument> findByEmail(String email);
+public interface ConversationSessionRepository extends MongoRepository<ConversationSessionDocument, ObjectId> {
+    Optional<ConversationSessionDocument> findBySessionId(String sessionId);
+    List<ConversationSessionDocument> findByUserIdOrderByCreatedAtDesc(String userId);
+    Page<ConversationSessionDocument> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 }
 ```
 
-**ArchiveRepository**:
+**ConversationMessageRepository**:
 ```java
-public interface ArchiveRepository extends MongoRepository<ArchiveDocument, ObjectId> {
-    Optional<ArchiveDocument> findByArchiveTsid(String archiveTsid);
-    List<ArchiveDocument> findByUserIdOrderByCreatedAtDesc(String userId);
-    List<ArchiveDocument> findByUserIdAndItemTypeOrderByCreatedAtDesc(String userId, String itemType);
-    Optional<ArchiveDocument> findByUserIdAndItemTypeAndItemId(String userId, String itemType, ObjectId itemId);
+public interface ConversationMessageRepository extends MongoRepository<ConversationMessageDocument, ObjectId> {
+    Optional<ConversationMessageDocument> findByMessageId(String messageId);
+    List<ConversationMessageDocument> findBySessionIdOrderBySequenceNumberAsc(String sessionId);
+    Page<ConversationMessageDocument> findBySessionIdOrderBySequenceNumberAsc(String sessionId, Pageable pageable);
 }
 ```
 
 **특징**:
 - Spring Data MongoDB의 `MongoRepository` 활용
-- `userTsid`, `archiveTsid` 기반 조회 메서드 제공
+- `sessionId`, `messageId` 기반 조회 메서드 제공
 - UNIQUE 인덱스가 설정되어 있어 중복 방지
+- 정렬 및 페이징 지원
 
-### 2. 미구현 부분
+### 2. 동기화 서비스 구현 상태
 
-#### 2.1 동기화 서비스
+#### 2.1 ConversationSyncService (구현 완료)
 
-**미구현 서비스**:
-- ❌ `UserSyncService`: User 이벤트 → UserProfileDocument 동기화
-- ❌ `ArchiveSyncService`: Archive 이벤트 → ArchiveDocument 동기화
-- ❌ `ConversationSyncService`: Conversation 이벤트 → ConversationSessionDocument, ConversationMessageDocument 동기화
-
-**주의사항**:
-- `ContestSyncService`, `NewsArticleSyncService`는 **제외**
-  - 배치 작업을 통해 직접 MongoDB에 저장되므로 Kafka 동기화 불필요
-  - `ContestSyncedEvent`, `NewsArticleSyncedEvent`는 로깅 목적으로만 사용 가능
-
-#### 2.2 EventConsumer.processEvent 구현
-
-**현재 상태**:
+**인터페이스**: `common/kafka/src/main/java/.../sync/ConversationSyncService.java`
 ```java
-private void processEvent(BaseEvent event) {
-    // 실제 이벤트 처리 로직은 각 도메인별로 구현
-    // 여기서는 기본 구현만 제공
-    log.info("Processing event: eventId={}, eventType={}", event.eventId(), event.eventType());
+public interface ConversationSyncService {
+    void syncSessionCreated(ConversationSessionCreatedEvent event);
+    void syncSessionUpdated(ConversationSessionUpdatedEvent event);
+    void syncSessionDeleted(ConversationSessionDeletedEvent event);
+    void syncMessageCreated(ConversationMessageCreatedEvent event);
 }
 ```
 
-**필요한 구현**:
-- 이벤트 타입별 분기 처리
-- 적절한 동기화 서비스 호출
-- 에러 핸들링
+**구현 클래스**: `ConversationSyncServiceImpl`
+- ✅ `@ConditionalOnBean(ConversationSessionRepository.class)`: MongoDB Repository가 있을 때만 활성화
+- ✅ Upsert 패턴으로 중복 방지
+- ✅ `updatedFields` 부분 업데이트 지원
+- ✅ Soft Delete 처리 (MongoDB에서는 물리적 삭제)
 
-#### 2.3 updatedFields 처리 로직
+**주요 특징**:
+- Aurora MySQL → MongoDB Atlas 동기화
+- Command Side (Write) → Query Side (Read)
+- CQRS 패턴의 Query Side 업데이트 담당
 
-**문제점**:
-- `UserUpdatedEvent`, `ArchiveUpdatedEvent`의 `updatedFields`가 `Map<String, Object>` 타입
-- MongoDB Document 필드 타입과의 변환 필요
-- 부분 업데이트 vs 전체 교체 전략 결정 필요
+#### 2.2 향후 확장 가능 서비스
 
-**필요한 처리**:
-- `Map<String, Object>` → MongoDB Document 필드 매핑
-- 필드 타입 변환 (String → LocalDateTime 등)
-- null 값 처리 전략
+**미래 확장 가능**:
+- `UserSyncService`: User 이벤트 → UserProfileDocument 동기화
+- `ArchiveSyncService`: Archive 이벤트 → ArchiveDocument 동기화
+
+**제외 서비스**:
+- `ContestSyncService`, `NewsArticleSyncService`: 배치 작업에서 직접 MongoDB에 저장
+
+### 3. updatedFields 처리 전략
+
+#### 3.1 처리 방식
+
+**ConversationSessionUpdatedEvent의 updatedFields**:
+```java
+private void updateSessionDocumentFields(ConversationSessionDocument document, 
+                                         Map<String, Object> updatedFields) {
+    for (Map.Entry<String, Object> entry : updatedFields.entrySet()) {
+        String fieldName = entry.getKey();
+        Object value = entry.getValue();
+        
+        try {
+            switch (fieldName) {
+                case "title":
+                    document.setTitle((String) value);
+                    break;
+                case "lastMessageAt":
+                    if (value instanceof Instant instant) {
+                        document.setLastMessageAt(convertToLocalDateTime(instant));
+                    }
+                    break;
+                case "isActive":
+                    document.setIsActive((Boolean) value);
+                    break;
+                default:
+                    log.warn("Unknown field in updatedFields: {}", fieldName);
+            }
+        } catch (ClassCastException e) {
+            log.warn("Type mismatch for field {}: {}", fieldName, value.getClass().getName());
+        }
+    }
+}
+```
+
+**특징**:
+- `Map<String, Object>` → Document 필드 타입 변환
+- 필드별 switch 문으로 안전한 타입 캐스팅
+- 알 수 없는 필드는 경고 로그만 출력
+- 타입 불일치 시 예외 처리
 
 ### 3. 구현 우선순위
 
 #### 필수 구현 항목 (Phase 1)
 1. ✅ `UserSyncService` 인터페이스 및 구현 클래스
 2. ✅ `ArchiveSyncService` 인터페이스 및 구현 클래스
-3. ✅ `ConversationSyncService` 인터페이스 및 구현 클래스
-4. ✅ `EventConsumer.processEvent` 메서드 구현
-5. ✅ `updatedFields` 처리 로직
+3. ✅ `EventConsumer.processEvent` 메서드 구현
+4. ✅ `updatedFields` 처리 로직
 
 #### 선택 구현 항목 (후속 단계)
 - 이벤트 처리 성능 모니터링
@@ -371,7 +480,7 @@ spring:
 **설정 내용**:
 
 ```java
-package com.tech.n.ai.domain.mongodb.config;
+package com.tech.n.ai.datasource.mongodb.config;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
@@ -613,55 +722,39 @@ flowchart TB
     subgraph CommandSide["Command Side (Aurora MySQL)"]
         UserEntity[User Entity]
         ArchiveEntity[Archive Entity]
-        ConversationSessionEntity[ConversationSession Entity]
-        ConversationMessageEntity[ConversationMessage Entity]
         EventPublisher[EventPublisher<br/>✅ 완료]
     end
     
     subgraph Kafka["Kafka"]
         UserTopic[user-events Topic]
         ArchiveTopic[archive-events Topic]
-        ConversationTopic[conversation-events Topic]
         EventConsumer[EventConsumer<br/>✅ 기본 구조<br/>❌ processEvent 미구현]
     end
     
     subgraph QuerySide["Query Side (MongoDB Atlas)"]
         UserProfileDoc[UserProfileDocument]
         ArchiveDoc[ArchiveDocument]
-        ConversationSessionDoc[ConversationSessionDocument]
-        ConversationMessageDoc[ConversationMessageDocument]
         UserSyncService[UserSyncService<br/>❌ 미구현]
         ArchiveSyncService[ArchiveSyncService<br/>❌ 미구현]
-        ConversationSyncService[ConversationSyncService<br/>❌ 미구현]
     end
     
     UserEntity -->|이벤트 발행| EventPublisher
     ArchiveEntity -->|이벤트 발행| EventPublisher
-    ConversationSessionEntity -->|이벤트 발행| EventPublisher
-    ConversationMessageEntity -->|이벤트 발행| EventPublisher
     EventPublisher -->|publish| UserTopic
     EventPublisher -->|publish| ArchiveTopic
-    EventPublisher -->|publish| ConversationTopic
     UserTopic -->|이벤트 수신| EventConsumer
     ArchiveTopic -->|이벤트 수신| EventConsumer
-    ConversationTopic[conversation-events Topic] -->|이벤트 수신| EventConsumer
     EventConsumer -->|syncUserCreated<br/>syncUserUpdated<br/>syncUserDeleted<br/>syncUserRestored| UserSyncService
     EventConsumer -->|syncArchiveCreated<br/>syncArchiveUpdated<br/>syncArchiveDeleted<br/>syncArchiveRestored| ArchiveSyncService
-    EventConsumer -->|syncSessionCreated<br/>syncSessionUpdated<br/>syncSessionDeleted<br/>syncMessageCreated| ConversationSyncService
     UserSyncService -->|save/delete| UserProfileDoc
     ArchiveSyncService -->|save/delete| ArchiveDoc
-    ConversationSyncService -->|save/delete| ConversationSessionDoc
-    ConversationSyncService -->|save/delete| ConversationMessageDoc
     
     style EventPublisher fill:#90EE90
     style EventConsumer fill:#FFE4B5
     style UserSyncService fill:#FFB6C1
     style ArchiveSyncService fill:#FFB6C1
-    style ConversationSyncService fill:#FFB6C1
     style UserProfileDoc fill:#87CEEB
     style ArchiveDoc fill:#87CEEB
-    style ConversationSessionDoc fill:#87CEEB
-    style ConversationMessageDoc fill:#87CEEB
 ```
 
 #### 동기화 흐름
@@ -670,56 +763,31 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    participant Client as Client
-    participant API as API Service
-    participant DomainAurora as Domain Aurora<br/>(Command Side)
-    participant AuroraMySQL as Aurora MySQL<br/>(Writer)
-    participant EP as Event Publisher
-    participant Kafka as Kafka Broker
-    participant EC as Event Consumer
-    participant Redis as Redis<br/>(Idempotency)
-    participant DomainMongo as Domain MongoDB<br/>(Query Side)
-    participant MongoDB as MongoDB Atlas<br/>(Query Side)
+    participant CS as Command Side<br/>(Aurora MySQL)
+    participant EP as EventPublisher
+    participant K as Kafka Topic
+    participant EC as EventConsumer
+    participant R as Redis
+    participant SS as SyncService
+    participant QS as Query Side<br/>(MongoDB Atlas)
     
-    Note over Client,MongoDB: Write Operation Flow (CQRS Command Side)
-    Client->>API: POST /api/v1/archives<br/>(Create Archive)
-    API->>DomainAurora: ArchiveService.create()
-    DomainAurora->>AuroraMySQL: INSERT INTO archives<br/>(TSID Primary Key)
-    DomainAurora->>AuroraMySQL: INSERT INTO archive_history<br/>(operation_type: INSERT)
-    DomainAurora->>EP: publish ArchiveCreatedEvent
-    EP->>Kafka: topic: archive-events<br/>partitionKey: userId
-    Kafka-->>EP: Acknowledgment
-    EP-->>DomainAurora: Event Published
-    DomainAurora-->>API: Archive Created
-    API-->>Client: 201 Created<br/>(Archive Response)
-    
-    Note over Kafka,MongoDB: Event Consumption & Synchronization
-    EC->>Kafka: consume ArchiveCreatedEvent
-    EC->>Redis: Check Event Processed<br/>(eventId)
-    alt Not Processed
-        Redis-->>EC: false
-        EC->>DomainMongo: Sync ArchiveDocument<br/>(archiveTsid: TSID)
-        DomainMongo->>MongoDB: INSERT ArchiveDocument<br/>(archiveTsid, userId, itemType, itemId)
-        MongoDB-->>DomainMongo: Document Created
-        DomainMongo-->>EC: Complete
-        EC->>Redis: Mark Event Processed<br/>(TTL: 7 days)
-        Redis-->>EC: Acknowledged
-    else Already Processed
-        Redis-->>EC: true
-        Note over EC: Skip processing
+    CS->>EP: 엔티티 변경<br/>(생성/수정/삭제/복원)
+    EP->>K: 이벤트 발행<br/>(Partition Key 사용)
+    K->>EC: 이벤트 수신<br/>(@KafkaListener)
+    EC->>R: 멱등성 확인<br/>(isEventProcessed)
+    alt 이미 처리된 이벤트
+        R-->>EC: true (이미 처리됨)
+        EC->>K: acknowledge (스킵)
+    else 새로운 이벤트
+        R-->>EC: false (처리 필요)
+        EC->>EC: processEvent()
+        EC->>SS: 동기화 서비스 호출<br/>(이벤트 타입별)
+        SS->>QS: Document 저장/수정/삭제
+        QS-->>SS: 완료
+        SS-->>EC: 완료
+        EC->>R: 처리 완료 표시<br/>(markEventAsProcessed)
+        EC->>K: acknowledge (커밋)
     end
-    EC->>Kafka: Acknowledge Offset
-    
-    Note over Client,MongoDB: Read Operation Flow (CQRS Query Side)
-    Client->>API: GET /api/v1/archives<br/>(List Archives)
-    API->>DomainMongo: ArchiveRepository.findByUserId()
-    DomainMongo->>MongoDB: Query ArchiveDocument<br/>(userId index)
-    MongoDB-->>DomainMongo: ArchiveDocument List
-    DomainMongo-->>API: Archive List
-    API-->>Client: 200 OK<br/>(Archive List)
-    
-    Note over Client,MongoDB: Synchronization Delay Target: < 1 second
 ```
 
 **동기화 흐름 단계**:
@@ -799,8 +867,6 @@ erDiagram
 **매핑 규칙**:
 - `User.id` (TSID) → `UserProfileDocument.userTsid` (1:1 매핑, UNIQUE 인덱스)
 - `Archive.id` (TSID) → `ArchiveDocument.archiveTsid` (1:1 매핑, UNIQUE 인덱스)
-- `ConversationSession.session_id` (TSID) → `ConversationSessionDocument.session_id` (1:1 매핑, UNIQUE 인덱스)
-- `ConversationMessage.message_id` (TSID) → `ConversationMessageDocument.message_id` (1:1 매핑, UNIQUE 인덱스)
 - TSID 필드를 통한 정확한 동기화 보장
 
 ### 동기화 서비스 설계
@@ -850,28 +916,10 @@ classDiagram
         +ArchiveRestoredPayload payload
     }
     
-    class ConversationSessionCreatedEvent {
-        +ConversationSessionCreatedPayload payload
-    }
-    
-    class ConversationSessionUpdatedEvent {
-        +ConversationSessionUpdatedPayload payload
-        +Map~String,Object~ updatedFields
-    }
-    
-    class ConversationSessionDeletedEvent {
-        +ConversationSessionDeletedPayload payload
-    }
-    
-    class ConversationMessageCreatedEvent {
-        +ConversationMessageCreatedPayload payload
-    }
-    
     class EventConsumer {
         -RedisTemplate redisTemplate
         -UserSyncService userSyncService
         -ArchiveSyncService archiveSyncService
-        -ConversationSyncService conversationSyncService
         +consume(BaseEvent, Acknowledgment)
         -processEvent(BaseEvent)
         -isEventProcessed(String) boolean
@@ -913,25 +961,6 @@ classDiagram
         -convertToLocalDateTime(Instant) LocalDateTime
     }
     
-    class ConversationSyncService {
-        <<interface>>
-        +syncSessionCreated(ConversationSessionCreatedEvent)
-        +syncSessionUpdated(ConversationSessionUpdatedEvent)
-        +syncSessionDeleted(ConversationSessionDeletedEvent)
-        +syncMessageCreated(ConversationMessageCreatedEvent)
-    }
-    
-    class ConversationSyncServiceImpl {
-        -ConversationSessionDocumentRepository sessionRepository
-        -ConversationMessageDocumentRepository messageRepository
-        +syncSessionCreated(ConversationSessionCreatedEvent)
-        +syncSessionUpdated(ConversationSessionUpdatedEvent)
-        +syncSessionDeleted(ConversationSessionDeletedEvent)
-        +syncMessageCreated(ConversationMessageCreatedEvent)
-        -updateDocumentFields(Document, Map)
-        -convertToLocalDateTime(Instant) LocalDateTime
-    }
-    
     class UserProfileRepository {
         <<interface>>
         +findByUserTsid(String) Optional
@@ -944,19 +973,6 @@ classDiagram
         +findByArchiveTsid(String) Optional
         +save(ArchiveDocument)
         +deleteByArchiveTsid(String)
-    }
-    
-    class ConversationSessionDocumentRepository {
-        <<interface>>
-        +findBySessionId(String) Optional
-        +save(ConversationSessionDocument)
-        +deleteBySessionId(String)
-    }
-    
-    class ConversationMessageDocumentRepository {
-        <<interface>>
-        +findByMessageId(String) Optional
-        +save(ConversationMessageDocument)
     }
     
     class UserProfileDocument {
@@ -978,23 +994,6 @@ classDiagram
         +String memo
     }
     
-    class ConversationSessionDocument {
-        +String session_id
-        +String user_id
-        +String title
-        +Date last_message_at
-        +Boolean is_active
-    }
-    
-    class ConversationMessageDocument {
-        +String message_id
-        +String session_id
-        +String role
-        +String content
-        +Integer token_count
-        +Integer sequence_number
-    }
-    
     BaseEvent <|.. UserCreatedEvent
     BaseEvent <|.. UserUpdatedEvent
     BaseEvent <|.. UserDeletedEvent
@@ -1003,29 +1002,19 @@ classDiagram
     BaseEvent <|.. ArchiveUpdatedEvent
     BaseEvent <|.. ArchiveDeletedEvent
     BaseEvent <|.. ArchiveRestoredEvent
-    BaseEvent <|.. ConversationSessionCreatedEvent
-    BaseEvent <|.. ConversationSessionUpdatedEvent
-    BaseEvent <|.. ConversationSessionDeletedEvent
-    BaseEvent <|.. ConversationMessageCreatedEvent
     
     EventConsumer --> UserSyncService : uses
     EventConsumer --> ArchiveSyncService : uses
-    EventConsumer --> ConversationSyncService : uses
     EventConsumer --> BaseEvent : consumes
     
     UserSyncService <|.. UserSyncServiceImpl : implements
     ArchiveSyncService <|.. ArchiveSyncServiceImpl : implements
-    ConversationSyncService <|.. ConversationSyncServiceImpl : implements
     
     UserSyncServiceImpl --> UserProfileRepository : uses
     ArchiveSyncServiceImpl --> ArchiveRepository : uses
-    ConversationSyncServiceImpl --> ConversationSessionDocumentRepository : uses
-    ConversationSyncServiceImpl --> ConversationMessageDocumentRepository : uses
     
     UserProfileRepository --> UserProfileDocument : manages
     ArchiveRepository --> ArchiveDocument : manages
-    ConversationSessionDocumentRepository --> ConversationSessionDocument : manages
-    ConversationMessageDocumentRepository --> ConversationMessageDocument : manages
 ```
 
 #### UserSyncService
@@ -1082,8 +1071,8 @@ public interface UserSyncService {
 package com.tech.n.ai.common.kafka.sync;
 
 import com.tech.n.ai.common.kafka.event.*;
-import com.tech.n.ai.domain.mongodb.document.UserProfileDocument;
-import com.tech.n.ai.domain.mongodb.repository.UserProfileRepository;
+import com.tech.n.ai.datasource.mongodb.document.UserProfileDocument;
+import com.tech.n.ai.datasource.mongodb.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -1242,243 +1231,6 @@ public class UserSyncServiceImpl implements UserSyncService {
 - MongoDB Soft Delete 미지원: 삭제 시 물리적 삭제, 복원 시 새로 생성
 - 에러 핸들링: 예외 발생 시 로깅 및 `RuntimeException` 전파
 
-#### ConversationSyncService
-
-**인터페이스 정의**:
-
-```java
-package com.tech.n.ai.common.kafka.sync;
-
-import com.tech.n.ai.common.kafka.event.*;
-
-/**
- * Conversation 엔티티 동기화 서비스 인터페이스
- * 
- * Aurora MySQL의 ConversationSession 및 ConversationMessage 엔티티 변경을 
- * MongoDB Atlas의 ConversationSessionDocument 및 ConversationMessageDocument에 동기화합니다.
- */
-public interface ConversationSyncService {
-    
-    /**
-     * ConversationSession 생성 이벤트 동기화
-     * 
-     * @param event ConversationSessionCreatedEvent
-     */
-    void syncSessionCreated(ConversationSessionCreatedEvent event);
-    
-    /**
-     * ConversationSession 수정 이벤트 동기화
-     * 
-     * @param event ConversationSessionUpdatedEvent
-     */
-    void syncSessionUpdated(ConversationSessionUpdatedEvent event);
-    
-    /**
-     * ConversationSession 삭제 이벤트 동기화 (Soft Delete)
-     * MongoDB는 Soft Delete를 지원하지 않으므로 물리적 삭제 수행
-     * 
-     * @param event ConversationSessionDeletedEvent
-     */
-    void syncSessionDeleted(ConversationSessionDeletedEvent event);
-    
-    /**
-     * ConversationMessage 생성 이벤트 동기화
-     * 
-     * @param event ConversationMessageCreatedEvent
-     */
-    void syncMessageCreated(ConversationMessageCreatedEvent event);
-}
-```
-
-**구현 클래스 설계**:
-
-```java
-package com.tech.n.ai.common.kafka.sync;
-
-import com.tech.n.ai.common.kafka.event.*;
-import com.tech.n.ai.domain.mongodb.document.ConversationSessionDocument;
-import com.tech.n.ai.domain.mongodb.document.ConversationMessageDocument;
-import com.tech.n.ai.domain.mongodb.repository.ConversationSessionDocumentRepository;
-import com.tech.n.ai.domain.mongodb.repository.ConversationMessageDocumentRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Map;
-
-/**
- * Conversation 동기화 서비스 구현 클래스
- */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class ConversationSyncServiceImpl implements ConversationSyncService {
-    
-    private final ConversationSessionDocumentRepository sessionRepository;
-    private final ConversationMessageDocumentRepository messageRepository;
-    
-    @Override
-    public void syncSessionCreated(ConversationSessionCreatedEvent event) {
-        try {
-            var payload = event.payload();
-            
-            // Upsert 패턴: session_id로 조회하여 없으면 생성, 있으면 업데이트
-            ConversationSessionDocument document = sessionRepository
-                .findBySessionId(payload.sessionId())
-                .orElse(new ConversationSessionDocument());
-            
-            document.setSessionId(payload.sessionId());
-            document.setUserId(payload.userId().toString());
-            document.setTitle(payload.title());
-            document.setLastMessageAt(convertToLocalDateTime(payload.lastMessageAt()));
-            document.setIsActive(payload.isActive());
-            document.setCreatedAt(convertToLocalDateTime(payload.createdAt()));
-            document.setUpdatedAt(LocalDateTime.now());
-            
-            sessionRepository.save(document);
-            
-            log.debug("Successfully synced ConversationSessionCreatedEvent: sessionId={}, userId={}", 
-                payload.sessionId(), payload.userId());
-        } catch (Exception e) {
-            log.error("Failed to sync ConversationSessionCreatedEvent: eventId={}, sessionId={}", 
-                event.eventId(), event.payload().sessionId(), e);
-            throw new RuntimeException("Failed to sync ConversationSessionCreatedEvent", e);
-        }
-    }
-    
-    @Override
-    public void syncSessionUpdated(ConversationSessionUpdatedEvent event) {
-        try {
-            var payload = event.payload();
-            var updatedFields = payload.updatedFields();
-            
-            // session_id로 Document 조회
-            ConversationSessionDocument document = sessionRepository
-                .findBySessionId(payload.sessionId())
-                .orElseThrow(() -> new RuntimeException(
-                    "ConversationSessionDocument not found: sessionId=" + payload.sessionId()));
-            
-            // updatedFields를 Document 필드에 매핑 (부분 업데이트)
-            updateDocumentFields(document, updatedFields);
-            document.setUpdatedAt(LocalDateTime.now());
-            
-            sessionRepository.save(document);
-            
-            log.debug("Successfully synced ConversationSessionUpdatedEvent: sessionId={}, updatedFields={}", 
-                payload.sessionId(), updatedFields.keySet());
-        } catch (Exception e) {
-            log.error("Failed to sync ConversationSessionUpdatedEvent: eventId={}, sessionId={}", 
-                event.eventId(), event.payload().sessionId(), e);
-            throw new RuntimeException("Failed to sync ConversationSessionUpdatedEvent", e);
-        }
-    }
-    
-    @Override
-    public void syncSessionDeleted(ConversationSessionDeletedEvent event) {
-        try {
-            var payload = event.payload();
-            
-            // MongoDB는 Soft Delete를 지원하지 않으므로 물리적 삭제
-            sessionRepository.deleteBySessionId(payload.sessionId());
-            
-            log.debug("Successfully synced ConversationSessionDeletedEvent: sessionId={}, userId={}", 
-                payload.sessionId(), payload.userId());
-        } catch (Exception e) {
-            log.error("Failed to sync ConversationSessionDeletedEvent: eventId={}, sessionId={}", 
-                event.eventId(), event.payload().sessionId(), e);
-            throw new RuntimeException("Failed to sync ConversationSessionDeletedEvent", e);
-        }
-    }
-    
-    @Override
-    public void syncMessageCreated(ConversationMessageCreatedEvent event) {
-        try {
-            var payload = event.payload();
-            
-            // Upsert 패턴: message_id로 조회하여 없으면 생성, 있으면 업데이트
-            ConversationMessageDocument document = messageRepository
-                .findByMessageId(payload.messageId())
-                .orElse(new ConversationMessageDocument());
-            
-            document.setMessageId(payload.messageId());
-            document.setSessionId(payload.sessionId());
-            document.setRole(payload.role());
-            document.setContent(payload.content());
-            document.setTokenCount(payload.tokenCount());
-            document.setSequenceNumber(payload.sequenceNumber());
-            document.setCreatedAt(convertToLocalDateTime(payload.createdAt()));
-            
-            messageRepository.save(document);
-            
-            log.debug("Successfully synced ConversationMessageCreatedEvent: messageId={}, sessionId={}", 
-                payload.messageId(), payload.sessionId());
-        } catch (Exception e) {
-            log.error("Failed to sync ConversationMessageCreatedEvent: eventId={}, messageId={}", 
-                event.eventId(), event.payload().messageId(), e);
-            throw new RuntimeException("Failed to sync ConversationMessageCreatedEvent", e);
-        }
-    }
-    
-    /**
-     * updatedFields를 Document 필드에 매핑 (부분 업데이트)
-     * 
-     * 주의: updatedFields에는 ConversationSessionEntity에 있는 필드만 포함 가능
-     * - 지원 필드: `title`, `lastMessageAt`, `isActive`
-     * 
-     * @param document 대상 Document
-     * @param updatedFields 업데이트할 필드 맵
-     */
-    private void updateDocumentFields(ConversationSessionDocument document, Map<String, Object> updatedFields) {
-        for (Map.Entry<String, Object> entry : updatedFields.entrySet()) {
-            String fieldName = entry.getKey();
-            Object value = entry.getValue();
-            
-            switch (fieldName) {
-                case "title":
-                    document.setTitle((String) value);
-                    break;
-                case "lastMessageAt":
-                    if (value instanceof Instant instant) {
-                        document.setLastMessageAt(convertToLocalDateTime(instant));
-                    } else if (value instanceof LocalDateTime localDateTime) {
-                        document.setLastMessageAt(localDateTime);
-                    }
-                    break;
-                case "isActive":
-                    document.setIsActive((Boolean) value);
-                    break;
-                default:
-                    log.warn("Unknown field in updatedFields: {}", fieldName);
-            }
-        }
-    }
-    
-    /**
-     * Instant를 LocalDateTime으로 변환
-     * 
-     * @param instant Instant 객체
-     * @return LocalDateTime 객체
-     */
-    private LocalDateTime convertToLocalDateTime(Instant instant) {
-        return instant != null 
-            ? LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
-            : null;
-    }
-}
-```
-
-**특징**:
-- Upsert 패턴 사용: `findBySessionId().orElse(new ConversationSessionDocument())`로 생성/수정 통합
-- Upsert 패턴 사용: `findByMessageId().orElse(new ConversationMessageDocument())`로 생성/수정 통합
-- 부분 업데이트: `updatedFields`를 Document 필드에 매핑
-- 타입 변환: `Instant` → `LocalDateTime`, `Long` → `String` (userId)
-- MongoDB Soft Delete 미지원: 삭제 시 물리적 삭제
-
----
-
 #### ArchiveSyncService
 
 **인터페이스 정의**:
@@ -1533,8 +1285,8 @@ public interface ArchiveSyncService {
 package com.tech.n.ai.common.kafka.sync;
 
 import com.tech.n.ai.common.kafka.event.*;
-import com.tech.n.ai.domain.mongodb.document.ArchiveDocument;
-import com.tech.n.ai.domain.mongodb.repository.ArchiveRepository;
+import com.tech.n.ai.datasource.mongodb.document.ArchiveDocument;
+import com.tech.n.ai.datasource.mongodb.repository.ArchiveRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -1760,12 +1512,6 @@ flowchart TD
     EventType -->|ARCHIVE_DELETED| ArchiveDeleted[ArchiveSyncService<br/>syncArchiveDeleted]
     EventType -->|ARCHIVE_RESTORED| ArchiveRestored[ArchiveSyncService<br/>syncArchiveRestored]
     
-    EventType -->|CONVERSATION_SESSION_CREATED| SessionCreated[ConversationSyncService<br/>syncSessionCreated]
-    EventType -->|CONVERSATION_SESSION_UPDATED| SessionUpdated[ConversationSyncService<br/>syncSessionUpdated]
-    EventType -->|CONVERSATION_SESSION_DELETED| SessionDeleted[ConversationSyncService<br/>syncSessionDeleted]
-    EventType -->|CONVERSATION_MESSAGE_CREATED| MessageCreated[ConversationSyncService<br/>syncMessageCreated]
-    
-    EventType -->|CONTEST_SYNCED<br/>NEWS_ARTICLE_SYNCED| BatchEvent[로깅만 수행<br/>동기화 불필요]
     EventType -->|Unknown| UnknownEvent[경고 로그<br/>무시]
     
     UserCreated --> SyncSuccess{동기화 성공?}
@@ -1776,11 +1522,6 @@ flowchart TD
     ArchiveUpdated --> SyncSuccess
     ArchiveDeleted --> SyncSuccess
     ArchiveRestored --> SyncSuccess
-    SessionCreated --> SyncSuccess
-    SessionUpdated --> SyncSuccess
-    SessionDeleted --> SyncSuccess
-    MessageCreated --> SyncSuccess
-    BatchEvent --> MarkProcessed
     UnknownEvent --> MarkProcessed
     
     SyncSuccess -->|성공| MarkProcessed[Redis에 처리 완료 표시]
@@ -1849,33 +1590,6 @@ private void processEvent(BaseEvent event) {
                     archiveSyncService.syncArchiveRestored(archiveEvent);
                 }
                 break;
-            case "CONVERSATION_SESSION_CREATED":
-                if (event instanceof ConversationSessionCreatedEvent sessionEvent) {
-                    conversationSyncService.syncSessionCreated(sessionEvent);
-                }
-                break;
-            case "CONVERSATION_SESSION_UPDATED":
-                if (event instanceof ConversationSessionUpdatedEvent sessionEvent) {
-                    conversationSyncService.syncSessionUpdated(sessionEvent);
-                }
-                break;
-            case "CONVERSATION_SESSION_DELETED":
-                if (event instanceof ConversationSessionDeletedEvent sessionEvent) {
-                    conversationSyncService.syncSessionDeleted(sessionEvent);
-                }
-                break;
-            case "CONVERSATION_MESSAGE_CREATED":
-                if (event instanceof ConversationMessageCreatedEvent messageEvent) {
-                    conversationSyncService.syncMessageCreated(messageEvent);
-                }
-                break;
-            case "CONTEST_SYNCED":
-            case "NEWS_ARTICLE_SYNCED":
-                // 배치 작업에서 직접 MongoDB에 저장되므로 동기화 불필요
-                // 로깅만 수행
-                log.debug("Skipping sync for batch event: eventType={}, eventId={}", 
-                    eventType, event.eventId());
-                break;
             default:
                 log.warn("Unknown event type: eventType={}, eventId={}", 
                     eventType, event.eventId());
@@ -1902,7 +1616,6 @@ public class EventConsumer {
     private final RedisTemplate<String, String> redisTemplate;
     private final UserSyncService userSyncService;        // 추가
     private final ArchiveSyncService archiveSyncService;  // 추가
-    private final ConversationSyncService conversationSyncService;  // 추가
     
     // ... 기존 코드 ...
 }
@@ -1996,7 +1709,6 @@ sequenceDiagram
 **파일 생성**:
 1. `UserSyncService.java` (인터페이스)
 2. `ArchiveSyncService.java` (인터페이스)
-3. `ConversationSyncService.java` (인터페이스)
 
 **주의사항**:
 - 인터페이스는 `public` 접근 제어자 사용
@@ -2008,12 +1720,11 @@ sequenceDiagram
 **파일 생성**:
 1. `UserSyncServiceImpl.java` (구현 클래스)
 2. `ArchiveSyncServiceImpl.java` (구현 클래스)
-3. `ConversationSyncServiceImpl.java` (구현 클래스)
 
 **의존성 주입**:
 - `@Service` 어노테이션 사용
 - `@RequiredArgsConstructor` 사용 (Lombok)
-- `UserProfileRepository`, `ArchiveRepository`, `ConversationSessionDocumentRepository`, `ConversationMessageDocumentRepository` 주입
+- `UserProfileRepository` 또는 `ArchiveRepository` 주입
 - `MongoTemplate` 주입 (필요 시, 현재는 Repository만 사용)
 
 **Upsert 패턴 구현**:
@@ -2056,8 +1767,8 @@ repository.save(document);
 - `@RequiredArgsConstructor`로 생성자 주입
 
 **순환 의존성 방지**:
-- `EventConsumer` → `UserSyncService`, `ArchiveSyncService`, `ConversationSyncService`
-- `UserSyncService`, `ArchiveSyncService`, `ConversationSyncService` → `Repository`
+- `EventConsumer` → `UserSyncService`, `ArchiveSyncService`
+- `UserSyncService`, `ArchiveSyncService` → `Repository`
 - 순환 의존성 없음 (단방향 의존성)
 
 ### 5. MongoDB Atlas 연결 설정 구현
@@ -2091,12 +1802,6 @@ repository.save(document);
 - ✅ `ArchiveUpdatedEvent` → `ArchiveDocument` 업데이트
 - ✅ `ArchiveDeletedEvent` → `ArchiveDocument` 삭제
 - ✅ `ArchiveRestoredEvent` → `ArchiveDocument` 생성
-
-**Conversation 이벤트**:
-- ✅ `ConversationSessionCreatedEvent` → `ConversationSessionDocument` 생성
-- ✅ `ConversationSessionUpdatedEvent` → `ConversationSessionDocument` 업데이트
-- ✅ `ConversationSessionDeletedEvent` → `ConversationSessionDocument` 삭제
-- ✅ `ConversationMessageCreatedEvent` → `ConversationMessageDocument` 생성
 
 **검증 방법**:
 - 각 이벤트 타입별 통합 테스트 작성
@@ -2144,7 +1849,7 @@ repository.save(document);
 #### 2.2 동시성 처리 확인
 
 **검증 시나리오**:
-1. 동일한 `userTsid`, `archiveTsid`, `session_id`, `message_id`로 여러 이벤트 동시 수신
+1. 동일한 `userTsid` 또는 `archiveTsid`로 여러 이벤트 동시 수신
 2. Partition Key를 통한 순서 보장 확인
 
 **검증 방법**:

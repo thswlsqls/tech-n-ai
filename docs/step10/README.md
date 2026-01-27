@@ -1,30 +1,32 @@
 # Step 10: 배치 잡 통합 및 내부 API 호출 구현
 
+## Plan Task
+
+```
+plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 데이터 수집 파이프라인)
+```
+
 ## 개요
 
-이 단계는 배치 잡 통합 및 내부 API 호출을 구현합니다. Spring Batch를 활용하여 외부 데이터를 수집하고 내부 API를 호출합니다.
+`batch-source` 모듈의 배치 잡 통합 구현 (모든 클라이언트 모듈에 대한 JobConfig 추가). `client-feign` 모듈의 내부 API 호출 Feign Client 구현. Client 모듈 → Batch 모듈 → API 모듈 → MongoDB Atlas 데이터 흐름 구현.
+
+## 작업 목표
+
+- `client-feign` 모듈: ContestInternalContract, NewsInternalContract 및 Feign Client 구현 완료
+- `batch-source` 모듈: 모든 클라이언트 모듈에 대한 JobConfig 추가 완료
+- PagingItemReader, Item Processor, Item Writer 구현 완료
+- DTO 변환 흐름 구현: Client DTO → batch-source DTO → client-feign DTO → api-contest/api-news DTO
 
 ## 관련 설계서
 
-### 생성 설계서
-- `batch-job-integration-design.md`: 배치 잡 통합 및 내부 API 호출 설계 문서
-
-### 참조 문서
-- `reference/shrimp-task-prompts-final-goal.md`: 최종 프로젝트 목표
-- `../step9/contest-news-api-design.md`: Contest/News API 설계
-- `../step8/rss-scraper-modules-analysis.md`: RSS/Scraper 모듈 분석
-- `../step2/1. api-endpoint-design.md`: API 엔드포인트 설계
-- `../step2/2. data-model-design.md`: 데이터 모델 설계
-
-## 주요 내용
-
-- Spring Batch Job 구성
-- 외부 API 데이터 수집
-- 내부 API 호출 (Feign Client 활용)
-- 배치 작업 스케줄링
+- `batch-job-integration-design.md`: 배치 잡 통합 설계서
 
 ## 의존성
 
 - 8단계: Client 모듈 구현 완료 필수
 - 4단계: Domain 모듈 구현 완료 필수
 - 9단계: Contest 및 News API 모듈 구현 완료 필수
+
+## 다음 단계
+
+- 11단계 (CQRS 패턴 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (API 컨트롤러 구현)

@@ -542,7 +542,7 @@
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/annotation/Tsid.java
-package com.tech.n.ai.domain.aurora.annotation;
+package com.tech.n.ai.datasource.aurora.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -577,9 +577,9 @@ public @interface Tsid {
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/generator/TsidGenerator.java
-package com.tech.n.ai.domain.aurora.generator;
+package com.tech.n.ai.datasource.aurora.generator;
 
-import com.tech.n.ai.domain.aurora.annotation.Tsid;
+import com.tech.n.ai.datasource.aurora.annotation.Tsid;
 import io.hypersistence.tsid.TSID;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.IdentifierGenerator;
@@ -603,9 +603,9 @@ public class TsidGenerator implements IdentifierGenerator {
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/entity/User.java
-package com.tech.n.ai.domain.aurora.entity;
+package com.tech.n.ai.datasource.aurora.entity;
 
-import com.tech.n.ai.domain.aurora.annotation.Tsid;
+import com.tech.n.ai.datasource.aurora.annotation.Tsid;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -621,7 +621,7 @@ public class User {
     @GeneratedValue(generator = "tsid-generator")
     @org.hibernate.annotations.GenericGenerator(
         name = "tsid-generator",
-        type = com.tech.n.ai.domain.aurora.generator.TsidGenerator.class
+        type = com.tech.n.ai.datasource.aurora.generator.TsidGenerator.class
     )
     private Long id;
     

@@ -238,7 +238,7 @@ public class RssParserConfig {
     @Bean
     public WebClient.Builder webClientBuilder(RssProperties properties) {
         return WebClient.builder()
-            .defaultHeader(HttpHeaders.USER_AGENT, "Tech-N-AI/1.0")
+            .defaultHeader(HttpHeaders.USER_AGENT, "ShrimpTM-Demo/1.0")
             .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
             .clientConnector(new ReactorClientHttpConnector(
                 HttpClient.create()
@@ -486,7 +486,7 @@ public class ScraperProperties {
     private int timeoutSeconds = 30;
     private int maxRetries = 3;
     private long retryDelayMs = 1000;
-    private String userAgent = "Tech-N-AI/1.0 (+https://github.com/your-repo)";
+    private String userAgent = "ShrimpTM-Demo/1.0 (+https://github.com/your-repo)";
     private Map<String, ScraperSourceConfig> sources = new HashMap<>();
     
     @Data
@@ -623,7 +623,7 @@ public class DevpostScraper implements WebScraper {
 
 4. **User-Agent 설정** (권장)
    - **형식**: `프로젝트명/버전 (연락처 정보)`
-   - **예시**: `Tech-N-AI/1.0 (+https://github.com/your-repo)`
+   - **예시**: `ShrimpTM-Demo/1.0 (+https://github.com/your-repo)`
    - **포함 정보**:
      - 명확한 프로젝트 식별자 (필수)
      - 연락처 정보 (선택사항, 권장)
@@ -908,7 +908,7 @@ scraper:
   timeout-seconds: 30
   max-retries: 3
   retry-delay-ms: 1000
-  user-agent: "Tech-N-AI/1.0 (+https://github.com/your-repo)"
+  user-agent: "ShrimpTM-Demo/1.0 (+https://github.com/your-repo)"
   sources:
     leetcode:
       base-url: https://leetcode.com
@@ -982,7 +982,7 @@ public class RobotsTxtChecker {
                 .block();
             
             BaseRobotRules rules = RobotRulesParserFactory.getRobotRulesParser(
-                "Tech-N-AI/1.0", robotsTxt
+                "ShrimpTM-Demo/1.0", robotsTxt
             );
             
             return rules.isAllowed(path);
