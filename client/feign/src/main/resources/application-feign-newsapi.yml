@@ -27,7 +27,7 @@ spring:
 feign-clients:
   newsapi:
     mode: rest
-    uri: ${NEWSAPI_FEIGN_URI:https://newsapi.org/v2}
+    uri: ${NEWSAPI_FEIGN_URI:http://localhost:8080}
     api-key: ${NEWSAPI_API_KEY:}
 
 ---

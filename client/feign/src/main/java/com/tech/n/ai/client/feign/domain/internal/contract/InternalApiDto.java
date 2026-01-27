@@ -95,4 +95,46 @@ public class InternalApiDto {
         private Integer viewCount;
         private Integer likeCount;
     }
+
+    // ========== AI Update 관련 DTO ==========
+
+    /**
+     * AI Update 생성 요청 DTO
+     * api-ai-update 모듈의 AiUpdateCreateRequest와 필드가 같아도 별도 정의
+     */
+    @Data
+    @Builder
+    public static class AiUpdateCreateRequest {
+        private String provider;      // AiProvider enum value
+        private String updateType;    // AiUpdateType enum value
+        private String title;
+        private String summary;
+        private String url;
+        private LocalDateTime publishedAt;
+        private String sourceType;    // SourceType enum value
+        private String status;        // PostStatus enum value
+        private String externalId;    // 중복 체크용
+        private AiUpdateMetadataRequest metadata;
+    }
+
+    /**
+     * AI Update 다건 생성 요청 DTO
+     */
+    @Data
+    @Builder
+    public static class AiUpdateBatchRequest {
+        private List<AiUpdateCreateRequest> items;
+    }
+
+    /**
+     * AI Update Metadata 요청 DTO
+     */
+    @Data
+    @Builder
+    public static class AiUpdateMetadataRequest {
+        private String version;
+        private List<String> tags;
+        private String author;
+        private String githubRepo;
+    }
 }

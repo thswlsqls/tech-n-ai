@@ -20,6 +20,58 @@ public class GitHubDto {
         }
     }
 
+    // GitHub Releases API 관련 DTO
+    @Builder
+    public record ReleasesRequest(
+            String owner,
+            String repo,
+            @JsonProperty("per_page")
+            Integer perPage,
+            @JsonProperty("page")
+            Integer page
+    ) {
+        public ReleasesRequest(String owner, String repo) {
+            this(owner, repo, 30, 1);
+        }
+    }
+
+    @Builder
+    public record ReleasesResponse(
+            List<Release> releases
+    ) {}
+
+    @Builder
+    public record Release(
+            @JsonProperty("id")
+            Long id,
+            @JsonProperty("tag_name")
+            String tagName,
+            @JsonProperty("name")
+            String name,
+            @JsonProperty("body")
+            String body,
+            @JsonProperty("html_url")
+            String htmlUrl,
+            @JsonProperty("published_at")
+            String publishedAt,
+            @JsonProperty("prerelease")
+            Boolean prerelease,
+            @JsonProperty("draft")
+            Boolean draft,
+            @JsonProperty("author")
+            Author author
+    ) {}
+
+    @Builder
+    public record Author(
+            @JsonProperty("login")
+            String login,
+            @JsonProperty("id")
+            Long id,
+            @JsonProperty("avatar_url")
+            String avatarUrl
+    ) {}
+
     @Builder
     public record EventsResponse(
             @JsonProperty("events")

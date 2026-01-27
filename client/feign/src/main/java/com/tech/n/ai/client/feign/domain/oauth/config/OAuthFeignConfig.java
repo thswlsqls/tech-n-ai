@@ -17,6 +17,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 
 @EnableFeignClients(clients = {
     GoogleOAuthFeignClient.class,
@@ -32,38 +33,38 @@ import org.springframework.context.annotation.Import;
 public class OAuthFeignConfig {
     
     private static final String CLIENT_MODE = "feign-clients.oauth.mode";
-    
-    @Bean(name = "googleOAuthContract")
+
+    @Bean(name = "googleOAuthMock")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "mock")
     public OAuthProviderContract googleOAuthMock() {
         return new GoogleOAuthMock();
     }
     
-    @Bean(name = "googleOAuthContract")
+    @Bean(name = "googleOAuthApi")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "rest")
     public OAuthProviderContract googleOAuthApi(GoogleOAuthFeignClient feignClient) {
         return new GoogleOAuthApi(feignClient);
     }
     
-    @Bean(name = "naverOAuthContract")
+    @Bean(name = "naverOAuthMock")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "mock")
     public OAuthProviderContract naverOAuthMock() {
         return new NaverOAuthMock();
     }
     
-    @Bean(name = "naverOAuthContract")
+    @Bean(name = "naverOAuthApi")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "rest")
     public OAuthProviderContract naverOAuthApi(NaverOAuthFeignClient feignClient, NaverOAuthUserInfoFeignClient userInfoFeignClient) {
         return new NaverOAuthApi(feignClient, userInfoFeignClient);
     }
     
-    @Bean(name = "kakaoOAuthContract")
+    @Bean(name = "kakaoOAuthMock")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "mock")
     public OAuthProviderContract kakaoOAuthMock() {
         return new KakaoOAuthMock();
     }
     
-    @Bean(name = "kakaoOAuthContract")
+    @Bean(name = "kakaoOAuthApi")
     @ConditionalOnProperty(name = CLIENT_MODE, havingValue = "rest")
     public OAuthProviderContract kakaoOAuthApi(KakaoOAuthFeignClient feignClient, KakaoOAuthUserInfoFeignClient userInfoFeignClient) {
         return new KakaoOAuthApi(feignClient, userInfoFeignClient);
