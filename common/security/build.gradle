@@ -9,9 +9,9 @@ dependencies {
 	implementation project(':common-core')
 	// api로 선언하여 의존성이 전이되도록 설정 (다른 모듈에서 사용 가능)
 	api 'org.springframework.boot:spring-boot-starter-security'
-	api 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server'
-	api 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
-	api 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+	api 'org.springframework.boot:spring-boot-starter-oauth2-authorization-server'
+	api 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	api 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	
 	// JWT 라이브러리 (jjwt)
 	api 'io.jsonwebtoken:jjwt-api:0.12.5'
@@ -24,10 +24,7 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
