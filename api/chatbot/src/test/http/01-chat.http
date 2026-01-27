@@ -1,0 +1,203 @@
+###
+# POST /api/v1/chatbot - 챗봇 채팅 API 테스트
+# Description: 사용자 메시지를 전송하고 AI 응답을 받습니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 1. 새 대화 시작 (conversationId 없이)
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "안녕하세요, 오늘 진행 중인 프로그래밍 대회가 있나요?"
+}
+
+> {%
+    client.test("채팅 응답 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("채팅 응답 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.response !== undefined, "response가 존재해야 합니다");
+        client.assert(data.conversationId !== undefined, "conversationId가 존재해야 합니다");
+        // conversationId를 저장하여 후속 요청에서 사용
+        client.global.set("conversationId", data.conversationId);
+    });
+%}
+
+### 2. 기존 대화 이어서 진행
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "Codeforces 대회 일정도 알려주세요.",
+  "conversationId": "{{conversationId}}"
+}
+
+> {%
+    client.test("대화 이어가기 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("동일 세션 확인", function() {
+        var data = response.body.data;
+        client.assert(data.conversationId === client.global.get("conversationId"),
+            "conversationId가 동일해야 합니다");
+    });
+%}
+
+### 3. 다양한 질문 테스트 - 대회 검색
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "이번 주에 참가할 수 있는 해커톤이 있나요?"
+}
+
+> {%
+    client.test("대회 검색 응답 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 4. 다양한 질문 테스트 - 뉴스 검색
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "최근 AI 관련 기술 뉴스를 알려주세요."
+}
+
+> {%
+    client.test("뉴스 검색 응답 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 5. 다양한 질문 테스트 - 일반 대화
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "개발자로서 성장하기 위한 팁을 알려주세요."
+}
+
+> {%
+    client.test("일반 대화 응답 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 메시지 누락
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "conversationId": "some-session-id"
+}
+
+> {%
+    client.test("유효성 검증 실패", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 빈 메시지
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": ""
+}
+
+> {%
+    client.test("유효성 검증 실패", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 공백만 있는 메시지
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "   "
+}
+
+> {%
+    client.test("유효성 검증 실패", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 메시지 길이 초과 (500자 초과)
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다."
+}
+
+> {%
+    client.test("메시지 길이 초과 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 10. 실패 케이스 - 인증 없이 요청
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+
+{
+  "message": "안녕하세요"
+}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 11. 실패 케이스 - 잘못된 토큰
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+{
+  "message": "안녕하세요"
+}
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 12. 실패 케이스 - 존재하지 않는 세션 ID
+POST {{chatbotUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "테스트 메시지",
+  "conversationId": "non-existent-session-id-12345"
+}
+
+> {%
+    client.test("세션 없음 오류", function() {
+        client.assert(response.status === 404 || response.status === 400,
+            "응답 상태 코드가 404 또는 400이어야 합니다");
+    });
+%}

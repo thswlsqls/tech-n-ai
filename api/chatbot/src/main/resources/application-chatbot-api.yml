@@ -1,12 +1,3 @@
-spring:
-  application:
-    name: chatbot-api
-  profiles:
-    include:
-      - common-core
-      - api-domain
-      - mongodb-domain
-
 module:
   aurora:
     schema: chatbot
@@ -14,13 +5,13 @@ module:
 langchain4j:
   open-ai:
     chat-model:
-      api-key: ${OPENAI_API_KEY}
+      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
       model-name: gpt-4o-mini  # 기본 모델 (비용 최적화)
       temperature: 0.7
       max-tokens: 2000
       timeout: 60s
     embedding-model:
-      api-key: ${OPENAI_API_KEY}  # LLM과 동일한 API Key 사용 가능
+      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}  # LLM과 동일한 API Key 사용 가능
       model-name: text-embedding-3-small  # 기본 모델 (비용 최적화: $0.02 per 1M tokens)
       dimensions: 1536  # 기본 차원 (필요시 dimensions 파라미터로 조정 가능)
       timeout: 30s
@@ -31,6 +22,20 @@ chatbot:
     max-search-results: 5  # 검색 결과 최대 개수
     min-similarity-score: 0.7  # 최소 유사도 점수
     max-context-tokens: 3000  # 컨텍스트 최대 토큰 수
+
+  # Re-Ranking 설정 (Cohere)
+  reranking:
+    enabled: false  # 활성화 여부 (API Key 설정 시 true로 변경)
+    api-key: ${COHERE_API_KEY:}
+    model-name: rerank-multilingual-v3.0  # 다국어 지원
+    min-score: 0.3  # 최소 점수 임계값
+
+  # Web 검색 설정 (Google Custom Search API)
+  web-search:
+    enabled: false  # 활성화 여부 (API Key 설정 시 true로 변경)
+    api-key: ${GOOGLE_SEARCH_API_KEY:}
+    search-engine-id: ${GOOGLE_SEARCH_ENGINE_ID:}
+    max-results: 5  # 기본 검색 결과 수
   
   # 입력 전처리 설정
   input:

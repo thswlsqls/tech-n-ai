@@ -9,16 +9,16 @@ import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
 import com.tech.n.ai.api.chatbot.dto.response.SourceResponse;
 import com.tech.n.ai.api.chatbot.memory.ConversationChatMemoryProvider;
 import com.tech.n.ai.api.chatbot.service.dto.Intent;
-import com.tech.n.ai.api.chatbot.service.dto.RefinedResult;
 import com.tech.n.ai.api.chatbot.service.dto.SearchOptions;
 import com.tech.n.ai.api.chatbot.service.dto.SearchQuery;
+import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
+import com.tech.n.ai.api.chatbot.service.dto.WebSearchDocument;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 챗봇 서비스 구현체
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,10 +34,6 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final ConversationSessionService sessionService;
     private final ConversationMessageService messageService;
     private final ConversationChatMemoryProvider memoryProvider;
-    
-    @Qualifier("openAiMessageConverter")  // 기본 Provider: OpenAI
-    private final MessageFormatConverter messageConverter;
-    
     private final LLMService llmService;
     private final TokenService tokenService;
     private final IntentClassificationService intentService;
@@ -48,6 +41,10 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final VectorSearchService vectorSearchService;
     private final ResultRefinementChain refinementChain;
     private final AnswerGenerationChain answerChain;
+    private final WebSearchService webSearchService;
+    private final PromptService promptService;
+
+    private final MessageFormatConverter messageConverter;
     
     @Value("${chatbot.rag.max-search-results:5}")
     private int maxSearchResults;
@@ -57,124 +54,174 @@ public class ChatbotServiceImpl implements ChatbotService {
     
     @Override
     public ChatResponse generateResponse(ChatRequest request, Long userId) {
-        // 1. 세션 확인 또는 생성
-        String sessionId;
-        if (request.conversationId() != null && !request.conversationId().isBlank()) {
-            // 기존 세션 사용 시 소유권 검증 필수
-            sessionService.getSession(request.conversationId(), userId);
-            sessionId = request.conversationId();
-        } else {
-            // 새 세션 생성
-            sessionId = sessionService.createSession(userId, null);
+        String sessionId = getOrCreateSession(request, userId);
+        ChatMemory chatMemory = memoryProvider.get(sessionId);
+
+        // 기존 세션이면 히스토리 로드 (한 번만)
+        boolean isExistingSession = request.conversationId() != null && !request.conversationId().isBlank();
+        if (isExistingSession) {
+            loadHistoryToMemory(sessionId, chatMemory);
         }
-        
-        // 2. 의도 분류
+
         Intent intent = intentService.classifyIntent(request.message());
-        
+        log.debug("Intent classified: {} for message: {}", intent, request.message());
+
         String response;
-        List<SourceResponse> sources = Collections.emptyList();
-        
-        if (intent == Intent.GENERAL_CONVERSATION) {
-            // 일반 대화: RAG 없이 LLM 직접 호출 (ChatMemory 사용)
-            ChatMemory chatMemory = memoryProvider.get(sessionId);
-            
-            // 기존 세션이면 히스토리 로드
-            if (request.conversationId() != null && !request.conversationId().isBlank()) {
-                List<ChatMessage> history = messageService.getMessagesForMemory(sessionId, null);
-                history.forEach(chatMemory::add);
+        List<SourceResponse> sources;
+
+        switch (intent) {
+            case LLM_DIRECT -> {
+                response = handleGeneralConversation(request, sessionId, chatMemory);
+                sources = Collections.emptyList();
             }
-            
-            // 현재 사용자 메시지 추가
-            UserMessage userMessage = UserMessage.from(request.message());
-            chatMemory.add(userMessage);
-            
-            // 메시지 저장 (사용자 메시지)
-            messageService.saveMessage(sessionId, "USER", request.message(), 
-                tokenService.estimateTokens(request.message()));
-            
-            // LLM 호출
-            List<ChatMessage> messages = chatMemory.messages();
-            Object providerFormat = messageConverter.convertToProviderFormat(messages, null);
-            response = llmService.generate(providerFormat.toString());
-            
-            // LLM 응답을 ChatMemory에 추가
-            AiMessage aiMessage = AiMessage.from(response);
-            chatMemory.add(aiMessage);
-            
-            // 메시지 저장 (LLM 응답)
-            messageService.saveMessage(sessionId, "ASSISTANT", response,
-                tokenService.estimateTokens(response));
-        } else {
-            // RAG 파이프라인
-            // 2-1. 입력 해석
-            SearchQuery searchQuery = inputChain.interpret(request.message());
-            
-            // 2-2. 검색 옵션 구성
-            SearchOptions searchOptions = SearchOptions.builder()
-                .includeContests(searchQuery.context().includesContests())
-                .includeNews(searchQuery.context().includesNews())
-                .includeArchives(searchQuery.context().includesArchives())
-                .maxResults(maxSearchResults)
-                .minSimilarityScore(minSimilarityScore)
-                .build();
-            
-            // 2-3. 벡터 검색 (userId는 JWT에서 추출한 값 사용)
-            List<com.tech.n.ai.api.chatbot.service.dto.SearchResult> searchResults = 
-                vectorSearchService.search(searchQuery.query(), userId, searchOptions);
-            
-            // 2-4. 결과 정제
-            List<RefinedResult> refinedResults = refinementChain.refine(searchResults);
-            
-            // 2-5. 답변 생성
-            response = answerChain.generate(request.message(), refinedResults);
-            
-            // 2-6. 소스 정보 구성
-            sources = refinedResults.stream()
-                .map(r -> SourceResponse.builder()
-                    .documentId(r.documentId())
-                    .collectionType(r.collectionType())
-                    .score(r.score())
-                    .build())
-                .collect(Collectors.toList());
-            
-            // 2-7. ChatMemory에 메시지 추가 및 저장
-            ChatMemory chatMemory = memoryProvider.get(sessionId);
-            
-            // 기존 세션이면 히스토리 로드
-            if (request.conversationId() != null && !request.conversationId().isBlank()) {
-                List<ChatMessage> history = messageService.getMessagesForMemory(sessionId, null);
-                history.forEach(chatMemory::add);
+            case WEB_SEARCH_REQUIRED -> {
+                WebSearchResult webResult = handleWebSearchPipeline(request);
+                response = webResult.response();
+                sources = webResult.sources();
             }
-            
-            // 현재 사용자 메시지 추가
-            UserMessage userMessage = UserMessage.from(request.message());
-            chatMemory.add(userMessage);
-            
-            // 메시지 저장 (사용자 메시지)
-            messageService.saveMessage(sessionId, "USER", request.message(), 
-                tokenService.estimateTokens(request.message()));
-            
-            // LLM 응답을 ChatMemory에 추가
-            AiMessage aiMessage = AiMessage.from(response);
-            chatMemory.add(aiMessage);
-            
-            // 메시지 저장 (LLM 응답)
-            messageService.saveMessage(sessionId, "ASSISTANT", response,
-                tokenService.estimateTokens(response));
+            case RAG_REQUIRED -> {
+                RAGResult ragResult = handleRAGPipeline(request, sessionId, userId);
+                response = ragResult.response();
+                sources = ragResult.sources();
+            }
+            default -> {
+                response = handleGeneralConversation(request, sessionId, chatMemory);
+                sources = Collections.emptyList();
+            }
         }
-        
-        // 3. 세션 업데이트 (lastMessageAt)
+
+        // 현재 메시지만 저장 (히스토리 재로드 없이)
+        saveCurrentMessages(sessionId, chatMemory, request.message(), response);
+
         sessionService.updateLastMessageAt(sessionId);
-        
-        // 4. 토큰 사용량 추적
-        int inputTokens = tokenService.estimateTokens(request.message());
-        int outputTokens = tokenService.estimateTokens(response);
-        tokenService.trackUsage(sessionId, userId.toString(), inputTokens, outputTokens);
-        
+        trackTokenUsage(sessionId, userId, request.message(), response);
+
         return ChatResponse.builder()
             .response(response)
             .conversationId(sessionId)
             .sources(sources)
             .build();
     }
+    
+    private String getOrCreateSession(ChatRequest request, Long userId) {
+        if (request.conversationId() != null && !request.conversationId().isBlank()) {
+            sessionService.getSession(request.conversationId(), userId);
+            return request.conversationId();
+        }
+        return sessionService.createSession(userId, null);
+    }
+    
+    /**
+     * 일반 대화 처리 (chatMemory는 이미 히스토리가 로드된 상태)
+     */
+    private String handleGeneralConversation(ChatRequest request, String sessionId, ChatMemory chatMemory) {
+        UserMessage userMessage = UserMessage.from(request.message());
+        chatMemory.add(userMessage);
+
+        List<ChatMessage> messages = chatMemory.messages();
+        Object providerFormat = messageConverter.convertToProviderFormat(messages, null);
+        String response = llmService.generate(providerFormat.toString());
+
+        AiMessage aiMessage = AiMessage.from(response);
+        chatMemory.add(aiMessage);
+
+        return response;
+    }
+    
+    private RAGResult handleRAGPipeline(ChatRequest request, String sessionId, Long userId) {
+        SearchQuery searchQuery = inputChain.interpret(request.message());
+        SearchOptions searchOptions = buildSearchOptions(searchQuery);
+
+        List<SearchResult> searchResults =
+            vectorSearchService.search(searchQuery.query(), userId, searchOptions);
+
+        List<SearchResult> refinedResults = refinementChain.refine(request.message(), searchResults);
+        String response = answerChain.generate(request.message(), refinedResults);
+
+        List<SourceResponse> sources = refinedResults.stream()
+            .map(r -> SourceResponse.builder()
+                .documentId(r.documentId())
+                .collectionType(r.collectionType())
+                .score(r.score())
+                .build())
+            .collect(Collectors.toList());
+
+        return new RAGResult(response, sources);
+    }
+    
+    private SearchOptions buildSearchOptions(SearchQuery searchQuery) {
+        return SearchOptions.builder()
+            .includeContests(searchQuery.context().includesContests())
+            .includeNews(searchQuery.context().includesNews())
+            .includeArchives(searchQuery.context().includesArchives())
+            .maxResults(maxSearchResults)
+            .minSimilarityScore(minSimilarityScore)
+            .build();
+    }
+    
+    /**
+     * 히스토리를 ChatMemory에 로드 (한 번만 호출)
+     */
+    private void loadHistoryToMemory(String sessionId, ChatMemory chatMemory) {
+        List<ChatMessage> history = messageService.getMessagesForMemory(sessionId, null);
+        history.forEach(chatMemory::add);
+    }
+
+    /**
+     * 현재 메시지만 저장 (히스토리 재로드 없이)
+     */
+    private void saveCurrentMessages(String sessionId, ChatMemory chatMemory,
+                                      String userMessage, String assistantMessage) {
+        // ChatMemory에는 이미 handleGeneralConversation에서 추가됨
+        // RAG 경로의 경우에만 여기서 추가
+        // 중복 추가 방지를 위해 현재 메시지가 이미 있는지 확인
+        List<ChatMessage> messages = chatMemory.messages();
+        boolean alreadyAdded = messages.size() >= 2 &&
+            messages.get(messages.size() - 2) instanceof UserMessage &&
+            messages.get(messages.size() - 1) instanceof AiMessage;
+
+        if (!alreadyAdded) {
+            chatMemory.add(UserMessage.from(userMessage));
+            chatMemory.add(AiMessage.from(assistantMessage));
+        }
+
+        // DB에 저장
+        messageService.saveMessage(sessionId, "USER", userMessage,
+            tokenService.estimateTokens(userMessage));
+        messageService.saveMessage(sessionId, "ASSISTANT", assistantMessage,
+            tokenService.estimateTokens(assistantMessage));
+    }
+    
+    private void trackTokenUsage(String sessionId, Long userId, String input, String output) {
+        int inputTokens = tokenService.estimateTokens(input);
+        int outputTokens = tokenService.estimateTokens(output);
+        tokenService.trackUsage(sessionId, userId.toString(), inputTokens, outputTokens);
+    }
+    
+    /**
+     * Web 검색 파이프라인 처리
+     */
+    private WebSearchResult handleWebSearchPipeline(ChatRequest request) {
+        List<WebSearchDocument> webResults = webSearchService.search(request.message());
+
+        if (webResults.isEmpty()) {
+            String fallbackResponse = llmService.generate(request.message());
+            return new WebSearchResult(fallbackResponse, Collections.emptyList());
+        }
+
+        String prompt = promptService.buildWebSearchPrompt(request.message(), webResults);
+        String response = llmService.generate(prompt);
+
+        List<SourceResponse> sources = webResults.stream()
+            .map(doc -> SourceResponse.builder()
+                .title(doc.title())
+                .url(doc.url())
+                .build())
+            .collect(Collectors.toList());
+
+        return new WebSearchResult(response, sources);
+    }
+
+    private record RAGResult(String response, List<SourceResponse> sources) {}
+    private record WebSearchResult(String response, List<SourceResponse> sources) {}
 }

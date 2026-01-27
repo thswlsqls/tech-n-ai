@@ -6,16 +6,32 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * 입력 전처리 서비스 구현체
  */
 @Slf4j
 @Service
 public class InputPreprocessingServiceImpl implements InputPreprocessingService {
-    
+
+    // Prompt Injection 탐지 패턴
+    private static final Pattern INJECTION_PATTERN = Pattern.compile(
+        "(?i)(" +
+            "ignore\\s+(previous|all|above)\\s+instructions|" +
+            "disregard\\s+(previous|all|above)\\s+instructions|" +
+            "<\\|[a-z]+\\|>|" +
+            "\\[INST\\]|\\[/INST\\]|" +
+            "<<SYS>>|<</SYS>>|" +
+            "###\\s*(instruction|system)|" +
+            "(?:^|\\s)system:\\s*" +
+        ")"
+    );
+
     @Value("${chatbot.input.max-length:500}")
     private int maxLength;
-    
+
     @Value("${chatbot.input.min-length:1}")
     private int minLength;
     
@@ -25,7 +41,7 @@ public class InputPreprocessingServiceImpl implements InputPreprocessingService 
         if (rawInput == null || rawInput.isBlank()) {
             throw new InvalidInputException("입력이 비어있습니다.");
         }
-        
+
         // 2. 길이 검증
         if (rawInput.length() > maxLength) {
             throw new InvalidInputException(
@@ -37,19 +53,33 @@ public class InputPreprocessingServiceImpl implements InputPreprocessingService 
                 String.format("입력 길이는 최소 %d자 이상이어야 합니다.", minLength)
             );
         }
-        
-        // 3. 정규화
+
+        // 3. Prompt Injection 탐지
+        detectPromptInjection(rawInput);
+
+        // 4. 정규화
         String normalized = normalize(rawInput);
-        
-        // 4. 특수 문자 필터링
+
+        // 5. 특수 문자 필터링
         String cleaned = cleanSpecialCharacters(normalized);
-        
+
         return PreprocessedInput.builder()
             .original(rawInput)
             .normalized(normalized)
             .cleaned(cleaned)
             .length(cleaned.length())
             .build();
+    }
+
+    /**
+     * Prompt Injection 탐지 (로깅 정책)
+     */
+    private void detectPromptInjection(String input) {
+        Matcher matcher = INJECTION_PATTERN.matcher(input);
+        if (matcher.find()) {
+            log.warn("Potential prompt injection detected. Pattern: '{}', Input length: {}",
+                matcher.group(), input.length());
+        }
     }
     
     /**

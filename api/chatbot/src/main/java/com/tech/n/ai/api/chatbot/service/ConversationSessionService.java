@@ -69,4 +69,12 @@ public interface ConversationSessionService {
      * @return 처리된 세션 수
      */
     int expireInactiveSessions(int expirationDays);
+    
+    /**
+     * 세션 삭제
+     * 
+     * @param sessionId 세션 ID (TSID String)
+     * @param userId 사용자 ID
+     */
+    void deleteSession(String sessionId, Long userId);
 }

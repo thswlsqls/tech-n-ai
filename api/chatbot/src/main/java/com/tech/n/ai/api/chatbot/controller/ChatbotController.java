@@ -19,9 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 챗봇 API 컨트롤러
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/chatbot")
@@ -32,94 +29,62 @@ public class ChatbotController {
     private final ConversationSessionService conversationSessionService;
     private final ConversationMessageService conversationMessageService;
     
-    /**
-     * 챗봇 대화
-     */
     @PostMapping
     public ResponseEntity<ApiResponse<ChatResponse>> chat(
             @Valid @RequestBody ChatRequest request,
             Authentication authentication) {
-        // JWT에서 userId 추출 (authentication.getName()은 JWT의 subject, 즉 userId)
-        Long userId = Long.parseLong(authentication.getName());
-        
+        Long userId = extractUserId(authentication);
         ChatResponse response = chatbotFacade.chat(request, userId);
-        
         return ResponseEntity.ok(ApiResponse.success(response));
     }
     
-    /**
-     * 세션 목록 조회
-     */
     @GetMapping("/sessions")
     public ResponseEntity<ApiResponse<Page<SessionResponse>>> getSessions(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {
-        Long userId = Long.parseLong(authentication.getName());
-        
-        Pageable pageable = PageRequest.of(
-            page - 1,
-            size,
-            Sort.by(Sort.Direction.DESC, "lastMessageAt")
-        );
-        
+        Long userId = extractUserId(authentication);
+        Pageable pageable = createPageable(page - 1, size, Sort.by(Sort.Direction.DESC, "lastMessageAt"));
         Page<SessionResponse> sessions = conversationSessionService.listSessions(userId, pageable);
-        
         return ResponseEntity.ok(ApiResponse.success(sessions));
     }
     
-    /**
-     * 세션 상세 조회
-     */
     @GetMapping("/sessions/{sessionId}")
     public ResponseEntity<ApiResponse<SessionResponse>> getSession(
             @PathVariable String sessionId,
             Authentication authentication) {
-        Long userId = Long.parseLong(authentication.getName());
-        
+        Long userId = extractUserId(authentication);
         SessionResponse response = conversationSessionService.getSession(sessionId, userId);
-        
         return ResponseEntity.ok(ApiResponse.success(response));
     }
     
-    /**
-     * 메시지 히스토리 조회
-     */
     @GetMapping("/sessions/{sessionId}/messages")
     public ResponseEntity<ApiResponse<Page<MessageResponse>>> getMessages(
             @PathVariable String sessionId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size,
             Authentication authentication) {
-        Long userId = Long.parseLong(authentication.getName());
-        
-        // 세션 소유권 검증
+        Long userId = extractUserId(authentication);
         conversationSessionService.getSession(sessionId, userId);
-        
-        Pageable pageable = PageRequest.of(
-            page - 1,
-            size,
-            Sort.by(Sort.Direction.ASC, "sequenceNumber")
-        );
-        
+        Pageable pageable = createPageable(page - 1, size, Sort.by(Sort.Direction.ASC, "sequenceNumber"));
         Page<MessageResponse> messages = conversationMessageService.getMessages(sessionId, pageable);
-        
         return ResponseEntity.ok(ApiResponse.success(messages));
     }
     
-    /**
-     * 세션 삭제
-     */
     @DeleteMapping("/sessions/{sessionId}")
     public ResponseEntity<ApiResponse<Void>> deleteSession(
             @PathVariable String sessionId,
             Authentication authentication) {
-        Long userId = Long.parseLong(authentication.getName());
-        
-        // 세션 소유권 검증 및 삭제
-        // TODO: ConversationSessionService에 deleteSession 메서드 추가 필요
-        // conversationSessionService.deleteSession(sessionId, userId);
-        
+        Long userId = extractUserId(authentication);
+        conversationSessionService.deleteSession(sessionId, userId);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+    
+    private Long extractUserId(Authentication authentication) {
+        return Long.parseLong(authentication.getName());
+    }
+    
+    private Pageable createPageable(int page, int size, Sort sort) {
+        return PageRequest.of(page, size, sort);
     }
 }

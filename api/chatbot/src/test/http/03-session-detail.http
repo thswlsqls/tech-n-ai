@@ -1,0 +1,89 @@
+###
+# GET /api/v1/chatbot/sessions/{sessionId} - 특정 대화 세션 조회 API 테스트
+# Description: 특정 세션의 상세 정보를 조회합니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 1. 세션 상세 조회 (저장된 세션 ID 사용)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("세션 상세 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("세션 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.sessionId !== undefined, "sessionId가 존재해야 합니다");
+        client.assert(data.title !== undefined, "title이 존재해야 합니다");
+        client.assert(data.createdAt !== undefined, "createdAt이 존재해야 합니다");
+        client.assert(data.lastMessageAt !== undefined, "lastMessageAt이 존재해야 합니다");
+        client.assert(data.isActive !== undefined, "isActive가 존재해야 합니다");
+    });
+%}
+
+### 2. 세션 상세 조회 (conversationId 사용)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/{{conversationId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("세션 상세 조회 성공", function() {
+        client.assert(response.status === 200 || response.status === 404,
+            "응답 상태 코드가 200 또는 404이어야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 존재하지 않는 세션 ID
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/non-existent-session-id-12345
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("세션 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 빈 세션 ID
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("잘못된 요청 오류", function() {
+        // 빈 경로는 404 또는 다른 엔드포인트로 매핑될 수 있음
+        client.assert(response.status === 404 || response.status === 405,
+            "응답 상태 코드가 404 또는 405이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 인증 없이 요청
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 잘못된 토큰
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
+Authorization: Bearer invalid_token_here
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 다른 사용자의 세션 접근 (권한 없음)
+# Note: 이 테스트는 다른 사용자의 세션 ID가 필요합니다
+GET {{chatbotUrl}}/api/v1/chatbot/sessions/other-user-session-id
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("권한 없음 또는 세션 없음 오류", function() {
+        client.assert(response.status === 403 || response.status === 404,
+            "응답 상태 코드가 403 또는 404이어야 합니다");
+    });
+%}

@@ -4,6 +4,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiTokenizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -72,19 +73,11 @@ public class LangChain4jConfig {
     }
     
     /**
-     * TokenCountEstimator Bean (TokenWindowChatMemory용)
-     * OpenAI 모델의 토큰 수를 추정합니다.
-     * 
-     * 참고: OpenAiChatModel은 내부적으로 TokenCountEstimator를 포함하지만,
-     * TokenWindowChatMemory는 별도의 TokenCountEstimator Bean이 필요합니다.
-     * 
-     * TODO: ChatMemory 구현 시점에 TokenCountEstimator Bean 추가 필요
-     * 현재는 langchain4j 0.35.0 버전에서 정확한 import 경로 확인 필요
+     * OpenAiTokenizer Bean (TokenService용)
+     * OpenAI 모델의 토큰 수를 정확하게 추정합니다.
      */
-    // @Bean
-    // public TokenCountEstimator tokenCountEstimator() {
-    //     // OpenAI 모델용 토큰 카운터 (GPT-4o-mini 기준)
-    //     // OpenAiChatModel과 동일한 모델명을 사용하여 일관성 유지
-    //     return new OpenAiTokenCountEstimator(chatModelName);
-    // }
+    @Bean
+    public OpenAiTokenizer openAiTokenizer() {
+        return new OpenAiTokenizer(chatModelName);
+    }
 }

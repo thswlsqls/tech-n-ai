@@ -1,7 +1,8 @@
 package com.tech.n.ai.api.chatbot.chain;
 
-import com.tech.n.ai.api.chatbot.service.dto.RefinedResult;
+import com.tech.n.ai.api.chatbot.service.ReRankingService;
 import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,42 +13,40 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * 검색 결과 정제 체인
- */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ResultRefinementChain {
-    
-    @Value("${chatbot.rag.min-similarity-score:0.7}")
-    private double minSimilarityScore;
-    
+
+    private final ReRankingService reRankingService;
+
+    @Value("${chatbot.rag.max-search-results:5}")
+    private int maxSearchResults;
+
     /**
-     * 검색 결과 정제
-     * 
+     * 검색 결과 정제 (Re-Ranking 적용)
+     *
+     * @param query 원본 쿼리
      * @param rawResults 원본 검색 결과
      * @return 정제된 검색 결과
      */
-    public List<RefinedResult> refine(List<SearchResult> rawResults) {
-        // 1. 유사도 점수 필터링
-        List<SearchResult> filtered = rawResults.stream()
-            .filter(r -> r.score() >= minSimilarityScore)
-            .collect(Collectors.toList());
-        
-        // 2. 중복 제거 (동일 문서 ID)
-        List<SearchResult> deduplicated = removeDuplicates(filtered);
-        
-        // 3. 관련성 순으로 정렬
-        List<SearchResult> sorted = deduplicated.stream()
+    public List<SearchResult> refine(String query, List<SearchResult> rawResults) {
+        // 1. 중복 제거
+        List<SearchResult> deduplicated = removeDuplicates(rawResults);
+
+        // 2. Re-Ranking 적용 (활성화된 경우)
+        if (reRankingService.isEnabled()) {
+            log.debug("Applying Re-Ranking for query: {}", query);
+            return reRankingService.rerank(query, deduplicated, maxSearchResults);
+        }
+
+        // 3. Re-Ranking 비활성화시 기존 score 기준 정렬
+        return deduplicated.stream()
             .sorted(Comparator.comparing(SearchResult::score).reversed())
-            .collect(Collectors.toList());
-        
-        // 4. RefinedResult로 변환
-        return sorted.stream()
-            .map(this::toRefinedResult)
+            .limit(maxSearchResults)
             .collect(Collectors.toList());
     }
-    
+
     /**
      * 중복 제거
      */
@@ -56,18 +55,5 @@ public class ResultRefinementChain {
         return results.stream()
             .filter(r -> seenIds.add(r.documentId()))
             .collect(Collectors.toList());
-    }
-    
-    /**
-     * RefinedResult로 변환
-     */
-    private RefinedResult toRefinedResult(SearchResult result) {
-        return RefinedResult.builder()
-            .documentId(result.documentId())
-            .text(result.text())
-            .score(result.score())
-            .collectionType(result.collectionType())
-            .metadata(result.metadata())
-            .build();
     }
 }

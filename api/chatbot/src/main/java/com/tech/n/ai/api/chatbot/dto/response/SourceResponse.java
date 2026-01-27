@@ -9,5 +9,8 @@ import lombok.Builder;
 public record SourceResponse(
     String documentId,
     String collectionType,
-    Double score
+    Double score,
+    // Web 검색 결과용 필드
+    String title,
+    String url
 ) {}

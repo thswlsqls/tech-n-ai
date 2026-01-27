@@ -1,0 +1,13 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: chatbot-api
+  profiles:
+    include:
+      - common-core
+      - kafka
+      - api-domain
+      - mongodb-domain
+      - chatbot-api

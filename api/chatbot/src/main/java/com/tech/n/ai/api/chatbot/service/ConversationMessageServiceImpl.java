@@ -3,16 +3,14 @@ package com.tech.n.ai.api.chatbot.service;
 import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundException;
 import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
 import com.tech.n.ai.api.chatbot.memory.MongoDbChatMemoryStore;
-import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import com.tech.n.ai.common.kafka.event.ConversationMessageCreatedEvent;
 import com.tech.n.ai.common.kafka.publisher.EventPublisher;
-import com.tech.n.ai.datasource.aurora.entity.chatbot.ConversationMessageEntity;
-import com.tech.n.ai.datasource.aurora.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.datasource.aurora.repository.reader.chatbot.ConversationSessionReaderRepository;
-import com.tech.n.ai.datasource.aurora.repository.writer.chatbot.ConversationMessageWriterRepository;
+import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationMessageEntity;
+import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.datasource.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
+import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationMessageWriterRepository;
 import com.tech.n.ai.datasource.mongodb.document.ConversationMessageDocument;
 import com.tech.n.ai.datasource.mongodb.repository.ConversationMessageRepository;
-import com.tech.n.ai.datasource.mongodb.repository.ConversationSessionRepository;
 import dev.langchain4j.data.message.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -39,9 +36,8 @@ public class ConversationMessageServiceImpl implements ConversationMessageServic
     private static final String KAFKA_TOPIC_CONVERSATION_EVENTS = "conversation-events";
     
     private final ConversationMessageWriterRepository conversationMessageWriterRepository;
-    private final com.tech.n.ai.datasource.aurora.repository.writer.chatbot.ConversationMessageWriterJpaRepository conversationMessageWriterJpaRepository;
+    private final com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationMessageWriterJpaRepository conversationMessageWriterJpaRepository;
     private final ConversationMessageRepository conversationMessageRepository;
-    private final ConversationSessionRepository conversationSessionRepository;
     private final ConversationSessionReaderRepository conversationSessionReaderRepository;
     private final MongoDbChatMemoryStore mongoDbChatMemoryStore;
     private final EventPublisher eventPublisher;
@@ -64,7 +60,6 @@ public class ConversationMessageServiceImpl implements ConversationMessageServic
         // 메시지 엔티티 생성 및 저장
         ConversationMessageEntity message = new ConversationMessageEntity();
         message.setSession(session);
-        message.setSessionId(sessionIdLong);
         message.setRole(ConversationMessageEntity.MessageRole.valueOf(role));
         message.setContent(content);
         message.setTokenCount(tokenCount);
@@ -95,32 +90,22 @@ public class ConversationMessageServiceImpl implements ConversationMessageServic
     @Override
     @Transactional(readOnly = true)
     public Page<MessageResponse> getMessages(String sessionId, Pageable pageable) {
-        // 세션 소유권 검증은 ConversationSessionService에서 처리
-        // 여기서는 세션 존재 여부만 확인
-        
-        // Query Side (MongoDB Atlas) 우선 조회
         try {
             Page<ConversationMessageDocument> mongoPage = conversationMessageRepository
                 .findBySessionIdOrderBySequenceNumberAsc(sessionId, pageable);
             
             if (mongoPage.hasContent()) {
-                List<MessageResponse> responses = mongoPage.getContent().stream()
-                    .map(this::toResponse)
-                    .collect(Collectors.toList());
-                
-                return new PageImpl<>(responses, pageable, mongoPage.getTotalElements());
+                return mongoPage.map(this::toResponse);
             }
         } catch (Exception e) {
             log.warn("Failed to get messages from MongoDB, falling back to Aurora MySQL: sessionId={}", 
                 sessionId, e);
         }
         
-        // Fallback: Command Side (Aurora MySQL)
         Long sessionIdLong = Long.parseLong(sessionId);
         List<ConversationMessageEntity> messages = conversationMessageWriterJpaRepository
             .findBySessionIdOrderBySequenceNumberAsc(sessionIdLong);
         
-        // 페이징 처리
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), messages.size());
         List<ConversationMessageEntity> pagedMessages = messages.subList(start, end);
@@ -159,7 +144,7 @@ public class ConversationMessageServiceImpl implements ConversationMessageServic
     private MessageResponse toResponseFromEntity(ConversationMessageEntity entity) {
         return MessageResponse.builder()
             .messageId(entity.getMessageId().toString())
-            .sessionId(entity.getSessionId().toString())
+            .sessionId(entity.getSession().getId().toString())
             .role(entity.getRole().name())
             .content(entity.getContent())
             .tokenCount(entity.getTokenCount())

@@ -6,6 +6,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -15,13 +16,14 @@ import java.util.Map;
 
 /**
  * OpenAI 메시지 포맷 변환기 (기본 선택)
- * 
+ *
  * 참고: OpenAI API 역할 변경사항 (2025)
  * - GPT-4o-mini: "system" 역할 지원 (현재 사용 중)
  * - O1 모델 이상: "developer" 역할 사용 필요 (향후 O1 모델 사용 시 수정 필요)
  * - 공식 문서: https://platform.openai.com/docs/guides/chat-completions
  */
 @Slf4j
+@Primary
 @Component("openAiMessageConverter")
 public class OpenAiMessageConverter implements MessageFormatConverter {
     

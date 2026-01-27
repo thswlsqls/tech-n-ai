@@ -4,11 +4,12 @@ import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundExc
 import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import com.tech.n.ai.common.kafka.event.ConversationSessionCreatedEvent;
+import com.tech.n.ai.common.kafka.event.ConversationSessionDeletedEvent;
 import com.tech.n.ai.common.kafka.event.ConversationSessionUpdatedEvent;
 import com.tech.n.ai.common.kafka.publisher.EventPublisher;
-import com.tech.n.ai.datasource.aurora.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.datasource.aurora.repository.reader.chatbot.ConversationSessionReaderRepository;
-import com.tech.n.ai.datasource.aurora.repository.writer.chatbot.ConversationSessionWriterRepository;
+import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.datasource.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
+import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +53,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
         // Kafka 이벤트 발행
         ConversationSessionCreatedEvent.ConversationSessionCreatedPayload payload = 
             new ConversationSessionCreatedEvent.ConversationSessionCreatedPayload(
-                savedSession.getSessionId().toString(),
+                savedSession.getId().toString(),
                 userId.toString(),
                 savedSession.getTitle(),
                 savedSession.getLastMessageAt().atZone(java.time.ZoneId.systemDefault()).toInstant(),
@@ -61,11 +61,11 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
             );
         
         ConversationSessionCreatedEvent event = new ConversationSessionCreatedEvent(payload);
-        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, savedSession.getSessionId().toString());
+        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, savedSession.getId().toString());
         
-        log.debug("Session created: sessionId={}, userId={}", savedSession.getSessionId(), userId);
+        log.debug("Session created: sessionId={}, userId={}", savedSession.getId(), userId);
         
-        return savedSession.getSessionId().toString();
+        return savedSession.getId().toString();
     }
     
     @Override
@@ -130,20 +130,10 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     @Override
     @Transactional(readOnly = true)
     public Page<SessionResponse> listSessions(Long userId, Pageable pageable) {
-        // ConversationSessionReaderRepository에 페이징 메서드 추가 필요
-        // 임시로 전체 조회 후 페이징 처리
-        List<ConversationSessionEntity> allSessions = conversationSessionReaderRepository
-            .findByUserIdAndIsDeletedFalse(userId);
+        Page<ConversationSessionEntity> sessionPage = conversationSessionReaderRepository
+            .findByUserIdAndIsDeletedFalse(userId, pageable);
         
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), allSessions.size());
-        List<ConversationSessionEntity> pagedSessions = allSessions.subList(start, end);
-        
-        List<SessionResponse> responses = pagedSessions.stream()
-            .map(this::toResponse)
-            .collect(java.util.stream.Collectors.toList());
-        
-        return new org.springframework.data.domain.PageImpl<>(responses, pageable, allSessions.size());
+        return sessionPage.map(this::toResponse);
     }
     
     @Override
@@ -179,19 +169,49 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
         List<ConversationSessionEntity> expiredSessions = conversationSessionReaderRepository
             .findByIsActiveFalseAndIsDeletedFalseAndLastMessageAtBefore(expirationTime);
         
-        // 만료된 세션은 isActive = false 유지 (이미 비활성 상태)
-        // 추가 처리 필요 시 여기에 구현 (예: 알림 발송, 통계 수집 등)
-        // 참고: MongoDB TTL 인덱스가 Query Side에서 자동 삭제 처리
-        
         log.info("Expired {} inactive sessions (expiration: {} days)", 
             expiredSessions.size(), expirationDays);
         
         return expiredSessions.size();
     }
     
+    @Override
+    @Transactional
+    public void deleteSession(String sessionId, Long userId) {
+        Long sessionIdLong = Long.parseLong(sessionId);
+        ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
+            .orElseThrow(() -> new ConversationSessionNotFoundException("세션을 찾을 수 없습니다: " + sessionId));
+        
+        if (!session.getUserId().equals(userId)) {
+            log.warn("Unauthorized session deletion attempt: sessionId={}, requestedUserId={}, actualUserId={}", 
+                sessionId, userId, session.getUserId());
+            throw new UnauthorizedException("세션에 대한 접근 권한이 없습니다.");
+        }
+        
+        if (Boolean.TRUE.equals(session.getIsDeleted())) {
+            throw new ConversationSessionNotFoundException("이미 삭제된 세션입니다: " + sessionId);
+        }
+        
+        session.setIsDeleted(true);
+        session.setUpdatedAt(LocalDateTime.now());
+        conversationSessionWriterRepository.save(session);
+        
+        ConversationSessionDeletedEvent.ConversationSessionDeletedPayload payload = 
+            new ConversationSessionDeletedEvent.ConversationSessionDeletedPayload(
+                sessionId,
+                userId.toString(),
+                LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant()
+            );
+        
+        ConversationSessionDeletedEvent event = new ConversationSessionDeletedEvent(payload);
+        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, sessionId);
+        
+        log.debug("Session deleted: sessionId={}, userId={}", sessionId, userId);
+    }
+    
     private SessionResponse toResponse(ConversationSessionEntity entity) {
         return SessionResponse.builder()
-            .sessionId(entity.getSessionId().toString())
+            .sessionId(entity.getId().toString())
             .title(entity.getTitle())
             .createdAt(entity.getCreatedAt())
             .lastMessageAt(entity.getLastMessageAt())

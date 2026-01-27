@@ -1,0 +1,131 @@
+###
+# GET /api/v1/chatbot/sessions - 대화 세션 목록 조회 API 테스트
+# Description: 사용자의 대화 세션 목록을 페이지네이션으로 조회합니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 1. 기본 세션 목록 조회 (기본 파라미터)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("세션 목록 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("페이지네이션 응답 확인", function() {
+        var data = response.body.data;
+        client.assert(data.content !== undefined, "content가 존재해야 합니다");
+        client.assert(data.totalElements !== undefined, "totalElements가 존재해야 합니다");
+        client.assert(data.totalPages !== undefined, "totalPages가 존재해야 합니다");
+        client.assert(data.number !== undefined, "page number가 존재해야 합니다");
+        client.assert(data.size !== undefined, "page size가 존재해야 합니다");
+    });
+
+    // 첫 번째 세션 ID 저장
+    client.test("세션 데이터 저장", function() {
+        var data = response.body.data;
+        if (data.content && data.content.length > 0) {
+            client.global.set("testSessionId", data.content[0].sessionId);
+        }
+    });
+%}
+
+### 2. 페이지네이션 - 첫 번째 페이지, 10개
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=1&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("페이지네이션 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("페이지 크기 확인", function() {
+        var data = response.body.data;
+        client.assert(data.size === 10, "페이지 크기가 10이어야 합니다");
+    });
+%}
+
+### 3. 페이지네이션 - 두 번째 페이지
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=2&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("두 번째 페이지 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("페이지 정보 확인", function() {
+        var data = response.body.data;
+        client.assert(data.number === 1, "페이지 번호가 1이어야 합니다 (0-indexed)");
+    });
+%}
+
+### 4. 페이지네이션 - 큰 페이지 번호 (빈 결과)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=100&size=20
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("빈 페이지 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("빈 결과 확인", function() {
+        var data = response.body.data;
+        client.assert(data.content.length === 0, "결과가 비어있어야 합니다");
+    });
+%}
+
+### 5. 페이지네이션 - 최소 페이지 크기
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=1&size=1
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("최소 페이지 크기 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 인증 없이 요청
+GET {{chatbotUrl}}/api/v1/chatbot/sessions
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 잘못된 토큰
+GET {{chatbotUrl}}/api/v1/chatbot/sessions
+Authorization: Bearer invalid_token_here
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 잘못된 page 파라미터 (음수)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=-1&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("파라미터 검증", function() {
+        // 서버 구현에 따라 400 또는 200으로 기본값 적용 가능
+        client.assert(response.status === 400 || response.status === 200,
+            "응답 상태 코드가 400 또는 200이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 잘못된 size 파라미터 (0)
+GET {{chatbotUrl}}/api/v1/chatbot/sessions?page=1&size=0
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("파라미터 검증", function() {
+        // 서버 구현에 따라 400 또는 200으로 기본값 적용 가능
+        client.assert(response.status === 400 || response.status === 200,
+            "응답 상태 코드가 400 또는 200이어야 합니다");
+    });
+%}
