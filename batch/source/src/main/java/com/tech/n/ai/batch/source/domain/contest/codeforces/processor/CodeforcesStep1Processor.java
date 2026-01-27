@@ -8,113 +8,127 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.lang.Nullable;
 
-/**
- * Codeforces Step1 Processor
- * CodeforcesDto.Contest → ContestCreateRequest 변환
- * 
- * Codeforces API 공식 문서 참고:
- * https://codeforces.com/apiHelp
- * 
- * Contest 객체 필드:
- * - id: Integer (대회 ID)
- * - name: String (대회명)
- * - type: String (대회 타입: "CF", "ICPC" 등)
- * - phase: String (대회 단계: "BEFORE", "CODING", "FINISHED" 등)
- * - startTimeSeconds: Long (시작 시간, Unix timestamp)
- * - durationSeconds: Integer (지속 시간, 초)
- * - websiteUrl: String (웹사이트 URL)
- * - description: String (설명)
- * - kind: String (대회 종류)
- */
 @Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class CodeforcesStep1Processor implements ItemProcessor<Contest, ContestCreateRequest> {
 
-    /**
-     * Codeforces 출처의 sourceId
-     * TODO: SourcesDocument에서 Codeforces 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String CODEFORCES_SOURCE_ID = "507f1f77bcf86cd799439011";
+    private static final String SOURCE_NAME = "Codeforces API";
+    private static final String CONTESTS_PATH = "/contests";
+    private static final String PHASE_FINISHED = "FINISHED";
+    private static final String BASE_URL = "https://codeforces.com";
+
+    private final String sourceId;
 
     @Override
     public @Nullable ContestCreateRequest process(Contest item) throws Exception {
+        if (!isValidItem(item)) {
+            return null;
+        }
+        
+        return buildContestCreateRequest(item);
+    }
+
+    private boolean isValidItem(Contest item) {
         if (item == null) {
-            log.warn("Contest item is null");
-            return null;
+            log.warn("Item is null");
+            return false;
         }
-
-        // 필수 필드 검증
-        if (item.name() == null || item.name().isBlank()) {
-            log.warn("Contest name is null or blank, skipping item: {}", item.id());
-            return null;
+        
+        if (isBlank(item.name())) {
+            log.warn("Item name is blank: {}", item.id());
+            return false;
         }
-
-        // 날짜/시간 변환 (Unix timestamp → LocalDateTime)
-        LocalDateTime startDate = null;
-        if (item.startTimeSeconds() != null) {
-            startDate = LocalDateTime.ofEpochSecond(item.startTimeSeconds(), 0, ZoneOffset.UTC);
+        
+        if (isFinished(item)) {
+            log.debug("Skipping finished contest: {} (phase: {})", item.name(), item.phase());
+            return false;
         }
+        
+        return true;
+    }
 
-        LocalDateTime endDate = null;
-        if (item.startTimeSeconds() != null && item.durationSeconds() != null) {
-            endDate = LocalDateTime.ofEpochSecond(
-                item.startTimeSeconds() + item.durationSeconds(), 0, ZoneOffset.UTC);
-        }
+    private boolean isFinished(Contest item) {
+        return PHASE_FINISHED.equals(item.phase());
+    }
 
-        // URL 생성 (websiteUrl이 없으면 기본 URL 사용)
-        String url = item.websiteUrl();
-        if (url == null || url.isBlank()) {
-            if (item.id() != null) {
-                url = "https://codeforces.com/contests/" + item.id();
-            } else {
-                url = "https://codeforces.com/contests";
-            }
-        }
-
-        // 태그 추출
-        List<String> tags = extractTags(item);
-
-        // Metadata 생성
-        ContestCreateRequest.ContestMetadataRequest metadata = ContestCreateRequest.ContestMetadataRequest.builder()
-            .sourceName("Codeforces API")
-            .tags(tags)
-            .build();
-
+    private ContestCreateRequest buildContestCreateRequest(Contest item) {
         return ContestCreateRequest.builder()
-            .sourceId(CODEFORCES_SOURCE_ID)
+            .sourceId(sourceId)
             .title(item.name())
-            .startDate(startDate)
-            .endDate(endDate)
-            .description(item.description() != null ? item.description() : "")
-            .url(url)
-            .metadata(metadata)
+            .startDate(toStartDate(item))
+            .endDate(toEndDate(item))
+            .description(trimOrEmpty(item.description()))
+            .url(buildUrl(item))
+            .metadata(createMetadata(item))
             .build();
     }
 
-    /**
-     * Contest 객체에서 태그 추출
-     * type, kind, phase 등에서 태그 추출
-     */
+    private ContestCreateRequest.ContestMetadataRequest createMetadata(Contest item) {
+        return ContestCreateRequest.ContestMetadataRequest.builder()
+            .sourceName(SOURCE_NAME)
+            .tags(extractTags(item))
+            .build();
+    }
+
+    private LocalDateTime toStartDate(Contest item) {
+        if (item.startTimeSeconds() == null) {
+            return null;
+        }
+        return LocalDateTime.ofEpochSecond(item.startTimeSeconds(), 0, ZoneOffset.UTC);
+    }
+
+    private LocalDateTime toEndDate(Contest item) {
+        if (item.startTimeSeconds() == null || item.durationSeconds() == null) {
+            return null;
+        }
+        long endTimeSeconds = item.startTimeSeconds() + item.durationSeconds();
+        return LocalDateTime.ofEpochSecond(endTimeSeconds, 0, ZoneOffset.UTC);
+    }
+
+    private String buildUrl(Contest item) {
+        if (!isBlank(item.websiteUrl())) {
+            return item.websiteUrl();
+        }
+        
+        if (item.id() != null) {
+            return BASE_URL + CONTESTS_PATH + "/" + item.id();
+        }
+        
+        return BASE_URL + CONTESTS_PATH;
+    }
+
     private List<String> extractTags(Contest item) {
         List<String> tags = new ArrayList<>();
         
-        if (item.type() != null && !item.type().isBlank()) {
-            tags.add(item.type());
+        String type = trimOrEmpty(item.type());
+        if (!type.isEmpty()) {
+            tags.add(type);
         }
         
-        if (item.kind() != null && !item.kind().isBlank()) {
-            tags.add(item.kind());
+        String kind = trimOrEmpty(item.kind());
+        if (!kind.isEmpty()) {
+            tags.add(kind);
         }
         
-        if (item.phase() != null && !item.phase().isBlank()) {
-            tags.add(item.phase());
+        String phase = trimOrEmpty(item.phase());
+        if (!phase.isEmpty()) {
+            tags.add(phase);
         }
         
         return tags;
     }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
+    }
 }
+

@@ -2,6 +2,7 @@ package com.tech.n.ai.batch.source.domain.news.newsapi.processor;
 
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.feign.domain.newsapi.contract.NewsAPIDto.Article;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * NewsAPI Step1 Processor
@@ -35,11 +37,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class NewsApiStep1Processor implements ItemProcessor<Article, NewsCreateRequest> {
 
-    /**
-     * NewsAPI 출처의 sourceId
-     * TODO: SourcesDocument에서 NewsAPI 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String NEWSAPI_SOURCE_ID = "507f1f77bcf86cd799439020";
+    private static final String SOURCE_URL = "https://newsapi.org";
+    private static final String SOURCE_CATEGORY = "최신 IT 테크 뉴스 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("NewsAPI source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable NewsCreateRequest process(Article item) throws Exception {
@@ -69,27 +84,19 @@ public class NewsApiStep1Processor implements ItemProcessor<Article, NewsCreateR
         }
 
         // 내용 생성 (description 또는 content 사용)
-        String content = item.content();
-        if (content == null || content.isBlank()) {
-            content = item.description();
-        }
-        if (content == null || content.isBlank()) {
-            content = "";
+        String content = trimOrEmpty(item.content());
+        if (content.isEmpty()) {
+            content = trimOrEmpty(item.description());
         }
 
         // 요약 생성 (description 사용)
-        String summary = item.description();
-        if (summary == null || summary.isBlank()) {
-            summary = "";
-        }
+        String summary = trimOrEmpty(item.description());
 
         // 작성자 추출
-        String author = item.author();
-        if (author == null || author.isBlank()) {
+        String author = trimOrEmpty(item.author());
+        if (author.isEmpty()) {
             if (item.source() != null && item.source().name() != null) {
-                author = item.source().name();
-            } else {
-                author = "";
+                author = item.source().name().trim();
             }
         }
 
@@ -105,15 +112,19 @@ public class NewsApiStep1Processor implements ItemProcessor<Article, NewsCreateR
             .build();
 
         return NewsCreateRequest.builder()
-            .sourceId(NEWSAPI_SOURCE_ID)
-            .title(item.title())
+            .sourceId(sourceId)
+            .title(trimOrEmpty(item.title()))
             .content(content)
             .summary(summary)
             .publishedAt(publishedAt)
-            .url(url)
+            .url(trimOrEmpty(url))
             .author(author)
             .metadata(metadata)
             .build();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 
     /**
@@ -142,10 +153,10 @@ public class NewsApiStep1Processor implements ItemProcessor<Article, NewsCreateR
         
         if (item.source() != null) {
             if (item.source().id() != null && !item.source().id().isBlank()) {
-                tags.add("source:" + item.source().id());
+                tags.add("source:" + item.source().id().trim());
             }
             if (item.source().name() != null && !item.source().name().isBlank()) {
-                tags.add("sourceName:" + item.source().name());
+                tags.add("sourceName:" + item.source().name().trim());
             }
         }
         

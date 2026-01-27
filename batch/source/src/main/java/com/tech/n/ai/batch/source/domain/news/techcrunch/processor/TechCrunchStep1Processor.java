@@ -2,119 +2,103 @@ package com.tech.n.ai.batch.source.domain.news.techcrunch.processor;
 
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.lang.Nullable;
 
-/**
- * TechCrunch Step1 Processor
- * RssFeedItem → NewsCreateRequest 변환
- * 
- * TechCrunch RSS 피드 공식 문서 참고:
- * https://techcrunch.com/feed/
- * 
- * RssFeedItem 객체 필드:
- * - title: String (제목)
- * - link: String (URL)
- * - description: String (설명/내용)
- * - publishedDate: LocalDateTime (발행일시)
- * - author: String (작성자)
- * - category: String (카테고리/태그)
- * - guid: String (고유 식별자)
- * - imageUrl: String (이미지 URL)
- */
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class TechCrunchStep1Processor implements ItemProcessor<RssFeedItem, NewsCreateRequest> {
 
-    /**
-     * TechCrunch 출처의 sourceId
-     * TODO: SourcesDocument에서 TechCrunch 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String TECHCRUNCH_SOURCE_ID = "507f1f77bcf86cd799439021";
+    private static final String SOURCE_NAME = "TechCrunch RSS";
+    private static final int SUMMARY_MAX_LENGTH = 500;
+
+    private final String sourceId;
 
     @Override
     public @Nullable NewsCreateRequest process(RssFeedItem item) throws Exception {
+        if (!isValidItem(item)) {
+            return null;
+        }
+
+        return buildNewsCreateRequest(item);
+    }
+
+    private boolean isValidItem(RssFeedItem item) {
         if (item == null) {
-            log.warn("TechCrunch RSS feed item is null");
-            return null;
+            log.warn("Item is null");
+            return false;
         }
 
-        // 필수 필드 검증
-        if (item.title() == null || item.title().isBlank()) {
-            log.warn("TechCrunch RSS feed item title is null or blank, skipping item: {}", item.guid());
-            return null;
+        if (isBlank(item.title())) {
+            log.warn("Item title is blank: {}", item.guid());
+            return false;
         }
 
-        // 날짜/시간 검증
-        if (item.publishedDate() == null) {
-            log.warn("TechCrunch RSS feed item publishedDate is null, skipping item: {}", item.title());
-            return null;
+        if (isBlank(item.link())) {
+            log.warn("Item link is blank: {}", item.title());
+            return false;
         }
 
-        // URL 검증
-        String url = item.link();
-        if (url == null || url.isBlank()) {
-            log.warn("TechCrunch RSS feed item url is null or blank, skipping item: {}", item.title());
-            return null;
-        }
+        return true;
+    }
 
-        // 내용 생성 (description 사용)
-        String content = item.description();
-        if (content == null || content.isBlank()) {
-            content = "";
-        }
-
-        // 요약 생성 (description 사용, 최대 길이 제한)
-        String summary = item.description();
-        if (summary == null || summary.isBlank()) {
-            summary = "";
-        } else if (summary.length() > 500) {
-            summary = summary.substring(0, 500) + "...";
-        }
-
-        // 작성자 추출
-        String author = item.author();
-        if (author == null || author.isBlank()) {
-            author = "";
-        }
-
-        // 태그 추출
-        List<String> tags = extractTags(item);
-
-        // Metadata 생성
-        NewsCreateRequest.NewsMetadataRequest metadata = NewsCreateRequest.NewsMetadataRequest.builder()
-            .sourceName("TechCrunch RSS")
-            .tags(tags)
-            .build();
-
+    private NewsCreateRequest buildNewsCreateRequest(RssFeedItem item) {
         return NewsCreateRequest.builder()
-            .sourceId(TECHCRUNCH_SOURCE_ID)
-            .title(item.title())
-            .content(content)
-            .summary(summary)
+            .sourceId(sourceId)
+            .title(trimOrEmpty(item.title()))
+            .content(trimOrEmpty(item.description()))
+            .summary(createSummary(item.description()))
             .publishedAt(item.publishedDate())
-            .url(url)
-            .author(author)
-            .metadata(metadata)
+            .url(trimOrEmpty(item.link()))
+            .author(trimOrEmpty(item.author()))
+            .metadata(createMetadata(item))
             .build();
     }
 
-    /**
-     * RssFeedItem 객체에서 태그 추출
-     */
+    private NewsCreateRequest.NewsMetadataRequest createMetadata(RssFeedItem item) {
+        return NewsCreateRequest.NewsMetadataRequest.builder()
+            .sourceName(SOURCE_NAME)
+            .tags(extractTags(item))
+            .build();
+    }
+
+    private String createSummary(String description) {
+        String trimmed = trimOrEmpty(description);
+        
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+
+        if (trimmed.length() <= SUMMARY_MAX_LENGTH) {
+            return trimmed;
+        }
+
+        return trimmed.substring(0, SUMMARY_MAX_LENGTH) + "...";
+    }
+
     private List<String> extractTags(RssFeedItem item) {
         List<String> tags = new ArrayList<>();
-        
-        if (item.category() != null && !item.category().isBlank()) {
-            tags.add(item.category());
+
+        String category = trimOrEmpty(item.category());
+        if (!category.isEmpty()) {
+            tags.add(category);
         }
-        
+
         return tags;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 }

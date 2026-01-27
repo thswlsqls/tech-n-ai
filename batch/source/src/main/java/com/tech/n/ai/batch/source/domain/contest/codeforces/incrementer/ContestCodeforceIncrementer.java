@@ -1,32 +1,34 @@
 package com.tech.n.ai.batch.source.domain.contest.codeforces.incrementer;
 
 import com.tech.n.ai.batch.source.common.incrementer.UniqueRunIdIncrementer;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.job.parameters.JobParameters;
-import org.springframework.batch.core.job.parameters.JobParametersBuilder;
-import org.springframework.batch.core.job.parameters.RunIdIncrementer;
-
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ContestCodeforceIncrementer extends RunIdIncrementer {
 
-    private static final String RUN_ID = "run.id";
+    private static final String RUN_ID_KEY = "run.id";
+    private static final String BASE_DATE_KEY = "baseDate";
+    private static final String GYM_KEY = "gym";
+    private static final long DEFAULT_RUN_ID = 0L;
 
-    private String baseDate;
-    private String gym;
+    private final String baseDate;
+    private final String gym;
 
     @Override
     public JobParameters getNext(JobParameters parameters) {
-
-        JobParameters params = (parameters == null) ? new JobParameters() : parameters;
+        JobParameters params = parameters != null ? parameters : new JobParameters();
+        long nextRunId = UniqueRunIdIncrementer.safeGetLong(params, RUN_ID_KEY, DEFAULT_RUN_ID) + 1;
 
         return new JobParametersBuilder()
-            .addLong(RUN_ID, UniqueRunIdIncrementer.safeGetLong(params, RUN_ID, 0L) + 1)
-            .addString("baseDate", baseDate)
-            .addString("gym", gym)
+            .addLong(RUN_ID_KEY, nextRunId)
+            .addString(BASE_DATE_KEY, baseDate)
+            .addString(GYM_KEY, gym)
             .toJobParameters();
-
     }
 }
+

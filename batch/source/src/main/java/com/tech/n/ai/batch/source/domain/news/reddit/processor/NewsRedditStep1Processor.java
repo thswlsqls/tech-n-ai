@@ -2,6 +2,7 @@ package com.tech.n.ai.batch.source.domain.news.reddit.processor;
 
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.feign.domain.reddit.contract.RedditDto.Post;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * Reddit Step1 Processor (News)
@@ -38,11 +40,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class NewsRedditStep1Processor implements ItemProcessor<Post, NewsCreateRequest> {
 
-    /**
-     * Reddit 출처의 sourceId (News용)
-     * TODO: SourcesDocument에서 Reddit 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String REDDIT_SOURCE_ID = "507f1f77bcf86cd799439015";
+    private static final String SOURCE_URL = "https://www.reddit.com";
+    private static final String SOURCE_CATEGORY = "최신 IT 테크 뉴스 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("Reddit (news) source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable NewsCreateRequest process(Post item) throws Exception {
@@ -80,24 +95,16 @@ public class NewsRedditStep1Processor implements ItemProcessor<Post, NewsCreateR
         }
 
         // 내용 생성 (selftext 사용)
-        String content = item.selftext();
-        if (content == null || content.isBlank()) {
-            content = "";
-        }
+        String content = trimOrEmpty(item.selftext());
 
         // 요약 생성 (selftext 사용, 최대 길이 제한)
-        String summary = item.selftext();
-        if (summary == null || summary.isBlank()) {
-            summary = "";
-        } else if (summary.length() > 500) {
+        String summary = trimOrEmpty(item.selftext());
+        if (!summary.isEmpty() && summary.length() > 500) {
             summary = summary.substring(0, 500) + "...";
         }
 
         // 작성자 추출
-        String author = item.author();
-        if (author == null || author.isBlank()) {
-            author = "";
-        }
+        String author = trimOrEmpty(item.author());
 
         // 태그 추출
         List<String> tags = extractTags(item);
@@ -111,15 +118,19 @@ public class NewsRedditStep1Processor implements ItemProcessor<Post, NewsCreateR
             .build();
 
         return NewsCreateRequest.builder()
-            .sourceId(REDDIT_SOURCE_ID)
-            .title(item.title())
+            .sourceId(sourceId)
+            .title(trimOrEmpty(item.title()))
             .content(content)
             .summary(summary)
             .publishedAt(publishedAt)
-            .url(url)
+            .url(trimOrEmpty(url))
             .author(author)
             .metadata(metadata)
             .build();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 
     /**
@@ -129,11 +140,11 @@ public class NewsRedditStep1Processor implements ItemProcessor<Post, NewsCreateR
         List<String> tags = new ArrayList<>();
         
         if (item.subreddit() != null && !item.subreddit().isBlank()) {
-            tags.add("subreddit:" + item.subreddit());
+            tags.add("subreddit:" + item.subreddit().trim());
         }
         
         if (item.domain() != null && !item.domain().isBlank()) {
-            tags.add("domain:" + item.domain());
+            tags.add("domain:" + item.domain().trim());
         }
         
         return tags;

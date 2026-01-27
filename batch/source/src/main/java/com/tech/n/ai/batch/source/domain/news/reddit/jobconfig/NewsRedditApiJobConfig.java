@@ -10,14 +10,15 @@ import com.tech.n.ai.batch.source.domain.news.reddit.service.NewsRedditApiServic
 import com.tech.n.ai.batch.source.domain.news.reddit.writer.NewsRedditStep1Writer;
 import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
 import com.tech.n.ai.client.feign.domain.reddit.contract.RedditDto.Post;
+import org.springframework.data.redis.core.RedisTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.BackOffPolicy;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @Configuration
@@ -49,6 +51,7 @@ public class NewsRedditApiJobConfig {
     private final NewsRedditApiService service;
     private final NewsRedditJobParameter parameter;
     private final NewsInternalContract newsInternalApi;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Bean(name=Constants.NEWS_REDDIT + Constants.PARAMETER)
     @JobScope
@@ -69,12 +72,13 @@ public class NewsRedditApiJobConfig {
     @Bean(name = Constants.NEWS_REDDIT + Constants.STEP_1)
     @JobScope
     public Step step1(JobRepository jobRepository,
+                      @Qualifier("primaryPlatformTransactionManager") PlatformTransactionManager transactionManager,
                       @Qualifier(Constants.NEWS_REDDIT + Constants.STEP_1 + Constants.ITEM_READER) NewsRedditApiPagingItemReader<Post> reader,
                       @Qualifier(Constants.NEWS_REDDIT + Constants.STEP_1 + Constants.ITEM_PROCESSOR) NewsRedditStep1Processor processor,
                       @Qualifier(Constants.NEWS_REDDIT + Constants.STEP_1 + Constants.ITEM_WRITER) NewsRedditStep1Writer writer) {
 
         return new StepBuilder(Constants.NEWS_REDDIT + Constants.STEP_1, jobRepository)
-            .<Post, NewsCreateRequest>chunk(Constants.CHUNK_SIZE_10)
+            .<Post, NewsCreateRequest>chunk(Constants.CHUNK_SIZE_10, transactionManager)
             .reader(reader)
             .processor(processor)
             .writer(writer)
@@ -104,7 +108,7 @@ public class NewsRedditApiJobConfig {
     @Bean(name = Constants.NEWS_REDDIT + Constants.STEP_1 + Constants.ITEM_PROCESSOR)
     @StepScope
     public NewsRedditStep1Processor step1Processor() {
-        return new NewsRedditStep1Processor();
+        return new NewsRedditStep1Processor(redisTemplate);
     }
 
     @Bean(name = Constants.NEWS_REDDIT + Constants.STEP_1 + Constants.ITEM_WRITER)

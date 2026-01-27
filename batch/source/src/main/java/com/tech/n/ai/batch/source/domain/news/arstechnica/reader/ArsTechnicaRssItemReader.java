@@ -2,18 +2,19 @@ package com.tech.n.ai.batch.source.domain.news.arstechnica.reader;
 
 import com.tech.n.ai.batch.source.domain.news.arstechnica.service.NewsArsTechnicaRssService;
 import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.infrastructure.item.database.AbstractPagingItemReader;
+import org.springframework.batch.item.database.AbstractPagingItemReader;
 import org.springframework.util.CollectionUtils;
 
-@Slf4j
-public class ArsTechnicaRssItemReader<T> extends AbstractPagingItemReader<T> {
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-    protected NewsArsTechnicaRssService service;
-    protected List<RssFeedItem> allItems;
-    protected int currentIndex = 0;
+@Slf4j
+public class ArsTechnicaRssItemReader extends AbstractPagingItemReader<RssFeedItem> {
+
+    private final NewsArsTechnicaRssService service;
+    private List<RssFeedItem> feedItems;
+    private int currentIndex;
 
     public ArsTechnicaRssItemReader(int pageSize, NewsArsTechnicaRssService service) {
         setPageSize(pageSize);
@@ -21,32 +22,29 @@ public class ArsTechnicaRssItemReader<T> extends AbstractPagingItemReader<T> {
     }
 
     @Override
-    protected void doReadPage() {
-        initResults();
-
-        // 첫 번째 페이지에서만 RSS 피드를 파싱
-        if (allItems == null) {
-            log.info("doReadPage ... fetching RSS feed items (first page)");
-            allItems = service.getFeedItems();
-            currentIndex = 0;
-        }
-
-        // 현재 페이지에 해당하는 아이템들을 추가
-        int pageSize = getPageSize();
-        int endIndex = Math.min(currentIndex + pageSize, allItems != null ? allItems.size() : 0);
-        
-        if (allItems != null && currentIndex < allItems.size()) {
-            for (int i = currentIndex; i < endIndex; i++) {
-                results.add((T) allItems.get(i));
-            }
-            currentIndex = endIndex;
-            log.info("doReadPage ... page: {}, items: {} to {}", getPage(), currentIndex - pageSize, currentIndex - 1);
-        } else {
-            log.info("doReadPage ... no more items to read");
-        }
+    protected void doOpen() throws Exception {
+        log.info("Opening reader with pageSize: {}", getPageSize());
+        resetState();
     }
 
-    protected void initResults() {
+    @Override
+    protected void doReadPage() {
+        initializeResults();
+
+        if (isFirstPage()) {
+            fetchFeedItems();
+        }
+
+        addItemsToResults();
+    }
+
+    @Override
+    protected void doClose() throws Exception {
+        log.info("Closing reader");
+        resetState();
+    }
+
+    private void initializeResults() {
         if (CollectionUtils.isEmpty(results)) {
             results = new CopyOnWriteArrayList<>();
         } else {
@@ -54,18 +52,48 @@ public class ArsTechnicaRssItemReader<T> extends AbstractPagingItemReader<T> {
         }
     }
 
-    @Override
-    protected void doOpen() throws Exception {
-        log.info("doOpen ... ");
-        log.info("pageSize : {}", getPageSize());
-        allItems = null;
+    private boolean isFirstPage() {
+        return feedItems == null;
+    }
+
+    private void fetchFeedItems() {
+        log.info("Fetching RSS feed items");
+        feedItems = service.getFeedItems();
         currentIndex = 0;
     }
 
-    @Override
-    protected void doClose() throws Exception {
-        log.info("doClose ... ");
-        allItems = null;
+    private void addItemsToResults() {
+        if (hasNoMoreItems()) {
+            log.info("No more items to read");
+            return;
+        }
+
+        int startIndex = currentIndex;
+        int endIndex = calculateEndIndex();
+
+        for (int i = startIndex; i < endIndex; i++) {
+            results.add(feedItems.get(i));
+        }
+
+        currentIndex = endIndex;
+        logReadProgress(startIndex + 1, endIndex);
+    }
+
+    private boolean hasNoMoreItems() {
+        return feedItems == null || currentIndex >= feedItems.size();
+    }
+
+    private int calculateEndIndex() {
+        int totalSize = feedItems != null ? feedItems.size() : 0;
+        return Math.min(currentIndex + getPageSize(), totalSize);
+    }
+
+    private void logReadProgress(int from, int to) {
+        log.info("Read page: {}, items: {} to {}", getPage() + 1, from, to);
+    }
+
+    private void resetState() {
+        feedItems = null;
         currentIndex = 0;
     }
 }

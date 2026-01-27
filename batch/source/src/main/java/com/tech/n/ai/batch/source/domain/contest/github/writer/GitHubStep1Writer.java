@@ -5,24 +5,26 @@ import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateReques
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
 import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.Chunk;
-import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
 
-/**
- * GitHub Step1 Writer
- * batch-source DTO → client-feign DTO 변환 후 내부 API 호출
- */
 @Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class GitHubStep1Writer implements ItemWriter<ContestCreateRequest> {
 
+    private static final String SUCCESS_CODE = "2000";
+    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    
     private final ContestInternalContract contestInternalApi;
     
     @Value("${internal-api.contest.api-key}")
@@ -37,61 +39,100 @@ public class GitHubStep1Writer implements ItemWriter<ContestCreateRequest> {
             return;
         }
         
-        // batch-source DTO → client-feign DTO 변환
+        InternalApiDto.ContestBatchRequest batchRequest = convertToBatchRequest(items);
+        logBatchRequest(batchRequest);
+        
+//        ApiResponse<ContestBatchResponse> response = callInternalApi(batchRequest);
+//        validateAndLogResponse(response, items.size());
+    }
+
+    private InternalApiDto.ContestBatchRequest convertToBatchRequest(List<? extends ContestCreateRequest> items) {
         List<InternalApiDto.ContestCreateRequest> feignRequests = items.stream()
-            .map(item -> {
-                InternalApiDto.ContestMetadataRequest metadataRequest = null;
-                if (item.metadata() != null) {
-                    metadataRequest = InternalApiDto.ContestMetadataRequest.builder()
-                        .sourceName(item.metadata().sourceName())
-                        .prize(item.metadata().prize())
-                        .participants(item.metadata().participants())
-                        .tags(item.metadata().tags())
-                        .build();
-                }
-                
-                return InternalApiDto.ContestCreateRequest.builder()
-                    .sourceId(item.sourceId())
-                    .title(item.title())
-                    .startDate(item.startDate())
-                    .endDate(item.endDate())
-                    .description(item.description())
-                    .url(item.url())
-                    .metadata(metadataRequest)
-                    .build();
-            })
+            .map(this::convertToFeignRequest)
             .collect(Collectors.toList());
         
-        InternalApiDto.ContestBatchRequest batchRequest = InternalApiDto.ContestBatchRequest.builder()
+        return InternalApiDto.ContestBatchRequest.builder()
             .contests(feignRequests)
             .build();
-        
-        // 내부 API 호출 (client-feign DTO 사용)
-        ApiResponse<ContestBatchResponse> response = contestInternalApi
-            .createContestBatchInternal(apiKey, batchRequest);
-        
-        // 응답 검증
-        if (response == null || !"2000".equals(response.code())) {
-            String errorMessage = response != null && response.message() != null 
-                ? response.message() 
-                : "Unknown error";
-            log.error("Failed to create contests batch: {}", errorMessage);
-            throw new RuntimeException("Failed to create contests batch: " + errorMessage);
+    }
+
+    private InternalApiDto.ContestCreateRequest convertToFeignRequest(ContestCreateRequest item) {
+        return InternalApiDto.ContestCreateRequest.builder()
+            .sourceId(item.sourceId())
+            .title(item.title())
+            .startDate(item.startDate())
+            .endDate(item.endDate())
+            .description(item.description())
+            .url(item.url())
+            .metadata(convertMetadata(item.metadata()))
+            .build();
+    }
+
+    private InternalApiDto.ContestMetadataRequest convertMetadata(ContestCreateRequest.ContestMetadataRequest metadata) {
+        if (metadata == null) {
+            return null;
         }
         
-        if (response.data() != null) {
-            log.info("Successfully created {} contests (total: {}, success: {}, failure: {})", 
-                items.size(),
-                response.data().totalCount(),
-                response.data().successCount(),
-                response.data().failureCount());
-            
-            // 실패 메시지가 있으면 로깅
-            if (response.data().failureMessages() != null && !response.data().failureMessages().isEmpty()) {
-                log.warn("Some contests failed to create: {}", response.data().failureMessages());
-            }
-        } else {
-            log.warn("Response data is null, but code is 2000");
+        return InternalApiDto.ContestMetadataRequest.builder()
+            .sourceName(metadata.sourceName())
+            .prize(metadata.prize())
+            .participants(metadata.participants())
+            .tags(metadata.tags())
+            .build();
+    }
+
+    private void logBatchRequest(InternalApiDto.ContestBatchRequest batchRequest) {
+        try {
+            String json = OBJECT_MAPPER.writeValueAsString(batchRequest);
+            log.info("Batch request size: {}, JSON: {}", batchRequest.getContests().size(), json);
+        } catch (Exception e) {
+            log.warn("Failed to serialize batch request", e);
         }
+    }
+
+    private ApiResponse<ContestBatchResponse> callInternalApi(InternalApiDto.ContestBatchRequest batchRequest) {
+        return contestInternalApi.createContestBatchInternal(apiKey, batchRequest);
+    }
+
+    private void validateAndLogResponse(ApiResponse<ContestBatchResponse> response, int requestedCount) {
+        if (response == null || !SUCCESS_CODE.equals(response.code())) {
+            throw new RuntimeException("Failed to create contests batch: " + extractErrorMessage(response));
+        }
+        
+        if (response.data() == null) {
+            log.warn("Response data is null");
+            return;
+        }
+        
+        logSuccessResult(response.data(), requestedCount);
+        logFailureMessages(response.data());
+    }
+
+    private String extractErrorMessage(ApiResponse<ContestBatchResponse> response) {
+        if (response == null) {
+            return "Response is null";
+        }
+        return response.message() != null ? response.message() : "Unknown error";
+    }
+
+    private void logSuccessResult(ContestBatchResponse data, int requestedCount) {
+        log.info("Created {} contests - total: {}, success: {}, failure: {}",
+            requestedCount,
+            data.totalCount(),
+            data.successCount(),
+            data.failureCount());
+    }
+
+    private void logFailureMessages(ContestBatchResponse data) {
+        if (data.failureMessages() != null && !data.failureMessages().isEmpty()) {
+            log.warn("Failed contests: {}", data.failureMessages());
+        }
+    }
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 }

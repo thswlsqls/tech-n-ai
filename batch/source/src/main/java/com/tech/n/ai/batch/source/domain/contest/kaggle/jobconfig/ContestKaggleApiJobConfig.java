@@ -10,14 +10,15 @@ import com.tech.n.ai.batch.source.domain.contest.kaggle.writer.KaggleStep1Writer
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
 import com.tech.n.ai.client.feign.domain.kaggle.contract.KaggleDto.Competition;
+import org.springframework.data.redis.core.RedisTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.BackOffPolicy;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @Configuration
@@ -55,6 +57,7 @@ public class ContestKaggleApiJobConfig {
     private final KaggleApiService service;
     private final ContestKaggleJobParameter parameter;
     private final ContestInternalContract contestInternalApi;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Bean(name=Constants.CONTEST_KAGGLE + Constants.PARAMETER)
     @JobScope
@@ -75,12 +78,13 @@ public class ContestKaggleApiJobConfig {
     @Bean(name = Constants.CONTEST_KAGGLE + Constants.STEP_1)
     @JobScope
     public Step step1(JobRepository jobRepository,
+                      @Qualifier("primaryPlatformTransactionManager") PlatformTransactionManager transactionManager,
                       @Qualifier(Constants.CONTEST_KAGGLE + Constants.STEP_1 + Constants.ITEM_READER) KaggleApiPagingItemReader<Competition> reader,
                       @Qualifier(Constants.CONTEST_KAGGLE + Constants.STEP_1 + Constants.ITEM_PROCESSOR) KaggleStep1Processor processor,
                       @Qualifier(Constants.CONTEST_KAGGLE + Constants.STEP_1 + Constants.ITEM_WRITER) KaggleStep1Writer writer) {
 
         return new StepBuilder(Constants.CONTEST_KAGGLE + Constants.STEP_1, jobRepository)
-            .<Competition, ContestCreateRequest>chunk(Constants.CHUNK_SIZE_10)
+            .<Competition, ContestCreateRequest>chunk(Constants.CHUNK_SIZE_10, transactionManager)
             .reader(reader)
             .processor(processor)
             .writer(writer)
@@ -114,7 +118,7 @@ public class ContestKaggleApiJobConfig {
     @Bean(name = Constants.CONTEST_KAGGLE + Constants.STEP_1 + Constants.ITEM_PROCESSOR)
     @StepScope
     public KaggleStep1Processor step1Processor() {
-        return new KaggleStep1Processor();
+        return new KaggleStep1Processor(redisTemplate);
     }
 
     @Bean(name = Constants.CONTEST_KAGGLE + Constants.STEP_1 + Constants.ITEM_WRITER)

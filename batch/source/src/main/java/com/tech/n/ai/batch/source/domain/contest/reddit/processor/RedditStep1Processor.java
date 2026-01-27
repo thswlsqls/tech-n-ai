@@ -2,6 +2,7 @@ package com.tech.n.ai.batch.source.domain.contest.reddit.processor;
 
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.feign.domain.reddit.contract.RedditDto.Post;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * Reddit Step1 Processor
@@ -39,11 +41,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class RedditStep1Processor implements ItemProcessor<Post, ContestCreateRequest> {
 
-    /**
-     * Reddit 출처의 sourceId
-     * TODO: SourcesDocument에서 Reddit 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String REDDIT_SOURCE_ID = "507f1f77bcf86cd799439015";
+    private static final String SOURCE_URL = "https://www.reddit.com";
+    private static final String SOURCE_CATEGORY = "개발자 대회 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("Reddit (contest) source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable ContestCreateRequest process(Post item) throws Exception {
@@ -95,7 +110,7 @@ public class RedditStep1Processor implements ItemProcessor<Post, ContestCreateRe
             .build();
 
         return ContestCreateRequest.builder()
-            .sourceId(REDDIT_SOURCE_ID)
+            .sourceId(sourceId)
             .title(item.title())
             .startDate(startDate)
             .endDate(endDate)

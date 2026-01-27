@@ -6,119 +6,103 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.lang.Nullable;
 
-/**
- * AtCoder Step1 Processor
- * ScrapedContestItem → ContestCreateRequest 변환
- * 
- * AtCoder 공식 문서 참고:
- * https://atcoder.jp/contests
- * 
- * ScrapedContestItem 객체 필드:
- * - title: String (제목)
- * - url: String (URL)
- * - description: String (설명)
- * - startDate: LocalDateTime (시작일시)
- * - endDate: LocalDateTime (종료일시)
- * - organizer: String (주최자)
- * - location: String (장소)
- * - category: String (카테고리/태그)
- * - prize: String (상금/보상)
- * - imageUrl: String (이미지 URL)
- */
 @Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class AtCoderStep1Processor implements ItemProcessor<ScrapedContestItem, ContestCreateRequest> {
 
-    /**
-     * AtCoder 출처의 sourceId
-     * TODO: SourcesDocument에서 AtCoder 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String ATCODER_SOURCE_ID = "507f1f77bcf86cd799439029";
+    private static final String SOURCE_NAME = "AtCoder";
+    
+    private final String sourceId;
 
     @Override
     public @Nullable ContestCreateRequest process(ScrapedContestItem item) throws Exception {
+        if (!isValidItem(item)) {
+            return null;
+        }
+        
+        return buildContestCreateRequest(item);
+    }
+
+    private boolean isValidItem(ScrapedContestItem item) {
         if (item == null) {
-            log.warn("AtCoder scraped contest item is null");
-            return null;
+            log.warn("Item is null");
+            return false;
         }
-
-        // 필수 필드 검증
-        if (item.title() == null || item.title().isBlank()) {
-            log.warn("AtCoder scraped contest item title is null or blank, skipping item: {}", item.url());
-            return null;
+        
+        if (isBlank(item.title())) {
+            log.warn("Item title is blank: {}", item.url());
+            return false;
         }
-
-        // 날짜/시간 검증
+        
         if (item.startDate() == null) {
-            log.warn("AtCoder scraped contest item startDate is null, skipping item: {}", item.title());
-            return null;
+            log.warn("Item startDate is null: {}", item.title());
+            return false;
         }
-
+        
         if (item.endDate() == null) {
-            log.warn("AtCoder scraped contest item endDate is null, skipping item: {}", item.title());
-            return null;
+            log.warn("Item endDate is null: {}", item.title());
+            return false;
         }
-
-        // URL 검증
-        String url = item.url();
-        if (url == null || url.isBlank()) {
-            log.warn("AtCoder scraped contest item url is null or blank, skipping item: {}", item.title());
-            return null;
+        
+        if (isBlank(item.url())) {
+            log.warn("Item url is blank: {}", item.title());
+            return false;
         }
+        
+        return true;
+    }
 
-        // 설명 생성
-        String description = item.description();
-        if (description == null || description.isBlank()) {
-            description = "";
-        }
-
-        // 태그 추출
-        List<String> tags = extractTags(item);
-
-        // Metadata 생성
-        ContestCreateRequest.ContestMetadataRequest metadata = ContestCreateRequest.ContestMetadataRequest.builder()
-            .sourceName("AtCoder")
-            .prize(item.prize())
-            .participants(null) // AtCoder에서 제공하지 않음
-            .tags(tags)
-            .build();
-
+    private ContestCreateRequest buildContestCreateRequest(ScrapedContestItem item) {
         return ContestCreateRequest.builder()
-            .sourceId(ATCODER_SOURCE_ID)
+            .sourceId(sourceId)
             .title(item.title())
             .startDate(item.startDate())
             .endDate(item.endDate())
-            .description(description)
-            .url(url)
-            .metadata(metadata)
+            .description(trimOrEmpty(item.description()))
+            .url(item.url())
+            .metadata(createMetadata(item))
             .build();
     }
 
-    /**
-     * ScrapedContestItem 객체에서 태그 추출
-     */
+    private ContestCreateRequest.ContestMetadataRequest createMetadata(ScrapedContestItem item) {
+        return ContestCreateRequest.ContestMetadataRequest.builder()
+            .sourceName(SOURCE_NAME)
+            .prize(item.prize())
+            .tags(extractTags(item))
+            .build();
+    }
+
     private List<String> extractTags(ScrapedContestItem item) {
         List<String> tags = new ArrayList<>();
         
-        if (item.category() != null && !item.category().isBlank()) {
-            tags.add(item.category());
+        String category = trimOrEmpty(item.category());
+        if (!category.isEmpty()) {
+            tags.add(category);
         }
         
-        // location이 있으면 태그로 추가
-        if (item.location() != null && !item.location().isBlank()) {
-            tags.add(item.location());
+        String location = trimOrEmpty(item.location());
+        if (!location.isEmpty()) {
+            tags.add(location);
         }
         
-        // organizer가 있으면 태그로 추가
-        if (item.organizer() != null && !item.organizer().isBlank()) {
-            tags.add(item.organizer());
+        String organizer = trimOrEmpty(item.organizer());
+        if (!organizer.isEmpty()) {
+            tags.add(organizer);
         }
         
         return tags;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 }

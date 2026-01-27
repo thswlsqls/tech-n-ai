@@ -2,6 +2,7 @@ package com.tech.n.ai.batch.source.domain.news.hackernews.processor;
 
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.feign.domain.hackernews.contract.HackerNewsDto.ItemResponse;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * HackerNews Step1 Processor (News)
@@ -36,11 +38,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class NewsHackerNewsStep1Processor implements ItemProcessor<ItemResponse, NewsCreateRequest> {
 
-    /**
-     * Hacker News 출처의 sourceId (News용)
-     * TODO: SourcesDocument에서 Hacker News 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String HACKERNEWS_SOURCE_ID = "507f1f77bcf86cd799439016";
+    private static final String SOURCE_URL = "https://news.ycombinator.com";
+    private static final String SOURCE_CATEGORY = "최신 IT 테크 뉴스 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("Hacker News (news) source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable NewsCreateRequest process(ItemResponse item) throws Exception {
@@ -83,24 +98,16 @@ public class NewsHackerNewsStep1Processor implements ItemProcessor<ItemResponse,
         }
 
         // 내용 생성 (text 사용)
-        String content = item.text();
-        if (content == null || content.isBlank()) {
-            content = "";
-        }
+        String content = trimOrEmpty(item.text());
 
         // 요약 생성 (text 사용, 최대 길이 제한)
-        String summary = item.text();
-        if (summary == null || summary.isBlank()) {
-            summary = "";
-        } else if (summary.length() > 500) {
+        String summary = trimOrEmpty(item.text());
+        if (!summary.isEmpty() && summary.length() > 500) {
             summary = summary.substring(0, 500) + "...";
         }
 
         // 작성자 추출
-        String author = item.by();
-        if (author == null || author.isBlank()) {
-            author = "";
-        }
+        String author = trimOrEmpty(item.by());
 
         // 태그 추출
         List<String> tags = extractTags(item);
@@ -114,15 +121,19 @@ public class NewsHackerNewsStep1Processor implements ItemProcessor<ItemResponse,
             .build();
 
         return NewsCreateRequest.builder()
-            .sourceId(HACKERNEWS_SOURCE_ID)
-            .title(item.title())
+            .sourceId(sourceId)
+            .title(trimOrEmpty(item.title()))
             .content(content)
             .summary(summary)
             .publishedAt(publishedAt)
-            .url(url)
+            .url(trimOrEmpty(url))
             .author(author)
             .metadata(metadata)
             .build();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 
     /**
@@ -132,11 +143,11 @@ public class NewsHackerNewsStep1Processor implements ItemProcessor<ItemResponse,
         List<String> tags = new ArrayList<>();
         
         if (item.type() != null && !item.type().isBlank()) {
-            tags.add("type:" + item.type());
+            tags.add("type:" + item.type().trim());
         }
         
         if (item.by() != null && !item.by().isBlank()) {
-            tags.add("author:" + item.by());
+            tags.add("author:" + item.by().trim());
         }
         
         return tags;

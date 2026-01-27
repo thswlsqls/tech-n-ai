@@ -5,22 +5,20 @@ import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto.Event;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.infrastructure.item.database.AbstractPagingItemReader;
+import org.springframework.batch.item.database.AbstractPagingItemReader;
 import org.springframework.util.CollectionUtils;
 
 @Slf4j
-public class GitHubApiPagingItemReader<T> extends AbstractPagingItemReader<T> {
+public class GitHubApiPagingItemReader extends AbstractPagingItemReader<Event> {
 
-    protected GitHubApiService service;
-    protected Integer perPage;
-    protected Integer page;
+    private final GitHubApiService apiService;
+    private final Integer perPage;
+    private final Integer page;
+    private List<Event> cachedEvents;
 
-    public GitHubApiPagingItemReader(int pageSize
-                                   , GitHubApiService service
-                                   , Integer perPage
-                                   , Integer page) {
+    public GitHubApiPagingItemReader(int pageSize, GitHubApiService apiService, Integer perPage, Integer page) {
         setPageSize(pageSize);
-        this.service = service;
+        this.apiService = apiService;
         this.perPage = perPage;
         this.page = page;
     }
@@ -28,23 +26,23 @@ public class GitHubApiPagingItemReader<T> extends AbstractPagingItemReader<T> {
     @Override
     protected void doReadPage() {
         initResults();
-
-        // JobParameter에서 받은 값을 우선 사용, 없으면 기본값 사용
-        int currentPage = (this.page != null) ? this.page : (getPage() >= 0 ? getPage() : 1);
-        int currentPerPage = (this.perPage != null) ? this.perPage : getPageSize();
-        
-        log.info("doReadPage ... page: {}, perPage: {}", currentPage, currentPerPage);
-
-        List<Event> itemList = service.getEvents(currentPerPage, currentPage);
-
-        if (itemList != null) {
-            for (Event item : itemList) {
-                results.add((T) item);
-            }
-        }
+        fetchAndCacheIfNeeded();
+        addPageItemsToResults();
     }
 
-    protected void initResults() {
+    @Override
+    protected void doOpen() {
+        log.info("Opening GitHub API reader with pageSize: {}, perPage: {}, page: {}", 
+            getPageSize(), perPage, page);
+    }
+
+    @Override
+    protected void doClose() {
+        log.info("Closing GitHub API reader");
+        cachedEvents = null;
+    }
+
+    private void initResults() {
         if (CollectionUtils.isEmpty(results)) {
             results = new CopyOnWriteArrayList<>();
         } else {
@@ -52,14 +50,27 @@ public class GitHubApiPagingItemReader<T> extends AbstractPagingItemReader<T> {
         }
     }
 
-    @Override
-    protected void doOpen() throws Exception {
-        log.info("doOpen ... ");
-        log.info("pageSize : {}", getPageSize());
+    private void fetchAndCacheIfNeeded() {
+        if (cachedEvents == null) {
+            cachedEvents = apiService.getEvents(perPage, page);
+            log.info("Fetched {} events from GitHub API", cachedEvents.size());
+        }
     }
 
-    @Override
-    protected void doClose() throws Exception {
-        log.info("doClose ... ");
+    private void addPageItemsToResults() {
+        int currentPage = getPage();
+        int pageSize = getPageSize();
+        int fromIndex = currentPage * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, cachedEvents.size());
+
+        if (fromIndex >= cachedEvents.size()) {
+            return;
+        }
+
+        List<Event> pageItems = cachedEvents.subList(fromIndex, toIndex);
+        results.addAll(pageItems);
+
+        log.debug("Page {}: reading items {} to {} (count: {})", 
+            currentPage, fromIndex, toIndex - 1, pageItems.size());
     }
 }

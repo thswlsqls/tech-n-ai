@@ -15,6 +15,9 @@ public class ContestAtCoderScraperService {
     private final AtCoderScraper scraper;
 
     public List<ScrapedContestItem> getScrapedItems() {
-        return scraper.scrape();
+        log.info("Starting AtCoder contest scraping");
+        List<ScrapedContestItem> items = scraper.scrape();
+        log.info("Completed AtCoder scraping: {} contests", items.size());
+        return items;
     }
 }

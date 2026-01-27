@@ -2,6 +2,7 @@ package com.tech.n.ai.batch.source.domain.news.devto.processor;
 
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.feign.domain.devto.contract.DevToDto.Article;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * DevTo Step1 Processor (News)
@@ -38,11 +40,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class NewsDevToStep1Processor implements ItemProcessor<Article, NewsCreateRequest> {
 
-    /**
-     * Dev.to 출처의 sourceId (News용)
-     * TODO: SourcesDocument에서 Dev.to 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String DEVTO_SOURCE_ID = "507f1f77bcf86cd799439017";
+    private static final String SOURCE_URL = "https://dev.to";
+    private static final String SOURCE_CATEGORY = "최신 IT 테크 뉴스 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("Dev.to (news) source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable NewsCreateRequest process(Article item) throws Exception {
@@ -84,24 +99,18 @@ public class NewsDevToStep1Processor implements ItemProcessor<Article, NewsCreat
         }
 
         // 내용 생성 (description 사용)
-        String content = item.description();
-        if (content == null || content.isBlank()) {
-            content = "";
-        }
+        String content = trimOrEmpty(item.description());
 
         // 요약 생성 (description 사용)
-        String summary = item.description();
-        if (summary == null || summary.isBlank()) {
-            summary = "";
-        }
+        String summary = trimOrEmpty(item.description());
 
         // 작성자 추출
         String author = "";
         if (item.user() != null) {
             if (item.user().name() != null && !item.user().name().isBlank()) {
-                author = item.user().name();
+                author = item.user().name().trim();
             } else if (item.user().username() != null && !item.user().username().isBlank()) {
-                author = item.user().username();
+                author = item.user().username().trim();
             }
         }
 
@@ -117,15 +126,19 @@ public class NewsDevToStep1Processor implements ItemProcessor<Article, NewsCreat
             .build();
 
         return NewsCreateRequest.builder()
-            .sourceId(DEVTO_SOURCE_ID)
-            .title(item.title())
+            .sourceId(sourceId)
+            .title(trimOrEmpty(item.title()))
             .content(content)
             .summary(summary)
             .publishedAt(publishedAt)
-            .url(url)
+            .url(trimOrEmpty(url))
             .author(author)
             .metadata(metadata)
             .build();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value != null ? value.trim() : "";
     }
 
     /**

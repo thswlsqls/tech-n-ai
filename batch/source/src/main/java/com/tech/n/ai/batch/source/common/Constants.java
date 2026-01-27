@@ -30,6 +30,12 @@ public class Constants {
     public final static String NEWS_ARS_TECHNICA = "news.ars.technica.job";
     public final static String NEWS_MEDIUM = "news.medium.job";
 
+    // Job - Sources
+    public final static String SOURCES_SYNC = "sources.sync.job";
+
+    // Job - AI Update
+    public final static String AI_UPDATE_GITHUB = "ai-update.github.job";
+
     // Job Parameter
     public final static String PARAMETER = ".parameter";
 
@@ -49,6 +55,7 @@ public class Constants {
     public final static int CHUNK_SIZE_50 = 50;
     public final static int CHUNK_SIZE_100 = 100;
     public final static int CHUNK_SIZE_300 = 300;
+    public final static int CHUNK_SIZE_500 = 500;
     public final static int CHUNK_SIZE_1000 = 1000;
     public final static int CHUNK_SIZE_2000 = 2000;
 

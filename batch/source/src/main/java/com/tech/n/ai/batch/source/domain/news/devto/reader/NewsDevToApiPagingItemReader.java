@@ -5,7 +5,7 @@ import com.tech.n.ai.client.feign.domain.devto.contract.DevToDto.Article;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.infrastructure.item.database.AbstractPagingItemReader;
+import org.springframework.batch.item.database.AbstractPagingItemReader;
 import org.springframework.util.CollectionUtils;
 
 @Slf4j

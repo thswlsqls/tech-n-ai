@@ -8,3 +8,8 @@ spring:
 
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
+
+management:
+  health:
+    redis:
+      enabled: false

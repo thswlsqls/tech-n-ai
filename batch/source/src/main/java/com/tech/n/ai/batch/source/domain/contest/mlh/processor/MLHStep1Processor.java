@@ -2,13 +2,15 @@ package com.tech.n.ai.batch.source.domain.contest.mlh.processor;
 
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.scraper.dto.ScrapedContestItem;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * MLH Step1 Processor
@@ -34,11 +36,24 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
 @RequiredArgsConstructor
 public class MLHStep1Processor implements ItemProcessor<ScrapedContestItem, ContestCreateRequest> {
 
-    /**
-     * MLH 출처의 sourceId
-     * TODO: SourcesDocument에서 MLH 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String MLH_SOURCE_ID = "507f1f77bcf86cd799439028";
+    private static final String SOURCE_URL = "https://mlh.io";
+    private static final String SOURCE_CATEGORY = "개발자 대회 정보";
+    
+    private final RedisTemplate<String, String> redisTemplate;
+    private String sourceId;
+
+    @PostConstruct
+    public void init() {
+        String redisKey = SOURCE_URL + ":" + SOURCE_CATEGORY;
+        this.sourceId = redisTemplate.opsForValue().get(redisKey);
+        
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(
+                String.format("Source ID not found in Redis cache: key=%s", redisKey));
+        }
+        
+        log.info("MLH source initialized from Redis: sourceId={}", sourceId);
+    }
 
     @Override
     public @Nullable ContestCreateRequest process(ScrapedContestItem item) throws Exception {
@@ -89,7 +104,7 @@ public class MLHStep1Processor implements ItemProcessor<ScrapedContestItem, Cont
             .build();
 
         return ContestCreateRequest.builder()
-            .sourceId(MLH_SOURCE_ID)
+            .sourceId(sourceId)
             .title(item.title())
             .startDate(item.startDate())
             .endDate(item.endDate())

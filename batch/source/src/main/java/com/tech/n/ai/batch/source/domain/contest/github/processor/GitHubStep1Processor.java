@@ -9,111 +9,97 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.item.ItemProcessor;
 
-/**
- * GitHub Step1 Processor
- * GitHubDto.Event → ContestCreateRequest 변환
- * 
- * GitHub API 공식 문서 참고:
- * https://docs.github.com/en/rest
- * 
- * Event 객체 필드:
- * - id: String (이벤트 ID)
- * - type: String (이벤트 타입: "WatchEvent", "ForkEvent", "PushEvent" 등)
- * - actor: Actor (이벤트를 발생시킨 사용자)
- * - repo: Repository (저장소 정보)
- * - payload: Map<String, Object> (이벤트별 페이로드)
- * - createdAt: String (생성 시간, ISO 8601 형식)
- * - org: Organization (조직 정보, 선택적)
- * 
- * Note: GitHub Events API는 Contest 정보를 직접 제공하지 않으므로,
- * 이벤트 정보를 기반으로 Contest 정보를 추출합니다.
- */
 @Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class GitHubStep1Processor implements ItemProcessor<Event, ContestCreateRequest> {
 
-    /**
-     * GitHub 출처의 sourceId
-     * TODO: SourcesDocument에서 GitHub 출처의 ID를 조회하도록 구현 필요
-     */
-    private static final String GITHUB_SOURCE_ID = "507f1f77bcf86cd799439012";
+    private static final String SOURCE_NAME = "GitHub API";
+    private static final String BASE_URL = "https://github.com";
+    private static final String API_PREFIX = "api.github.com/repos";
+    
+    private final String sourceId;
 
     @Override
     public @Nullable ContestCreateRequest process(Event item) throws Exception {
+        if (!isValidItem(item)) {
+            return null;
+        }
+        
+        return buildContestCreateRequest(item);
+    }
+
+    private boolean isValidItem(Event item) {
         if (item == null) {
-            log.warn("Event item is null");
-            return null;
+            log.warn("Item is null");
+            return false;
         }
-
-        // 필수 필드 검증
-        if (item.id() == null || item.id().isBlank()) {
-            log.warn("Event id is null or blank, skipping item");
-            return null;
+        
+        if (isBlank(item.id())) {
+            log.warn("Item id is blank");
+            return false;
         }
+        
+        return true;
+    }
 
-        // 날짜/시간 변환 (ISO 8601 → LocalDateTime)
-        LocalDateTime startDate = null;
-        if (item.createdAt() != null && !item.createdAt().isBlank()) {
-            try {
-                // GitHub API는 ISO 8601 형식 (예: "2022-06-09T12:47:28Z")
-                Instant instant = Instant.parse(item.createdAt());
-                startDate = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-            } catch (Exception e) {
-                log.warn("Failed to parse createdAt: {}, error: {}", item.createdAt(), e.getMessage());
-            }
-        }
-
-        // endDate는 startDate + 1일로 설정 (GitHub 이벤트는 종료 시간이 없으므로)
-        LocalDateTime endDate = startDate != null ? startDate.plusDays(1) : null;
-
-        // URL 생성
-        String url = "https://github.com";
-        if (item.repo() != null && item.repo().url() != null) {
-            url = item.repo().url().replace("api.github.com/repos", "github.com");
-        }
-
-        // 제목 생성 (이벤트 타입과 저장소 이름 기반)
-        String title = generateTitle(item);
-
-        // 설명 생성
-        String description = generateDescription(item);
-
-        // 태그 추출
-        List<String> tags = extractTags(item);
-
-        // Metadata 생성
-        ContestCreateRequest.ContestMetadataRequest metadata = ContestCreateRequest.ContestMetadataRequest.builder()
-            .sourceName("GitHub API")
-            .tags(tags)
-            .build();
-
+    private ContestCreateRequest buildContestCreateRequest(Event item) {
         return ContestCreateRequest.builder()
-            .sourceId(GITHUB_SOURCE_ID)
-            .title(title)
-            .startDate(startDate)
-            .endDate(endDate)
-            .description(description)
-            .url(url)
-            .metadata(metadata)
+            .sourceId(sourceId)
+            .title(buildTitle(item))
+            .startDate(toStartDate(item))
+            .endDate(toEndDate(item))
+            .description(buildDescription(item))
+            .url(buildUrl(item))
+            .metadata(createMetadata(item))
             .build();
     }
 
-    /**
-     * Event 객체에서 제목 생성
-     */
-    private String generateTitle(Event item) {
+    private ContestCreateRequest.ContestMetadataRequest createMetadata(Event item) {
+        return ContestCreateRequest.ContestMetadataRequest.builder()
+            .sourceName(SOURCE_NAME)
+            .tags(extractTags(item))
+            .build();
+    }
+
+    private LocalDateTime toStartDate(Event item) {
+        if (isBlank(item.createdAt())) {
+            return null;
+        }
+        
+        try {
+            Instant instant = Instant.parse(item.createdAt());
+            return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+        } catch (Exception e) {
+            log.warn("Failed to parse createdAt: {}", item.createdAt());
+            return null;
+        }
+    }
+
+    private LocalDateTime toEndDate(Event item) {
+        LocalDateTime startDate = toStartDate(item);
+        return startDate != null ? startDate.plusDays(1) : null;
+    }
+
+    private String buildUrl(Event item) {
+        if (item.repo() != null && item.repo().url() != null) {
+            return item.repo().url().replace(API_PREFIX, BASE_URL.replace("https://", ""));
+        }
+        return BASE_URL;
+    }
+
+    private String buildTitle(Event item) {
         StringBuilder title = new StringBuilder();
         
-        if (item.type() != null) {
+        if (!isBlank(item.type())) {
             title.append(item.type());
         }
         
-        if (item.repo() != null && item.repo().name() != null) {
+        if (item.repo() != null && !isBlank(item.repo().name())) {
             if (title.length() > 0) {
                 title.append(" - ");
             }
@@ -123,47 +109,45 @@ public class GitHubStep1Processor implements ItemProcessor<Event, ContestCreateR
         return title.length() > 0 ? title.toString() : "GitHub Event";
     }
 
-    /**
-     * Event 객체에서 설명 생성
-     */
-    private String generateDescription(Event item) {
+    private String buildDescription(Event item) {
         StringBuilder description = new StringBuilder();
         
-        if (item.type() != null) {
+        if (!isBlank(item.type())) {
             description.append("Event Type: ").append(item.type());
         }
         
-        if (item.actor() != null && item.actor().login() != null) {
+        if (item.actor() != null && !isBlank(item.actor().login())) {
             if (description.length() > 0) {
                 description.append("\n");
             }
             description.append("Actor: ").append(item.actor().login());
         }
         
-        if (item.repo() != null && item.repo().name() != null) {
+        if (item.repo() != null && !isBlank(item.repo().name())) {
             if (description.length() > 0) {
                 description.append("\n");
             }
             description.append("Repository: ").append(item.repo().name());
         }
         
-        return description.length() > 0 ? description.toString() : "";
+        return description.toString();
     }
 
-    /**
-     * Event 객체에서 태그 추출
-     */
     private List<String> extractTags(Event item) {
         List<String> tags = new ArrayList<>();
         
-        if (item.type() != null && !item.type().isBlank()) {
+        if (!isBlank(item.type())) {
             tags.add(item.type());
         }
         
-        if (item.org() != null && item.org().login() != null) {
+        if (item.org() != null && !isBlank(item.org().login())) {
             tags.add("org:" + item.org().login());
         }
         
         return tags;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
