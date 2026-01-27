@@ -57,14 +57,20 @@
 ### Step 13: 사용자 아카이브 기능 구현
 - `user-archive-feature-design-prompt.md`: 사용자 아카이브 기능 구현 설계서 작성 프롬프트
 
-### Step 14: API 컨트롤러 및 서비스 구현
-- (프롬프트 없음 - 메인 프롬프트의 14단계 섹션 참고)
+### Step 14: API Gateway 서버 구현
+- `gateway-design-prompt.md`: API Gateway 설계 프롬프트
 
-### Step 15: Batch 모듈 및 Jenkins 연동 구현
-- (프롬프트 없음 - 메인 프롬프트의 15단계 섹션 참고)
+### Step 15: Sources 동기화 Batch Job 구현
+- `sources-sync-batch-job-design-prompt.md`: Sources 동기화 배치 잡 설계 프롬프트
 
-### Step 16: 테스트 및 Spring REST Docs 기반 API 문서화
-- (프롬프트 없음 - 메인 프롬프트의 16단계 섹션 참고)
+### Step 16: 이메일 인증 기능 구현 (api/auth 모듈)
+- `step19/email-verification-design-prompt.md`: 이메일 인증 기능 설계서 작성 프롬프트
+
+### Step 17: Batch 모듈 및 Jenkins 연동 구현
+- (프롬프트 없음 - 메인 프롬프트의 17단계 섹션 참고)
+
+### Step 18: 테스트 및 Spring REST Docs 기반 API 문서화
+- (프롬프트 없음 - 메인 프롬프트의 18단계 섹션 참고)
 
 ## 사용 방법
 

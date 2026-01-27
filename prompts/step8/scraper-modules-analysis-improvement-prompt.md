@@ -272,7 +272,7 @@
 
 - 명확한 프로젝트 식별자 포함
 - 연락처 정보 포함 (선택사항, 권장)
-- 예시: `Tech-N-AI/1.0 (+https://github.com/your-repo)`
+- 예시: `ShrimpTM-Demo/1.0 (+https://github.com/your-repo)`
 
 ## 예상 산출물
 

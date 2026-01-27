@@ -1,4 +1,4 @@
-# Tech N AI 실행 프롬프트
+# Shrimp Task Manager 실행 프롬프트
 
 ## 📋 프롬프트 사용 가이드
 
@@ -161,7 +161,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
      참고 예제 (이미 설정되어 있는지 확인):
        ```gradle
        // settings.gradle
-       rootProject.name = 'tech-n-ai'
+       rootProject.name = 'shrimp-tm-demo'
        
        // 자동 모듈 검색 함수 호출
        [
@@ -1706,8 +1706,6 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
    - ArchiveUpdatedEvent: 아카이브 수정 이벤트
    - ArchiveDeletedEvent: 아카이브 삭제 이벤트 (Soft Delete)
    - ArchiveRestoredEvent: 아카이브 복원 이벤트
-   - ContestSyncedEvent: 대회 동기화 이벤트
-   - NewsArticleSyncedEvent: 뉴스 기사 동기화 이벤트
    - 모든 이벤트는 다음 공통 필드를 포함해야 함:
      * eventId: String (UUID 형식, 고유 식별자)
      * eventType: String (이벤트 타입, 예: "USER_CREATED", "ARCHIVE_CREATED")
@@ -4035,7 +4033,7 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
        - 명시적으로 금지된 경우 해당 출처 제외
        - 불명확한 경우 보수적으로 접근 (스크래핑 자제)
      * **Rate Limiting**: 최소 1초 간격 유지, robots.txt의 Crawl-delay 지시사항 준수
-     * **User-Agent 설정**: 명확한 프로젝트 식별자 포함 (예: `Tech-N-AI/1.0 (+https://github.com/your-repo)`)
+     * **User-Agent 설정**: 명확한 프로젝트 식별자 포함 (예: `ShrimpTM-Demo/1.0 (+https://github.com/your-repo)`)
    
    **의존성 추가** (build.gradle):
    ```gradle
@@ -4067,7 +4065,7 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
      timeout-seconds: 30
      max-retries: 3
      retry-delay-ms: 1000
-     user-agent: "Tech-N-AI/1.0 (+https://github.com/your-repo)"
+     user-agent: "ShrimpTM-Demo/1.0 (+https://github.com/your-repo)"
      sources:
        leetcode:
          base-url: https://leetcode.com
@@ -5260,7 +5258,6 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
     * **이벤트 타입 상수 값** (설계서 "이벤트 처리 로직 설계" 섹션의 "EventConsumer.processEvent 구현" 참고):
       - User: `"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`
       - Archive: `"ARCHIVE_CREATED"`, `"ARCHIVE_UPDATED"`, `"ARCHIVE_DELETED"`, `"ARCHIVE_RESTORED"`
-      - Contest/News: `"CONTEST_SYNCED"`, `"NEWS_ARTICLE_SYNCED"`
     * **User 이벤트**:
       - `"USER_CREATED"`: `UserSyncService.syncUserCreated()` 호출 → `UserProfileDocument` 생성 (Upsert 패턴: `findByUserTsid().orElse(new UserProfileDocument())`)
       - `"USER_UPDATED"`: `UserSyncService.syncUserUpdated()` 호출 → `updatedFields`를 Document 필드에 매핑하여 부분 업데이트 (Document가 존재하지 않으면 예외 발생)
@@ -5271,8 +5268,6 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
       - `"ARCHIVE_UPDATED"`: `ArchiveSyncService.syncArchiveUpdated()` 호출 → `updatedFields`를 Document 필드에 매핑하여 부분 업데이트 (Document가 존재하지 않으면 예외 발생)
       - `"ARCHIVE_DELETED"`: `ArchiveSyncService.syncArchiveDeleted()` 호출 → `ArchiveDocument` 물리적 삭제 (MongoDB는 Soft Delete 미지원, `deleteByArchiveTsid()` 사용)
       - `"ARCHIVE_RESTORED"`: `ArchiveSyncService.syncArchiveRestored()` 호출 → `ArchiveDocument` 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 새로 생성)
-    * **Contest/News 이벤트**:
-      - `"CONTEST_SYNCED"`, `"NEWS_ARTICLE_SYNCED"`: 로깅만 수행 (`log.debug("Skipping sync for batch event: eventType={}, eventId={}", eventType, event.eventId())`), 동기화 불필요 (배치 작업에서 직접 MongoDB 저장)
 
 **6단계: Preliminary Solution Output (초기 설계 솔루션 출력)**
 - **초기 설계 솔루션 작성**:
@@ -5328,10 +5323,9 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
       - `updateDocumentFields`: switch 문 케이스 전체 설계 (`tag`, `memo`만 가능, `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 제외)
   - **EventConsumer.processEvent 구현 설계**: 
     * 이벤트 타입별 분기 처리 로직 (`switch` 문) 전체 설계:
-      - switch 문 케이스 전체 설계 (`"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`, `"ARCHIVE_CREATED"`, `"ARCHIVE_UPDATED"`, `"ARCHIVE_DELETED"`, `"ARCHIVE_RESTORED"`, `"CONTEST_SYNCED"`, `"NEWS_ARTICLE_SYNCED"`, `default`)
+      - switch 문 케이스 전체 설계 (`"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`, `"ARCHIVE_CREATED"`, `"ARCHIVE_UPDATED"`, `"ARCHIVE_DELETED"`, `"ARCHIVE_RESTORED"`, `default`)
       - 각 케이스별 처리 로직 설계 (pseudocode)
     * Pattern Matching for `instanceof` 사용 (Java 16+)
-    * Contest/News 이벤트 처리 (로깅만 수행): `log.debug("Skipping sync for batch event: eventType={}, eventId={}", eventType, event.eventId())`
     * 예외 처리 전략 (예외 전파하여 재시도 메커니즘 활용): try-catch로 예외를 catch하되, `throw e`로 전파
   - **패키지 구조 설계**: 
     * `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/` 패키지 구조
@@ -5865,7 +5859,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
   - `docs/step2/1. api-endpoint-design.md`: API 엔드포인트 설계
   - `docs/step9/contest-news-api-design.md`: Contest/News API 설계 (기존 API 모듈 구조 참고)
 - **공식 가이드**:
-  - Tech N AI 공식 가이드: http://localhost:9999/?template-view=preview&template-id=planTask#templates
+  - Shrimp Task Manager 공식 가이드: http://localhost:9999/?template-view=preview&template-id=planTask#templates
 - **외부 문서**:
   - langchain4j 공식 문서: https://docs.langchain4j.dev/
   - OpenAI API 공식 문서: https://platform.openai.com/docs/api-reference/chat
@@ -6398,322 +6392,812 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - Reactor Netty 공식 문서: https://projectreactor.io/docs/netty/release/reference/index.html
   - Spring Boot 공식 문서: https://docs.spring.io/spring-boot/docs/current/reference/html/
 - **공식 가이드**:
-  - Tech N AI 공식 가이드: http://localhost:9998/?template-view=preview&template-id=planTask#templates
+  - Shrimp Task Manager 공식 가이드: http://localhost:9998/?template-view=preview&template-id=planTask#templates
 ```
 
-### 15단계: API 컨트롤러 및 서비스 구현
+### 15단계: Sources 동기화 Batch Job 구현
 
 **단계 번호**: 15단계
-**의존성**: 2단계 (API 설계 완료 필수), 4단계 (Domain 모듈 구현 완료 필수), 8단계 (Client 모듈 구현 완료 필수), 11단계 (CQRS 패턴 구현 완료 필수)
-**다음 단계**: 16단계 (Batch 모듈 구현) 또는 17단계 (테스트 및 문서화)
+**의존성**: 4단계 (Domain 모듈 구현 완료 필수 - SourcesDocument, MongoTemplate)
+**다음 단계**: 16단계 (Batch 모듈 및 Jenkins 연동 구현)
 
 ```
-plan task: SourceController 및 SourceService 구현
+plan task: Sources 동기화 Batch Job 구현 - json/sources.json 데이터를 MongoDB Atlas sources 컬렉션으로 동기화
 
-참고 파일: docs/reference/shrimp-task-prompts-final-goal.md (최종 프로젝트 목표), api/gateway/domain/sample/ (Sample 보일러플레이트 구조 참고), domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/SourcesDocument.java, domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/SourcesRepository.java
+---
 
-작업 내용:
-1. SourceController 구현
+## Task Description
 
-   공개 API (인증 불필요):
-   SourceController:
-   - GET /api/v1/sources
-     * 파라미터: priority (Integer, optional), type (String, optional), enabled (Boolean, optional)
-     * 응답: Source 목록 (MongoDB Atlas에서 조회 또는 json/sources.json 기반)
-     * **검증 기준**: 필터링이 정상적으로 동작해야 함 (priority, type, enabled)
-     * **빌드 검증**: api-gateway 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :api-gateway:build` 명령이 성공해야 함)
-     * **빌드 검증**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
+json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas Cluster의 `sources` 컬렉션으로 동기화하는 Spring Batch Job을 구현합니다.
 
-2. SourceFacade 구현
-   
-   **역할**: Controller와 Service 사이의 중간 계층
-   **책임**: 
-     * SourceService 조합
-     * DTO 변환
-   **참고 파일**: `api/gateway/domain/sample/facade/SampleFacade.java`
+**목표**: JSON 파일 읽기 → DTO 변환 → MongoDB UPSERT (name 기준)
+**예상 결과**: sources.sync.job 실행 시 약 20건의 Source 데이터가 MongoDB에 저장됨
 
-3. SourceService 구현
+---
 
-   SourceService:
-   - getAllSources(priority, type, enabled): MongoDB Atlas 조회 또는 json/sources.json 기반
-     * MongoDB Atlas에 데이터가 있으면 MongoDB에서 조회
-     * MongoDB Atlas에 데이터가 없으면 json/sources.json 파일에서 읽기
-   - getSourceById(id): MongoDB Atlas 조회
-   - updateSourceSyncStatus(id, status): 동기화 상태 업데이트 (선택적)
+## Task Requirements and Constraints
 
-4. DTO 및 매퍼 구현 (MapStruct 사용)
+### 필수 요구사항
+1. 기존 batch/source 모듈의 Job 패턴 준수 (NewsGoogleDevelopersRssParserJobConfig 참조)
+2. domain/mongodb 모듈의 SourcesDocument 재사용
+3. MongoTemplate 직접 사용 (내부 API 호출 금지, Feign 클라이언트 사용 금지)
+4. UPSERT 전략: name 필드 기준으로 존재하면 UPDATE, 없으면 INSERT
 
-   Request DTOs:
-   - SourceListRequest (필터링 파라미터: priority, type, enabled)
+### 제약사항
+1. 오버엔지니어링 금지 (복잡한 재시도 로직, 분산 처리 배제)
+2. 추가 인덱스 생성 금지 (기존 name UNIQUE 인덱스 활용)
+3. 기존 SourcesDocument, SourcesRepository 수정 금지
 
-   Response DTOs:
-   - SourceResponse (SourcesDocument → DTO)
-     * SourcesDocument의 모든 필드를 포함
-   - SourceListResponse (페이징된 Source 목록)
-     * PageData<SourceResponse> 구조 사용
+### 공식 문서 참조
+- Spring Batch: https://docs.spring.io/spring-batch/reference/
+- Spring Data MongoDB: https://docs.spring.io/spring-data/mongodb/reference/
+- MongoDB Java Driver: https://www.mongodb.com/docs/drivers/java/sync/current/
 
-   Mappers:
-   - SourceMapper: SourcesDocument ↔ DTO 변환
-     * MapStruct 사용
-     * ObjectId를 String으로 변환
+---
+
+## Reference Files (Must Read Before Implementation)
+
+| 파일 유형 | 경로 | 용도 |
+|----------|------|------|
+| 설계서 | docs/step2/sources-sync-batch-job-design.md | 전체 설계 참조 |
+| 프롬프트 | prompts/sources-sync-batch-job-design-prompt.md | 설계 요구사항 |
+| MongoDB 스키마 | docs/step1/2. mongodb-schema-design.md | SourcesDocument 스키마 |
+| Document 클래스 | domain/mongodb/.../document/SourcesDocument.java | 필드 구조 확인 |
+| Constants | batch/source/.../common/Constants.java | 상수 패턴 확인 |
+| Job 패턴 | batch/source/.../news/googledevelopers/jobconfig/NewsGoogleDevelopersRssParserJobConfig.java | Job 구성 패턴 |
+| Reader 패턴 | batch/source/.../news/googledevelopers/reader/GoogleDevelopersRssItemReader.java | Reader 구현 패턴 |
+| 입력 데이터 | json/sources.json | 동기화 대상 데이터 |
+
+---
+
+## Task List
+
+### Task 1: Constants.java에 Job 상수 추가
+
+**Description:** batch/source 모듈의 Constants 클래스에 SOURCES_SYNC Job 상수를 추가합니다.
+
+**Notes:** 기존 상수 네이밍 컨벤션 준수 (예: NEWS_GOOGLE_DEVELOPERS)
+
+**Implementation Guide:**
+- 파일: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/common/Constants.java
+- 추가 내용: `public final static String SOURCES_SYNC = "sources.sync.job";`
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- 기존 Constants 클래스 구조 유지
+
+**Dependencies:** 없음
+
+---
+
+### Task 2: SourceJsonDto 클래스 생성
+
+**Description:** json/sources.json 파싱용 DTO 클래스를 생성합니다. Jackson의 SnakeCaseStrategy를 사용하여 JSON 필드명을 자동 매핑합니다.
+
+**Notes:** 
+- JSON 필드명은 snake_case (예: api_endpoint)
+- Java 필드명은 camelCase (예: apiEndpoint)
+- @JsonNaming 어노테이션으로 자동 변환
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/dto/
+- 파일명: SourceJsonDto.java
+- 어노테이션: @Getter, @Setter, @NoArgsConstructor, @AllArgsConstructor, @Builder, @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+- 필드: name, type, category, url, apiEndpoint, rssFeedUrl, description, priority, reliabilityScore, accessibilityScore, dataQualityScore, legalEthicalScore, totalScore, authenticationRequired, authenticationMethod, rateLimit, documentationUrl, updateFrequency, dataFormat
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- json/sources.json의 source 객체와 필드 1:1 매핑
+
+**Dependencies:** 없음
+
+---
+
+### Task 3: SourcesSyncIncrementer 클래스 생성
+
+**Description:** Job 실행 시 run.id 및 baseDate 파라미터를 관리하는 Incrementer를 생성합니다.
+
+**Notes:** NewsGoogleDevelopersIncrementer 패턴 준수
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/incrementer/
+- 파일명: SourcesSyncIncrementer.java
+- extends: RunIdIncrementer
+- 참고: batch/source/.../incrementer/NewsGoogleDevelopersIncrementer.java
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- getNext() 메서드가 run.id와 baseDate 파라미터 반환
+
+**Dependencies:** 없음
+
+---
+
+### Task 4: SourcesJsonItemReader 클래스 생성
+
+**Description:** json/sources.json 파일을 읽고 categories 배열을 평탄화하여 SourceJsonDto 리스트로 변환하는 Reader를 생성합니다.
+
+**Notes:** 
+- GoogleDevelopersRssItemReader 패턴 준수
+- categories 배열 순회 → 각 category의 sources 추출 → source에 category 필드 매핑
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/reader/
+- 파일명: SourcesJsonItemReader.java
+- extends: AbstractPagingItemReader<SourceJsonDto>
+- 주요 메서드:
+  * doOpen(): JSON 파일 로드, ObjectMapper로 파싱, 평탄화
+  * doReadPage(): 페이지 단위로 SourceJsonDto 반환
+  * doClose(): 리소스 정리
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- json/sources.json의 모든 source 항목이 읽힘 (약 20건)
+- 각 source에 상위 category 필드가 매핑됨
+
+**Dependencies:** Task 2 (SourceJsonDto)
+
+---
+
+### Task 5: SourcesSyncProcessor 클래스 생성
+
+**Description:** SourceJsonDto를 SourcesDocument로 변환하고 기본값을 설정하는 Processor를 생성합니다.
+
+**Notes:** 
+- 필수 필드 검증: name, type, category가 null/빈 문자열이면 null 반환 (Skip)
+- 기본값 설정: enabled = true, 감사 필드 설정
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/processor/
+- 파일명: SourcesSyncProcessor.java
+- implements: ItemProcessor<SourceJsonDto, SourcesDocument>
+- 어노테이션: @Slf4j, @StepScope
+- 변환 로직:
+  * 필수 필드 검증
+  * enabled = true
+  * createdAt/updatedAt = LocalDateTime.now()
+  * createdBy/updatedBy = "batch-system"
+  * 필드 복사: SourceJsonDto → SourcesDocument
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- 필수 필드 누락 시 null 반환 및 WARN 로그 출력
+- 모든 필드가 정상적으로 매핑됨
+
+**Dependencies:** Task 2 (SourceJsonDto)
+
+---
+
+### Task 6: SourcesMongoWriter 클래스 생성
+
+**Description:** MongoDB에 UPSERT를 수행하는 Writer를 생성합니다. name 필드 기준으로 존재하면 UPDATE, 없으면 INSERT합니다.
+
+**Notes:** 
+- MongoTemplate.upsert() 사용
+- Repository나 Feign 클라이언트 사용 금지
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/writer/
+- 파일명: SourcesMongoWriter.java
+- implements: ItemWriter<SourcesDocument>
+- 어노테이션: @Slf4j, @StepScope, @RequiredArgsConstructor
+- 의존성: MongoTemplate (생성자 주입)
+- UPSERT 로직:
+  * Query: Criteria.where("name").is(document.getName())
+  * Update: 모든 필드 set, createdAt/createdBy는 setOnInsert
+  * 호출: mongoTemplate.upsert(query, update, SourcesDocument.class)
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- 신규 데이터 INSERT, 기존 데이터 UPDATE 정상 동작
+- createdAt/createdBy는 INSERT 시에만 설정됨
+
+**Dependencies:** 없음
+
+---
+
+### Task 7: SourcesSyncJobConfig 클래스 생성
+
+**Description:** Job, Step, Reader, Processor, Writer Bean을 정의하는 Job Configuration 클래스를 생성합니다.
+
+**Notes:** NewsGoogleDevelopersRssParserJobConfig 패턴 준수
+
+**Implementation Guide:**
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/jobconfig/
+- 파일명: SourcesSyncJobConfig.java
+- 어노테이션: @Slf4j, @Configuration, @RequiredArgsConstructor
+- 의존성: MongoTemplate
+- Job 구성:
+  * Job 이름: Constants.SOURCES_SYNC ("sources.sync.job")
+  * Step: 단일 Step (step1)
+  * Incrementer: SourcesSyncIncrementer
+- Step 구성:
+  * Chunk Size: Constants.CHUNK_SIZE_10 (10)
+  * Reader: SourcesJsonItemReader (@StepScope)
+  * Processor: SourcesSyncProcessor (@StepScope)
+  * Writer: SourcesMongoWriter (@StepScope)
+- Bean 이름 규칙: Constants.SOURCES_SYNC + Constants.STEP_1, Constants.SOURCES_SYNC + Constants.ITEM_READER 등
+
+**Verification Criteria:**
+- 컴파일 오류 없음
+- `./gradlew :batch-source:build` 성공
+- Bean 이름이 기존 패턴과 일관됨
+
+**Dependencies:** Task 1, Task 3, Task 4, Task 5, Task 6
+
+---
+
+## Final Verification Criteria (전체 검증 기준)
+
+### 빌드 검증
+| 검증 항목 | 명령어/조건 | 예상 결과 |
+|----------|------------|----------|
+| Gradle 빌드 | `./gradlew :batch-source:build` | BUILD SUCCESSFUL |
+| 컴파일 | 모든 Java 파일 | 에러 없음 |
+
+### 기능 검증
+| 검증 항목 | 실행 방법 | 예상 결과 |
+|----------|----------|----------|
+| Job 실행 | `java -jar batch-source.jar --spring.batch.job.names=sources.sync.job --baseDate=2026-01-20` | Job 상태 COMPLETED |
+| 처리 건수 | MongoDB sources 컬렉션 조회 | 약 20건 저장 |
+| 중복 방지 | name 필드 기준 | 중복 문서 없음 |
+| 감사 필드 | createdAt, updatedAt, createdBy, updatedBy | 모든 필드 정상 설정 |
+| enabled 필드 | 모든 문서 | true 설정 |
+| UPSERT | 동일 Job 2회 실행 | 1회차 INSERT, 2회차 UPDATE |
+
+---
+
+## Critical Warning (중요 경고)
+
+**가정, 추측, 상상 금지**: 모든 정보는 실제 코드베이스에서 확인해야 합니다.
+- 기존 코드 패턴 확인: read_file, codebase_search 도구 활용
+- 불확실한 기술: web_search 도구로 공식 문서 확인
+- 추측 금지: 모든 정보는 추적 가능한 출처 필수
 ```
 
-### 16단계: Batch 모듈 및 Jenkins 연동 구현
+### 16단계: 이메일 인증 기능 구현 (api/auth 모듈)
 
 **단계 번호**: 16단계
-**의존성**: 1단계 (프로젝트 구조 생성), 4단계 (Domain 모듈 구현 완료 필수), 8단계 (Client 모듈 구현 완료 필수)
-**다음 단계**: 17단계 (테스트 및 문서화)
+**의존성**: 5단계 (사용자 인증 및 관리 시스템 구현 완료 필수), 4단계 (Domain 모듈 구현 완료 필수)
+**다음 단계**: 17단계 (Batch 모듈 및 Jenkins 연동)
 
 ```
-plan task: Spring Batch 모듈 구현 및 Jenkins Server 연동
+plan task: api/auth 모듈 이메일 인증 기능 구현 - client/mail 모듈 생성 및 통합 
 
-참고 파일: docs/reference/shrimp-task-prompts-final-goal.md (최종 프로젝트 목표), prompts/source-discovery-prompt.md, json/sources.json, docs/ai-integration-analysis.md
+## Task Analysis
 
-작업 내용:
-1. batch-source 모듈 구현
-   
-   AI LLM 통합 구현 (참고: docs/ai-integration-analysis.md):
-   
-   Option A: spring-ai 프레임워크 구현 (참고: docs/ai-integration-analysis.md)
-   - **역할**: AI LLM 통합을 위한 프레임워크 설정
-   - **책임**: 
-     * 의존성 관리
-     * 설정 구성
-     * 빈 생성
-   - **검증 기준**: 
-     * 의존성이 정상적으로 추가되어야 함
-     * 설정이 정상적으로 로드되어야 함
-     * ChatClient 빈이 정상적으로 생성되어야 함
-     * **빌드 검증**: batch-source 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :batch-source:build` 명령이 성공해야 함)
-     * **빌드 검증**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
-   
-   - build.gradle 의존성 추가:
-     * **파일 위치**: `batch/batch-source/build.gradle`
-     * **의존성 예제**:
-       ```gradle
-       dependencies {
-           implementation 'org.springframework.ai:spring-ai-anthropic-spring-boot-starter:0.8.1'
-           // 또는 최신 버전 사용
-       }
-       ```
-     * spring-ai-anthropic-spring-boot-starter
-   - application.yml 설정:
-     * Anthropic API 키 설정 (ANTHROPIC_API_KEY 환경 변수)
-     * 모델 선택: claude-3-opus-20240229 (권장)
-     * temperature: 0.7, max-tokens: 4000 설정
-   - SourceDiscoveryTasklet 구현:
-     * ChatClient 빈 주입 (Spring Boot Auto-Configuration)
-     * prompts/source-discovery-prompt.md 파일 로딩 (ResourceLoader 활용)
-     * 프롬프트를 Anthropic Claude LLM에 전달
-     * JSON 응답 수신 및 파싱 (Jackson ObjectMapper)
-     * json/sources.json 파일 생성 및 검증
-   
-   Option B: langchain4j 프레임워크 구현 (참고: docs/ai-integration-analysis.md)
-   - **역할**: AI LLM 통합을 위한 대안 프레임워크 설정
-   - **책임**: 
-     * 의존성 관리
-     * 설정 클래스 구현
-     * 빈 생성
-   - **검증 기준**: 
-     * 의존성이 정상적으로 추가되어야 함
-     * 설정 클래스가 정상적으로 동작해야 함
-     * ChatLanguageModel 빈이 정상적으로 생성되어야 함
-     * **빌드 검증**: batch-source 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :batch-source:build` 명령이 성공해야 함)
-     * **빌드 검증**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
-   
-   - build.gradle 의존성 추가:
-     * **파일 위치**: `batch/batch-source/build.gradle`
-     * **의존성 예제**:
-       ```gradle
-       dependencies {
-           implementation 'dev.langchain4j:langchain4j:0.25.0'
-           implementation 'dev.langchain4j:langchain4j-anthropic:0.25.0'
-           // 또는 최신 버전 사용
-       }
-       ```
-     * langchain4j, langchain4j-anthropic
-   - LangChain4jConfig 설정 클래스 구현:
-     * ChatLanguageModel 빈 생성
-     * AnthropicChatModel.builder() 사용
-     * 모델명: claude-3-opus-20240229
-     * API 키: ANTHROPIC_API_KEY 환경 변수
-   - SourceDiscoveryTasklet 구현:
-     * ChatLanguageModel 빈 주입
-     * prompts/source-discovery-prompt.md 파일 로딩 (ResourceLoader 활용)
-     * 프롬프트를 Anthropic Claude LLM에 전달
-     * JSON 응답 수신 및 파싱 (Jackson ObjectMapper)
-     * json/sources.json 파일 생성 및 검증
-   
-   프레임워크 선택 전략:
-   - 환경 변수 또는 설정 파일로 프레임워크 선택 가능
-   - 기본값: spring-ai (Spring 생태계 통합 우수)
-   - 구조화된 출력이 복잡하거나 고급 기능 필요 시 langchain4j 사용
-   - 두 프레임워크 모두 Anthropic Claude 모델 사용 (claude-3-opus-20240229 권장)
-   
-   Spring Batch Job 구성:
-   - Job: SourceUpdateJob
-   - Step 1: SourceDiscoveryStep
-     * AI LLM을 통한 출처 탐색 (spring-ai 또는 langchain4j 활용)
-     * prompts/source-discovery-prompt.md 프롬프트 로딩
-     * LLM API 호출 및 JSON 응답 수신
-     * 응답 파싱 및 검증
-     * 임시 json/sources.json 생성
-   - Step 2: SourceValidationStep
-     * 기존 출처의 API 엔드포인트 유효성 검증
-     * Rate Limit 변경 감지
-     * 인증 방식 변경 감지
-   - Step 3: SourceComparisonStep
-     * 기존 json/sources.json과 새 버전 비교
-     * 변경 사항 추출 및 분석
-   - Step 4: SourceUpdateStep
-     * json/sources.json 업데이트 (변경 사항이 있을 경우)
-     * 버전 관리 및 변경 이력 저장
-   - Step 5: NotificationStep
-     * 변경 사항 Slack 알림 발송 (client-slack 모듈 활용)
-     * 배치 작업 성공/실패 알림
-     * 에러 발생 시 즉시 알림
-   
-   배치 인프라:
-   
-   a. BatchConfig 설정
-      * **역할**: Spring Batch 기본 설정
-      * **책임**: 
-        * @EnableBatchProcessing 설정
-        * Transaction Manager 지정
-        * DefaultBatchConfiguration 상속
-      * **예제**:
-        ```java
-        // batch/source/config/BatchConfig.java
-        package com.tech.n.ai.batch.source.config;
-        
-        import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-        import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
-        import org.springframework.context.annotation.Configuration;
-        
-        @Configuration
-        @EnableBatchProcessing(
-            transactionManagerRef = "primaryPlatformTransactionManager"
-        )
-        public class BatchConfig extends DefaultBatchConfiguration {
-            // Batch 설정
-        }
-        ```
-      * **참고 파일**: `batch/source/config/BatchConfig.java`
-   
-   b. JobRepository: Amazon Aurora MySQL (Spring Batch 메타데이터)
-      * **역할**: Spring Batch Job 실행 이력 및 메타데이터 저장
-      * **책임**: JobExecution, StepExecution 상태 추적 및 재실행 지원
-      * **Aurora 최적화**: 
-        - 읽기 복제본 활용 (조회 쿼리)
-        - 연결 풀 최적화
-      * **검증 기준**: Job 실행 이력이 정상적으로 저장되고 조회 가능해야 함
-      * **빌드 검증**: batch-source 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :batch-source:build` 명령이 성공해야 함)
-      * **빌드 검증**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
-   
-   c. JobLauncher: 배치 작업 실행
-      * **역할**: 배치 Job 실행 담당
-      * **책임**: JobParameters 전달 및 JobExecution 생성
-   
-   d. 공통 유틸리티 활용
-      * **역할**: 배치 작업 공통 기능 제공
-      * **책임**: 
-        * JobParameter 관리
-        * Incrementer 제공
-        * PagingItemReader 제공
-        * 유틸리티 클래스 제공
-      * **패키지 구조**:
-        ```
-        batch/source/common/
-        ├── incrementers/
-        │   └── UniqueRunIdIncrementer.java
-        ├── jobparameter/
-        │   └── CommonParameter.java
-        ├── reader/
-        │   ├── QuerydslPagingItemReader.java
-        │   ├── QuerydslNoOffsetPagingItemReader.java
-        │   ├── QuerydslNoOffsetIdPagingItemReader.java
-        │   └── QuerydslZeroPagingItemReader.java
-        └── utils/
-            ├── ApplicationContextAwareImpl.java
-            ├── CodeVal.java
-            ├── DateConverter.java
-            ├── DefaultDateTimeConverter.java
-            ├── DefaultDateTimeFormat.java
-            ├── cpu/
-            ├── gc/
-            └── memory/
-        ```
-      * **UniqueRunIdIncrementer 사용 예제**:
-        ```java
-        // Job 설정에서 Incrementer 사용
-        @Bean
-        public Job sourceUpdateJob() {
-            return jobBuilderFactory.get("sourceUpdateJob")
-                .incrementer(new UniqueRunIdIncrementer("2024-01-01", "1.0.0"))
-                .start(sourceDiscoveryStep())
-                .build();
-        }
-        ```
-      * **QuerydslPagingItemReader 사용 예제**:
-        ```java
-        @Bean
-        public ItemReader<Source> sourceReader() {
-            return new QuerydslPagingItemReader<>(
-                entityManagerFactory,
-                pageSize,
-                queryFactory -> queryFactory
-                    .selectFrom(source)
-                    .where(source.priority.eq(1))
-            );
-        }
-        ```
-      * **참고 파일**: 
-        - `batch/source/common/incrementers/UniqueRunIdIncrementer.java`
-        - `batch/source/common/reader/QuerydslPagingItemReader.java`
-        - `batch/source/common/jobparameter/CommonParameter.java`
-        - `batch/source/common/utils/`
-   
-   e. JobExecutionListener: 실행 전후 로깅
-      * **역할**: Job 실행 전후 이벤트 처리
-      * **책임**: 로깅, 알림, 초기화/정리 작업
-   
-   f. StepExecutionListener: Step별 상세 로깅
-      * **역할**: Step 실행 전후 이벤트 처리
-      * **책임**: 상세 로깅, 에러 추적
+You must complete the following sub-steps in sequence, and at the end call the `analyze_task` tool to pass the preliminary design solution to the next stage.
 
-2. Jenkins Pipeline 구성
-   
-   Jenkinsfile 작성:
-   - 빌드 단계: Gradle 빌드
-   - 테스트 단계: 단위 테스트 실행
-   - 배포 단계: 배치 JAR 생성
-   - 실행 단계: Spring Batch Job 실행
-   - 모니터링 단계: 실행 결과 확인
-   
-   스케줄링 설정:
-   - Cron 표현식: "0 0 1 * *" (매월 1일 자정)
-   - Jenkins Pipeline Job 생성
-   - 스케줄러 설정
-   
-   모니터링 및 알림:
-   - Job 실행 상태 추적
-   - 실패 시 알림 (이메일, 슬랙)
-   - 실행 결과 리포트 생성
-   - 재시도 로직 (선택사항)
+### 1. Analysis Purpose
 
-3. 배치 모니터링 시스템
-   - JobExecution 상태 대시보드
-   - StepExecution 상세 로그
-   - 실행 시간, 처리 건수 통계
-   - 실패 원인 분석 및 리포트
-   - 히스토리 조회 기능
+**Task Description**:
+현재 api/auth 모듈의 회원가입 플로우에서 이메일 인증 토큰이 DB에 저장되지만 실제 이메일이 발송되지 않는 문제를 해결합니다.
+Spring Mail (JavaMailSender)을 사용하여 이메일 발송 기능을 구현하고, Thymeleaf 템플릿으로 이메일 본문을 생성합니다.
 
-4. 에러 핸들링 및 복구
-   - Step 실패 시 Skip 또는 Retry
-   - Job 실패 시 알림 및 롤백
-   - 재실행 가능한 Job 설계
-   - Dead Letter Queue 처리
-   - 수동 재실행 기능
+**Task Requirements and Constraints**:
+- **핵심 제약사항 (절대 준수 필수)**:
+  1. **공식 개발문서만 참고**: Spring Boot Mail, Thymeleaf 공식 문서만 참고
+  2. **오버엔지니어링 절대 금지**: 현재 요구사항(회원가입 인증, 비밀번호 재설정)에 필요한 기능만 구현
+  3. **클린코드 및 SOLID 원칙 준수**: 단일 책임 원칙, 의존성 역전 원칙 준수
+  4. **기존 패턴 일관성**: client/slack 모듈의 구조 패턴 완전히 준수
+  5. **보안 필수 사항**:
+     - 코드에 비밀번호 절대 하드코딩 금지
+     - 환경 변수 또는 설정 파일의 플레이스홀더 사용
+     - .gitignore에 민감 정보 파일 패턴 추가
+     - 프로덕션 환경은 AWS Secrets Manager 사용 (설계서 참조)
+
+**Confirm**:
+- **Task objectives**: 이메일 발송 기능 완전 구현 및 기존 인증 플로우와 통합
+- **Expected outcomes**: 회원가입 시 실제 이메일 발송, 비밀번호 재설정 이메일 발송
+- **Technical challenges**: 비동기 이메일 발송, 트랜잭션 분리, 환경별 SMTP 설정
+- **Integration requirements**: 기존 EmailVerificationService와의 통합, client/slack 패턴 일관성 유지
+
+### 2. Identify Project Architecture
+
+**View key configuration files and structures**:
+- **필수 확인 파일**:
+  - `settings.gradle`: 신규 client/mail 모듈 등록 위치 확인
+  - `client/slack/build.gradle`: 모듈 의존성 패턴 참조
+  - `client/slack/src/main/java/.../config/`: 설정 클래스 패턴 참조
+  - `api/auth/src/main/resources/application*.yml`: 기존 설정 구조 확인
+  - `shrimp-rules.md`: 프로젝트 규칙 (존재 시 필수 참조)
+
+**Identify architectural patterns**:
+- **멀티모듈 구조**: Spring Boot 기반 MSA 패턴
+- **계층 구조**: client (인프라), api (프레젠테이션), domain (도메인)
+- **비동기 패턴**: ThreadPoolTaskExecutor 기반 비동기 처리
+- **설정 관리**: Spring Boot Auto-configuration + @ConfigurationProperties
+
+**Analyze core components**:
+- **client/slack 모듈**: 외부 서비스 통합 참조 패턴
+  - SlackProperties: 설정 관리
+  - SlackConfig: Bean 설정
+  - SlackClient: 실제 통신 로직
+- **api/auth/service/EmailVerificationService**: 이메일 발송 로직 통합 대상
+- **common-core, common-exception**: 공통 모듈 의존성
+
+**Document existing patterns**:
+- **모듈 생성 패턴**: settings.gradle 등록 → build.gradle 작성 → 소스 구현
+- **설정 클래스 패턴**: @ConfigurationProperties + @Configuration
+- **서비스 인터페이스 패턴**: 인터페이스 정의 → 구현체 분리
+
+### 3. Collect Information
+
+**Required Reference Files** (반드시 읽고 참조):
+- `docs/step19/email-verification-implementation-design.md` (이메일 인증 설계서)
+  * 2장: Quick Start - 로컬 Gmail SMTP 설정 (필수)
+  * 6장: 구현 가이드
+  * 7장: 이메일 템플릿 설계
+  * 10장: 설정 가이드
+- `docs/step6/spring-security-auth-design-guide.md` (인증 설계 가이드)
+
+**If there is any uncertainty, must do one of the following**:
+- Ask the user for clarification
+- Use `read_file`, `codebase_search` to query existing implementation patterns
+- Use `web_search` to query Spring Boot Mail official documentation
+- **Prohibited**: Speculation without sources; all information must have traceable sources
+
+**Pre-configured Information** (사전 준비 완료):
+- Gmail 계정: ebson024.v1@gmail.com
+- 앱 비밀번호: rdxz emha tprw llck (공백 제거: rdxzemhatprwllck)
+- App Name: Local-SMTP
+- Quick Start: docs/step19/email-verification-implementation-design.md 2장 참조
+
+**Module Current State** (모듈 현재 상태):
+- `client/mail/build.gradle` 파일 존재 (초기화됨)
+- **주의**: 현재 build.gradle에 `openfeign` 의존성이 있으면 삭제 필요
+- `client/mail/src/` 폴더가 없으면 생성 필요 (settings.gradle 자동 탐색 조건)
+- 필수 확인: `./gradlew projects | grep client-mail` 으로 모듈 인식 여부 확인
+
+### 4. Check Existing Programs and Structures
+
+**Use precise search strategies**:
+- **client/slack 모듈 분석** (필수 - 패턴 참조):
+  - `client/slack/build.gradle`: 의존성 패턴
+  - `client/slack/src/main/java/.../config/SlackProperties.java`: 설정 클래스 패턴
+  - `client/slack/src/main/java/.../config/SlackConfig.java`: Bean 설정 패턴
+  - `client/slack/src/main/java/.../domain/slack/client/SlackClient.java`: 클라이언트 구현 패턴
+  - `client/slack/src/main/java/.../domain/slack/service/SlackNotificationService.java`: 서비스 인터페이스 패턴
+  - `client/slack/src/main/java/.../exception/SlackException.java`: 예외 클래스 패턴
+  - **디렉토리 구조**: config/, domain/slack/, exception/, util/
+- **api/auth 모듈 확인**:
+  - `api/auth/src/main/java/.../service/EmailVerificationService.java`: 통합 대상 서비스
+  - `api/auth/src/main/resources/application-local.yml`: 환경별 설정 패턴
+  - `api/auth/build.gradle`: 모듈 의존성 추가 위치
+
+**Analyze code style and conventions**:
+- **Naming conventions**: camelCase (Java), kebab-case (YAML)
+- **Package structure**: com.tech.n.ai.client.{module}
+- **Comment styles**: JavaDoc for public APIs
+- **Error handling**: try-catch with logging, custom exceptions in common-exception
+
+**Record and follow discovered patterns**:
+- 모든 client 모듈은 동일한 구조 패턴 준수
+- @ConfigurationProperties로 외부 설정 바인딩
+- 인터페이스/구현체 분리로 테스트 용이성 확보
+
+**Determine overlap with existing functionality**:
+- 이메일 발송 기능은 신규 구현
+- EmailVerificationService는 수정 (이메일 발송 로직 추가)
+- 기존 인증 토큰 생성 로직은 재사용
+
+### 5. Task Type-Specific Guidelines
+
+**Backend Service Integration Task**:
+- **Check service integration patterns**:
+  - client 모듈의 외부 서비스 통합 패턴 (client/slack, client/rss)
+  - 비동기 처리 패턴 (@Async 또는 ThreadPoolTaskExecutor)
+  - 설정 관리 패턴 (환경별 application*.yml)
+- **Analyze error handling**:
+  - 이메일 발송 실패 시 회원가입 트랜잭션과 분리 (Fail-Safe)
+  - MailException 처리 → 로깅만 수행, 예외 던지지 않음
+- **Confirm configuration patterns**:
+  - Spring Boot Auto-configuration 활용 (JavaMailSender)
+  - 환경 변수 우선순위: 환경 변수 > application-{profile}.yml > application.yml
+- **Understand security practices**:
+  - .gitignore에 민감 정보 파일 패턴 추가
+  - 코드에 비밀번호 하드코딩 금지
+  - 프로덕션은 AWS Secrets Manager 사용
+
+### 6. Preliminary Solution Output
+
+**Initial Implementation Approach**:
+1. client/mail 모듈 생성 (client/slack 모듈 패턴 참조)
+2. Spring Boot Starter Mail 의존성 추가
+3. EmailSender 인터페이스 및 SmtpEmailSender 구현
+4. Thymeleaf 기반 이메일 템플릿 작성
+5. 기존 EmailVerificationService에 이메일 발송 로직 통합
+6. 환경 변수 기반 설정 (로컬: Gmail SMTP 또는 MailHog)
+
+**Based on the above, write a "Preliminary Design Solution"**:
+- **Facts** (sources):
+  - client/slack 모듈 패턴 확인 완료
+  - EmailVerificationService 현재 구조 확인 완료
+  - Spring Boot Mail 공식 문서 확인 완료
+- **Inferences** (selection basis):
+  - 비동기 발송으로 트랜잭션 분리 필요 (회원가입 실패 방지)
+  - Thymeleaf 템플릿 엔진 선택 (Spring Boot 기본 지원, 프로젝트 표준)
+  - Fail-Safe 패턴 적용 (이메일 발송 실패해도 회원가입은 성공)
+
+**Call tool**:
+```
+analyze_task({ 
+  summary: "api/auth 모듈 이메일 인증 기능 구현 - client/mail 모듈 생성 및 통합",
+  initialConcept: "client/slack 패턴을 따라 client/mail 모듈 생성, Spring Boot Starter Mail + Thymeleaf로 이메일 발송 기능 구현, EmailVerificationService에 비동기 발송 로직 통합"
+})
+```
+
+**Critical Warning**: All forms of `assumptions`, `guesses`, and `imagination` are strictly prohibited. You must use every `available tool` at your disposal to `gather real information`.
+
+**Now start calling `analyze_task`, strictly forbidden not to call the tool**
+
+---
+
+## Implementation Details (작업 상세 내용)
+
+### Implementation Task Breakdown (작업 내용)
+
+이 섹션은 `split_tasks` 단계에서 참조할 상세 구현 가이드입니다.
+
+#### Task 1: client/mail 모듈 생성
+   
+**Task 1.1: 모듈 디렉토리 구조 생성**
+   - 역할: 이메일 클라이언트 모듈 생성
+   - 책임: 독립적인 이메일 발송 기능 제공
+   - **중요**: settings.gradle 자동 탐색을 위해 `src` 폴더가 반드시 존재해야 함
+   - 패키지 구조: com.tech.n.ai.client.mail
+   - 디렉토리 구조 (client/slack 참조):
+     ```
+     client/mail/
+     ├── build.gradle
+     └── src/main/
+         ├── java/com/ebson/shrimp/tm/demo/client/mail/
+         │   ├── config/                 # MailConfig, MailProperties
+         │   ├── domain/mail/            # dto/, service/, template/
+         │   └── exception/              # EmailSendException
+         └── resources/templates/email/  # Thymeleaf 템플릿
+     ```
+   - 검증 기준: 
+     * `./gradlew projects | grep client-mail` 출력 확인
+     * client/slack 모듈과 동일한 구조
+
+**Task 1.2: build.gradle 수정**
+   - 역할: 모듈 의존성 관리
+   - 책임: Spring Mail, Thymeleaf 의존성 추가
+   - **현재 상태 주의**: 초기화된 build.gradle에 openfeign 의존성이 있으면 삭제 필요
+   - 참고 파일: client/slack/build.gradle (패턴 참조)
+   - 필수 의존성:
+     * spring-boot-starter-mail
+     * spring-boot-starter-thymeleaf
+     * common-core, common-exception 프로젝트 의존성
+     * spring-boot-configuration-processor (annotationProcessor)
+   - 삭제해야 할 의존성:
+     * spring-cloud-starter-openfeign (이메일과 무관)
+   - 검증 기준: 
+     * `./gradlew :client-mail:dependencies --configuration compileClasspath | grep mail` 출력 확인
+     * `./gradlew :client-mail:build` 성공
+
+**Task 1.3: settings.gradle 확인 (수정 불필요)**
+   - 역할: 모듈 자동 등록 확인
+   - 설명: 본 프로젝트의 settings.gradle은 `src` 폴더가 있는 모듈을 자동 탐색
+   - 필요 조건: `client/mail/src` 폴더가 존재해야 함 (Task 1.1에서 생성)
+   - 검증 기준: 
+     * Gradle sync 후 모듈 인식
+     * `./gradlew projects | grep client-mail` 출력 확인
+
+#### Task 2: 설정 클래스 구현
+
+
+**Task 2.1: MailProperties 구현**
+   - 역할: 이메일 관련 설정 관리
+   - 책임: 발신자 주소, 기본 URL, 템플릿 설정, 비동기 설정 관리
+   - 파일 위치: client/mail/src/main/java/.../config/MailProperties.java
+   - 참고 파일: client/slack/src/main/java/.../config/SlackProperties.java
+   - 주요 속성:
+     * fromAddress: 발신자 이메일 (환경 변수 ${MAIL_FROM_ADDRESS} 지원)
+     * fromName: 발신자 이름
+     * baseUrl: 인증 링크 기본 URL
+     * async: 비동기 발송 설정
+   - 검증 기준: @ConfigurationProperties("mail") 바인딩 정상 동작
+   
+**Task 2.2: MailConfig 구현**
+   - 역할: 이메일 관련 Bean 설정
+   - 책임: EmailSender, EmailTemplateService, ThreadPoolTaskExecutor Bean 생성
+   - 파일 위치: client/mail/src/main/java/.../config/MailConfig.java
+   - 참고 파일: client/slack/src/main/java/.../config/SlackConfig.java
+   - 구현 포인트:
+     * JavaMailSender는 Spring Boot Auto-configuration 사용 (수동 Bean 등록 불필요)
+     * ThreadPoolTaskExecutor 설정 (비동기 이메일 발송용)
+     * SpringTemplateEngine 설정 (Thymeleaf)
+   - 검증 기준: 모든 Bean 정상 생성, 환경 변수 바인딩 확인
+
+#### Task 3: 이메일 발송 서비스 구현
+
+**패키지 구조 참고** (client/slack 패턴 준수):
+```
+client/mail/src/main/java/com/ebson/shrimp/tm/demo/client/mail/
+├── config/              # MailConfig, MailProperties
+├── domain/mail/         # 비즈니스 로직
+│   ├── dto/             # EmailMessage
+│   ├── service/         # EmailSender, SmtpEmailSender
+│   └── template/        # EmailTemplateService, ThymeleafEmailTemplateService
+└── exception/           # EmailSendException
+```
+
+**Task 3.1: EmailMessage DTO 구현**
+   - 역할: 이메일 발송 요청 데이터 캡슐화
+   - 책임: 수신자, 제목, HTML/텍스트 본문 데이터 보유 및 유효성 검증
+   - 파일 위치: client/mail/src/main/java/.../client/mail/domain/mail/dto/EmailMessage.java
+   - 검증 기준: record 타입, @Builder 패턴, null 체크 포함
+   
+**Task 3.2: EmailSender 인터페이스 정의**
+   - 역할: 이메일 발송 추상화
+   - 책임: send(), sendAsync() 메서드 정의
+   - 파일 위치: client/mail/src/main/java/.../client/mail/domain/mail/service/EmailSender.java
+   - 검증 기준: 단일 책임 원칙 준수, JavaDoc 포함
+
+**Task 3.3: SmtpEmailSender 구현**
+   - 역할: SMTP 기반 이메일 발송
+   - 책임: JavaMailSender를 사용한 MimeMessage 생성 및 발송
+   - 파일 위치: client/mail/src/main/java/.../client/mail/domain/mail/service/SmtpEmailSender.java
+   - 구현 포인트:
+     * MimeMessageHelper 사용 (UTF-8 인코딩)
+     * HTML 및 Plain Text 지원 (multipart/alternative)
+     * 비동기 발송 (ThreadPoolTaskExecutor 활용, 명시적 execute)
+     * 발송 실패 시 로깅만 수행 (회원가입 트랜잭션과 분리)
+     * MailProperties에서 발신자 정보 주입
+     * 환경별 SMTP 설정 자동 적용 (spring.mail.* 속성)
+   - 에러 처리:
+     * send(): MailException 캐치 → EmailSendException 던짐
+     * sendAsync(): Exception 캐치 → 로그만 출력 (Fail-Safe)
+     * 비동기 실행으로 트랜잭션 영향 없음
+   - 검증 기준: 
+     * Gmail SMTP로 실제 이메일 발송 성공
+     * 이메일 발송 실패 시 회원가입 정상 완료
+     * 로그에 발송 성공/실패 기록
+
+**Task 3.4: EmailSendException 정의**
+   - 역할: 이메일 발송 실패 예외
+   - 책임: 발송 실패 시 명확한 예외 제공 (동기 발송 시에만 사용)
+   - 파일 위치: client/mail/src/main/java/.../client/mail/exception/EmailSendException.java
+   - 참고: client/slack/exception/SlackException.java 패턴 참조
+
+#### Task 4: 이메일 템플릿 서비스 구현
+
+
+**Task 4.1: EmailTemplateService 인터페이스 정의**
+   - 역할: 이메일 템플릿 렌더링 추상화
+   - 책임: renderVerificationEmail(), renderPasswordResetEmail() 정의
+   - 파일 위치: client/mail/src/main/java/.../client/mail/domain/mail/template/EmailTemplateService.java
+   - 검증 기준: JavaDoc 포함, 인터페이스 분리 원칙 준수
+
+**Task 4.2: ThymeleafEmailTemplateService 구현**
+   - 역할: Thymeleaf 기반 템플릿 렌더링
+   - 책임: TemplateEngine을 사용하여 HTML 생성
+   - 파일 위치: client/mail/src/main/java/.../client/mail/domain/mail/template/ThymeleafEmailTemplateService.java
+   - 구현 포인트:
+     * Thymeleaf Context에 변수 설정 (email, token, verifyUrl/resetUrl)
+     * `templateEngine.process("email/verification", context)` 호출
+   - 검증 기준: 템플릿 변수 바인딩 정상 동작
+
+**Task 4.3: 이메일 인증 템플릿 작성**
+   - 역할: 회원가입 인증 이메일 HTML 템플릿
+   - 파일 위치: client/mail/src/main/resources/templates/email/verification.html
+   - 포함 내용: 
+     * 이메일 주소 표시 (`th:text="${email}"`)
+     * 인증 버튼 (`th:href="${verifyUrl}"`)
+     * 인증 URL 텍스트 표시
+     * 만료 안내 (24시간)
+   - 참고 파일: docs/step19/email-verification-implementation-design.md (7.2 템플릿 설계)
+
+**Task 4.4: 비밀번호 재설정 템플릿 작성**
+   - 역할: 비밀번호 재설정 이메일 HTML 템플릿
+   - 파일 위치: client/mail/src/main/resources/templates/email/password-reset.html
+   - 포함 내용: 
+     * 이메일 주소 표시 (`th:text="${email}"`)
+     * 재설정 버튼 (`th:href="${resetUrl}"`)
+     * 재설정 URL 텍스트 표시
+     * 보안 경고 메시지
+   - 참고 파일: docs/step19/email-verification-implementation-design.md (7.3 템플릿 설계)
+
+#### Task 5: 기존 코드 통합
+
+
+**Task 5.1: api/auth/build.gradle 수정**
+   - 역할: client-mail 모듈 의존성 추가
+   - 책임: implementation project(':client-mail') 추가
+   - 검증 기준: api-auth 모듈 빌드 성공
+
+**Task 5.2: EmailVerificationService 수정**
+   - 역할: 이메일 발송 로직 통합
+   - 책임: 토큰 생성 후 이메일 발송 호출
+   - 파일 위치: api/auth/src/main/java/.../service/EmailVerificationService.java
+   - 수정 내용:
+     * EmailSender, EmailTemplateService, MailProperties 의존성 주입 (생성자 주입)
+     * createEmailVerificationToken() 메서드에 이메일 발송 로직 추가:
+       - 토큰 생성 및 DB 저장
+       - EmailTemplateService로 HTML 생성
+       - EmailSender.sendAsync()로 비동기 발송
+     * requestPasswordReset() 메서드에 이메일 발송 로직 추가:
+       - 토큰 생성 및 DB 저장
+       - EmailTemplateService로 HTML 생성
+       - EmailSender.sendAsync()로 비동기 발송
+     * 이메일 발송 실패 시 로깅만 수행 (트랜잭션 롤백 없음)
+   - 검증 기준: 
+     * 회원가입 시 인증 이메일 발송 (Gmail 수신함 확인)
+     * 비밀번호 재설정 요청 시 이메일 발송 (Gmail 수신함 확인)
+     * 이메일 발송 실패 시 회원가입/토큰 생성은 정상 완료
+
+**Task 5.3: AuthService 수정 (필요시)**
+   - 역할: 변경된 메서드 호출
+   - 책임: EmailVerificationService 메서드 호출 수정
+   - 검증 기준: 기존 API 동작 유지
+
+#### Task 6: 설정 파일 작성
+
+
+**Task 6.1: application-mail.yml 작성**
+   - 역할: 이메일 모듈 기본 설정
+   - 파일 위치: client/mail/src/main/resources/application-mail.yml
+   - 내용: mail.from-address, mail.from-name, mail.base-url, mail.async 설정
+   - 참고 파일: docs/step19/email-verification-implementation-design.md (10.1 설정 가이드)
+
+
+**Task 6.2: application-local.yml 수정 (api/auth)**
+   - 역할: 로컬 환경 SMTP 설정
+   - 파일 위치: api/auth/src/main/resources/application-local.yml
+   
+   - **옵션 A - Gmail SMTP (실제 이메일 발송, 추천)**:
+       spring:
+         mail:
+           host: ${MAIL_HOST:smtp.gmail.com}
+           port: ${MAIL_PORT:587}
+           username: ${MAIL_USERNAME:ebson024.v1@gmail.com}
+           password: ${MAIL_PASSWORD:rdxzemhatprwllck}
+           properties:
+             mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+             mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
+             mail.smtp.starttls.required: true
+             mail.smtp.connectiontimeout: 5000
+             mail.smtp.timeout: 3000
+             mail.smtp.writetimeout: 5000
+       mail:
+         from-address: ${MAIL_FROM_ADDRESS:ebson024.v1@gmail.com}
+         from-name: Shrimp TM (Local)
+         base-url: http://localhost:8080
+     
+     옵션 B - MailHog (가상 SMTP, 빠른 반복 테스트):
+       spring:
+         mail:
+           host: localhost
+           port: 1025
+           properties:
+             mail.smtp.auth: false
+             mail.smtp.starttls.enable: false
+       mail:
+         from-address: noreply@localhost
+         base-url: http://localhost:8080
+     
+     환경 변수 설정 (IntelliJ):
+       Run/Debug Configurations → Environment variables:
+       MAIL_HOST=smtp.gmail.com
+       MAIL_PORT=587
+       MAIL_USERNAME=ebson024.v1@gmail.com
+       MAIL_PASSWORD=rdxzemhatprwllck
+       MAIL_SMTP_AUTH=true
+       MAIL_SMTP_STARTTLS=true
+       MAIL_FROM_ADDRESS=ebson024.v1@gmail.com
+     
+   - 참고 파일: docs/step19/email-verification-implementation-design.md (2장 Quick Start, 10.2 환경별 설정)
+   - 검증 기준: 환경 변수 설정 후 실제 Gmail로 이메일 발송 성공
+
+**Task 6.3: docker-compose.yml 수정 (옵션 B 사용 시)**
+   - 역할: MailHog 서비스 추가
+   - 내용: 
+     ```yaml
+     services:
+       mailhog:
+         image: mailhog/mailhog
+         ports:
+           - "1025:1025"  # SMTP
+           - "8025:8025"  # Web UI
+     ```
+   - 검증 기준: docker-compose up -d mailhog 후 http://localhost:8025 접속 가능
+
+**Task 6.4: .gitignore 업데이트**
+   - 역할: 민감 정보 파일 보호
+   - 추가 내용:
+     ```gitignore
+     ### Environment Variables & Secrets ###
+     .env
+     .env.local
+     .env.*.local
+     *.private.yml
+     *-private.yml
+     application-local.yml
+     ```
+   - 검증 기준: Git 상태에서 제외됨 확인
+
+---
+
+## Verification Criteria (검증 기준)
+
+### Build Verification (빌드 검증)
+- [ ] client/mail 모듈 생성 및 빌드 성공 (`./gradlew :client-mail:build`)
+- [ ] api/auth 모듈 빌드 성공 (`./gradlew :api-auth:build`)
+- [ ] 전체 프로젝트 빌드 성공 (`./gradlew clean build`)
+- [ ] 컴파일 에러 없음
+
+### Functional Verification - Gmail SMTP (기능 검증 - 권장)
+- [ ] 환경 변수 설정 완료 (IntelliJ 또는 터미널)
+- [ ] POST /api/v1/auth/signup 요청 시 인증 이메일 발송 성공
+  ```bash
+  curl -X POST http://localhost:8080/api/v1/auth/signup \
+    -H "Content-Type: application/json" \
+    -d '{"email": "test@example.com", "username": "testuser", "password": "Test1234!@"}'
+  ```
+- [ ] Gmail 수신함(ebson024.v1@gmail.com)에서 인증 이메일 확인
+- [ ] 이메일 HTML 템플릿 정상 렌더링 (버튼, 링크, 만료 시간 확인)
+- [ ] POST /api/v1/auth/reset-password 요청 시 재설정 이메일 발송 성공
+- [ ] Gmail 수신함에서 비밀번호 재설정 이메일 확인
+- [ ] 이메일 발송 실패 시 회원가입 트랜잭션은 정상 완료 (비동기 분리 확인)
+
+### Alternative Verification - MailHog (대안 검증 - 빠른 반복 테스트)
+- [ ] docker-compose up -d mailhog 실행 성공
+- [ ] http://localhost:8025 웹 UI 접속 가능
+- [ ] 회원가입 요청 시 MailHog 웹 UI에서 이메일 확인
+- [ ] 비밀번호 재설정 요청 시 MailHog 웹 UI에서 이메일 확인
+
+### Security Verification (보안 검증)
+- [ ] .gitignore에 민감 정보 파일 패턴 추가 확인
+- [ ] git status에서 .env, application-local.yml 제외 확인
+- [ ] 코드에 비밀번호 하드코딩 없음 확인
+
+---
+
+## Quick Start Guide (빠른 시작 가이드)
+
+구현 완료 후 아래 명령어로 즉시 테스트 가능:
+
+### Option A: Gmail SMTP (실제 이메일 발송)
+```bash
+# 1. 환경 변수 설정 (터미널)
+export MAIL_HOST=smtp.gmail.com
+export MAIL_PORT=587
+export MAIL_USERNAME=ebson024.v1@gmail.com
+export MAIL_PASSWORD=rdxzemhatprwllck
+export MAIL_SMTP_AUTH=true
+export MAIL_SMTP_STARTTLS=true
+export MAIL_FROM_ADDRESS=ebson024.v1@gmail.com
+
+# 2. 애플리케이션 실행
+./gradlew :api-auth:bootRun
+
+# 3. 회원가입 API 호출
+curl -X POST http://localhost:8080/api/v1/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "Test1234!@"
+  }'
+
+# 4. Gmail 수신함 확인
+# ebson024.v1@gmail.com 로그인하여 인증 이메일 확인
+```
+
+### Option B: MailHog (빠른 반복 테스트)
+```bash
+# 1. MailHog 실행
+docker-compose up -d mailhog
+
+# 2. 환경 변수 없이 실행 (기본값 localhost:1025)
+./gradlew :api-auth:bootRun
+
+# 3. 회원가입 API 호출 (위와 동일)
+
+# 4. 브라우저에서 http://localhost:8025 확인
+```
 ```
 
 ### 17단계: 테스트 및 Spring REST Docs 기반 API 문서화
@@ -6725,7 +7209,7 @@ plan task: Spring Batch 모듈 구현 및 Jenkins Server 연동
 ```
 plan task: 테스트 작성 및 Spring REST Docs 기반 API 문서화
 
-참고 파일: docs/reference/shrimp-task-prompts-final-goal.md (최종 프로젝트 목표), docs/step16/README.md (테스트 및 문서화 단계 개요)
+참고 파일: docs/reference/shrimp-task-prompts-final-goal.md (최종 프로젝트 목표), docs/step18/README.md (테스트 및 문서화 단계 개요)
 
 **description** (작업 설명):
 - **작업 목표**:
@@ -7597,9 +8081,9 @@ spring:
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/mapper/ContestMapper.java
-package com.tech.n.ai.domain.aurora.mapper;
+package com.tech.n.ai.datasource.aurora.mapper;
 
-import com.tech.n.ai.domain.aurora.dto.ContestDto;
+import com.tech.n.ai.datasource.aurora.dto.ContestDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.time.LocalDate;

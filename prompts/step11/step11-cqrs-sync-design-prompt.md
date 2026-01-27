@@ -211,8 +211,6 @@
 - 복잡한 DLQ 처리 (기본 재시도로 충분, 필요 시 후속 단계에서 추가)
 - 복잡한 모니터링 시스템 (기본 로깅으로 충분)
 - Contest/News 동기화 서비스 (배치 작업을 통해 직접 MongoDB에 저장되므로 Kafka 동기화 불필요)
-  - `ContestSyncedEvent`, `NewsArticleSyncedEvent`는 배치 작업에서 직접 MongoDB에 저장
-  - 이벤트는 로깅 목적으로만 사용될 수 있음
 
 ### 4.2 현재 구현 상태 분석
 
