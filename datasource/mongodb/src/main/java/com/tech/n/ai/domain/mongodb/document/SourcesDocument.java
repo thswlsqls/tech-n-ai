@@ -1,5 +1,7 @@
 package com.tech.n.ai.datasource.mongodb.document;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.bson.types.ObjectId;
@@ -7,8 +9,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-
-import java.time.LocalDateTime;
 
 /**
  * SourcesDocument
@@ -43,9 +43,6 @@ public class SourcesDocument {
     @Field("description")
     private String description;
 
-    @Field("priority")
-    private Integer priority;
-
     @Field("reliability_score")
     private Integer reliabilityScore;
 
@@ -60,6 +57,9 @@ public class SourcesDocument {
 
     @Field("total_score")
     private Integer totalScore;
+
+    @Field("priority")
+    private Integer priority;
 
     @Field("authentication_required")
     private Boolean authenticationRequired;
@@ -78,6 +78,30 @@ public class SourcesDocument {
 
     @Field("data_format")
     private String dataFormat;
+
+    @Field("pros")
+    private List<String> pros;
+
+    @Field("cons")
+    private List<String> cons;
+
+    @Field("implementation_difficulty")
+    private String implementationDifficulty;
+
+    @Field("cost")
+    private String cost;
+
+    @Field("cost_details")
+    private String costDetails;
+
+    @Field("recommended_use_case")
+    private String recommendedUseCase;
+
+    @Field("integration_example")
+    private String integrationExample;
+
+    @Field("alternative_sources")
+    private List<String> alternativeSources;
 
     @Field("enabled")
     private Boolean enabled;

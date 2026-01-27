@@ -3,25 +3,21 @@ package com.tech.n.ai.datasource.mongodb.config;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ReadPreference;
+import com.mongodb.ServerApi;
+import com.mongodb.ServerApiVersion;
 import com.mongodb.WriteConcern;
 import com.mongodb.connection.ConnectionPoolSettings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * MongoDB Atlas 연결 설정 및 최적화
- * 
- * 참고:
- * - Spring Data MongoDB 공식 문서: https://docs.spring.io/spring-data/mongodb/docs/current/reference/html/
- * - MongoDB Java Driver 공식 문서: https://www.mongodb.com/docs/drivers/java/sync/current/
- * - MongoDB Atlas 연결 풀 최적화: https://www.mongodb.com/docs/atlas/connect-to-database-deployment/
- */
 @Slf4j
 @Configuration
+@EnableMongoRepositories(basePackages = "com.tech.n.ai.datasource.mongodb.repository")
 public class MongoClientConfig extends AbstractMongoClientConfiguration {
     
     @Value("${spring.data.mongodb.uri}")
@@ -75,9 +71,15 @@ public class MongoClientConfig extends AbstractMongoClientConfiguration {
             
             // Retry 설정
             .retryWrites(true)   // 쓰기 재시도 (기본값: true)
-            .retryReads(true);   // 읽기 재시도 (기본값: false, 명시적으로 활성화)
+            .retryReads(true)    // 읽기 재시도 (기본값: false, 명시적으로 활성화)
+            
+            // Server API Version 설정 (MongoDB Atlas 권장)
+            // Stable API를 사용하여 향후 MongoDB 버전 업그레이드 시 호환성 보장
+            .serverApi(ServerApi.builder()
+                .version(ServerApiVersion.V1)
+                .build());
         
-        log.info("MongoDB Atlas connection configured: database={}, readPreference={}, maxPoolSize={}, minPoolSize={}", 
-            databaseName, ReadPreference.secondaryPreferred(), 100, 10);
+        log.info("MongoDB Atlas connection configured: database={}, readPreference={}, maxPoolSize={}, minPoolSize={}, serverApi={}", 
+            databaseName, ReadPreference.secondaryPreferred(), 100, 10, ServerApiVersion.V1);
     }
 }

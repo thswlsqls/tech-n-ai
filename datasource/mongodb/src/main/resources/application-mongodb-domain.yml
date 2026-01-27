@@ -1,0 +1,70 @@
+spring:
+  data:
+    mongodb:
+      # MongoDB Atlas Cluster 연결 문자열
+      # 환경변수로 관리: MONGODB_ATLAS_CONNECTION_STRING
+      # 형식: mongodb+srv://{username}:{password}@{cluster-endpoint}/{database}?retryWrites=true&w=majority&readPreference=secondaryPreferred&ssl=true
+      # 또는 Standard Connection String: mongodb://{username}:{password}@{cluster-endpoint}:27017/{database}?ssl=true&replicaSet=...&readPreference=secondaryPreferred
+      # Current IP: 121.134.221.250
+      uri: ${MONGODB_ATLAS_CONNECTION_STRING:mongodb+srv://thsdmsqlsspdlqj_db_user:LG59uFupKT76tyv2@tech-n-ai-cluster.srnzqco.mongodb.net/shrimp_task_manager?retryWrites=true&w=majority&readPreference=secondaryPreferred&ssl=true&appName=tech-n-ai-cluster}
+      
+      # 데이터베이스 이름 (URI에 포함되어 있으면 생략 가능)
+      database: ${MONGODB_ATLAS_DATABASE:shrimp_task_manager}
+      
+      # 연결 풀 최적화 설정
+      # Spring Data MongoDB는 내부적으로 MongoClient를 사용하며 연결 풀을 자동 관리
+      # 세부 설정은 MongoClientConfig 클래스에서 수행
+      
+      # 타임아웃 설정 (밀리초)
+      # connection-timeout: 연결 타임아웃 (기본값: 10000ms, MongoClientConfig에서 설정)
+      # socket-timeout: 소켓 타임아웃 (기본값: 0ms, 무한 대기, MongoClientConfig에서 설정)
+      # server-selection-timeout: 서버 선택 타임아웃 (기본값: 30000ms)
+      
+      # SSL/TLS 설정
+      # URI에 ssl=true가 포함되어 있으면 자동 활성화
+      # 프로덕션 환경에서는 필수
+      
+      # Read Preference 설정
+      # URI에 readPreference=secondaryPreferred가 포함되어 있으면 자동 적용
+      # 또는 MongoClientConfig에서 명시적으로 설정
+
+---
+# 로컬 개발 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  data:
+    mongodb:
+      # local 프로파일에서도 MongoDB Atlas 사용 (Docker 없이 개발 가능)
+      # 로컬 MongoDB를 사용하려면 Docker로 MongoDB 실행 후 mongodb://localhost:27017/shrimp_task_manager 로 변경
+      uri: ${MONGODB_ATLAS_CONNECTION_STRING:mongodb+srv://thsdmsqlsspdlqj_db_user:LG59uFupKT76tyv2@tech-n-ai-cluster.srnzqco.mongodb.net/shrimp_task_manager?retryWrites=true&w=majority&readPreference=secondaryPreferred&ssl=true&appName=tech-n-ai-cluster}
+      database: ${MONGODB_ATLAS_DATABASE:shrimp_task_manager}
+
+---
+# 개발 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  data:
+    mongodb:
+      # 개발 환경 MongoDB Atlas Cluster
+      uri: ${MONGODB_ATLAS_CONNECTION_STRING}
+      database: ${MONGODB_ATLAS_DATABASE:shrimp_task_manager}
+
+---
+# 프로덕션 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  data:
+    mongodb:
+      # 프로덕션 환경 MongoDB Atlas Cluster
+      # SSL/TLS 필수, Read Preference: secondaryPreferred
+      uri: ${MONGODB_ATLAS_CONNECTION_STRING}
+      database: ${MONGODB_ATLAS_DATABASE:shrimp_task_manager}
