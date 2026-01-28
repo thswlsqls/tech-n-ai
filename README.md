@@ -2,7 +2,7 @@
 
 ## 개요
 
-tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 제공하는 RESTful API 서버입니다. **CQRS 패턴 기반의 마이크로서비스 아키텍처**로 설계되어 있으며, **langchain4j RAG 기반 멀티턴 챗봇**을 핵심 기능으로 제공합니다. 
+개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 제공하는 Spring Boot RESTful API 서버입니다. CQRS 패턴, Kafka 이벤트 기반, Redis 활용 멱등성 보장, API Gateway 사용의 MSA 설계되었습니다. langchain4j 활용의 RAG 기반 LLM 연동 멀티턴 챗봇과 AI Agent 자율 프로세싱 설계되었습니다.
 
 ## 프로젝트 기획 의도 (해결하려고 하는 문제)
 
