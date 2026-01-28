@@ -1,4 +1,4 @@
-package com.ebson.shrimp.tm.demo.api.gateway;
+package com.tech.n.ai.api.gateway;
 
 
 import org.springframework.boot.SpringApplication;

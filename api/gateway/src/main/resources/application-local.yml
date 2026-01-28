@@ -44,4 +44,4 @@ jwt:
 
 logging:
   level:
-    com.ebson.shrimp.tm.demo.api.gateway: DEBUG
+    com.tech.n.ai.api.gateway: DEBUG

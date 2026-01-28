@@ -1,6 +1,6 @@
-package com.ebson.shrimp.tm.demo.api.gateway.config;
+package com.tech.n.ai.api.gateway.config;
 
-import com.ebson.shrimp.tm.demo.api.gateway.filter.JwtAuthenticationGatewayFilter;
+import com.tech.n.ai.api.gateway.filter.JwtAuthenticationGatewayFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Bean;

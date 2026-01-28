@@ -36,7 +36,7 @@ spring:
 
 logging:
   level:
-    com.ebson.shrimp.tm.demo.api.gateway: WARN
+    com.tech.n.ai.api.gateway: WARN
     org.hibernate.type: info
     org.hibernate.sql: info
     org.hibernate.type.descriptor.sql: info

@@ -1,10 +1,10 @@
-package com.ebson.shrimp.tm.demo.api.gateway.filter;
+package com.tech.n.ai.api.gateway.filter;
 
-import com.ebson.shrimp.tm.demo.common.core.constants.ErrorCodeConstants;
-import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
-import com.ebson.shrimp.tm.demo.common.core.dto.MessageCode;
-import com.ebson.shrimp.tm.demo.common.security.jwt.JwtTokenPayload;
-import com.ebson.shrimp.tm.demo.common.security.jwt.JwtTokenProvider;
+import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
+import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.tech.n.ai.common.core.dto.MessageCode;
+import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
+import com.tech.n.ai.common.security.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

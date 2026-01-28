@@ -1,4 +1,4 @@
-group = 'com.ebson.shrimp.tm.demo.api'
+group = 'com.tech.n.ai.api'
 version = '0.0.1-SNAPSHOT'
 description = 'api-gateway'
 
