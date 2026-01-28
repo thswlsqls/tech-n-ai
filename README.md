@@ -2,7 +2,7 @@
 
 ## 개요
 
-tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 제공하는 RESTful API 서버입니다. **CQRS 패턴 기반의 마이크로서비스 아키텍처**로 설계되어 있으며, **langchain4j RAG 기반 멀티턴 챗봇**을 핵심 기능으로 제공합니다. Spring Boot 4.0.1과 Java 21을 기반으로 구축되었습니다.
+tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 제공하는 RESTful API 서버입니다. **CQRS 패턴 기반의 마이크로서비스 아키텍처**로 설계되어 있으며, **langchain4j RAG 기반 멀티턴 챗봇**을 핵심 기능으로 제공합니다. 
 
 ## 프로젝트 기획 의도 (해결하려고 하는 문제)
 
@@ -158,6 +158,75 @@ tech-n-ai는 개발자 대회 정보와 최신 IT 테크 뉴스를 수집하고 
 
 자세한 RAG 챗봇 설계는 다음 문서를 참고하세요:
 - [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+
+### 현재 개발 상황
+
+#### RAG 기반 멀티턴 채팅 API 테스트 결과
+
+langchain4j RAG 기반 챗봇 API의 로컬 환경 테스트가 성공적으로 완료되었습니다. 아래는 실제 테스트 과정에서 확인된 시스템 동작 로그와 데이터베이스 동기화 결과입니다.
+
+##### 1. 멀티턴 대화 테스트 - 애플리케이션 로그
+
+챗봇 API가 사용자의 질문을 받아 RAG 파이프라인을 통해 응답을 생성하고, CQRS 패턴에 따라 Command Side(Aurora MySQL)와 Query Side(MongoDB Atlas)에 대화 메시지를 저장하는 과정을 보여줍니다.
+
+![Chatbot API Logs 1](contents/captures/chatbot-api_logs_1.png)
+
+![Chatbot API Logs 2](contents/captures/chatbot-api_logs_2.png)
+
+**주요 확인 사항**:
+- ✅ OpenAI GPT-4o-mini와의 정상적인 통신
+- ✅ MongoDB Atlas Vector Search를 통한 문서 검색
+- ✅ TokenWindowChatMemory를 통한 대화 컨텍스트 관리
+- ✅ ConversationMessage 생성 및 저장 (Aurora → Kafka → MongoDB 동기화)
+
+##### 2. Command Side (Aurora MySQL) - 대화 메시지 저장
+
+사용자의 질문과 챗봇의 응답이 Aurora MySQL에 정규화된 형태로 저장됩니다. `conversation_message` 테이블에 role, content, token_count, sequence_number 등이 기록됩니다.
+
+![Aurora MySQL Data 1](contents/captures/chaatbot-api_aurora_1.png)
+
+![Aurora MySQL Data 2](contents/captures/chaatbot-api_aurora_2.png)
+
+**주요 확인 사항**:
+- ✅ `conversation_session` 테이블: 세션 정보 저장 (user_id, title, last_message_at)
+- ✅ `conversation_message` 테이블: 메시지 히스토리 저장 (role: USER/ASSISTANT, content, token_count)
+- ✅ TSID Primary Key 전략 적용
+- ✅ Soft Delete 지원 (deleted_at 컬럼)
+
+##### 3. Query Side (MongoDB Atlas) - 읽기 최적화 데이터
+
+Kafka 이벤트를 통해 Aurora MySQL의 데이터가 MongoDB Atlas로 실시간 동기화됩니다. 비정규화된 구조로 읽기 성능이 최적화되어 있습니다.
+
+![MongoDB Atlas Data 1](contents/captures/chaatbot-api_mongodb_1.png)
+
+![MongoDB Atlas Data 2](contents/captures/chaatbot-api_mongodb_2.png)
+
+**주요 확인 사항**:
+- ✅ `ConversationMessageDocument`: 대화 메시지 저장 (sessionId, role, content, tokenCount, sequenceNumber)
+- ✅ `ConversationSessionDocument`: 세션 정보 저장 (userId, title, lastMessageAt, messageCount)
+- ✅ CQRS 동기화 완료 (Aurora → Kafka → MongoDB, 1초 이내)
+- ✅ 읽기 최적화된 비정규화 구조
+
+##### 4. Kafka 이벤트 기반 CQRS 동기화
+
+Command Side(Aurora)의 쓰기 작업이 Kafka 이벤트로 발행되고, Query Side(MongoDB)의 Consumer가 이를 수신하여 동기화하는 과정을 보여줍니다.
+
+![Kafka Events](contents/captures/chaatbot-api_kafka.png)
+
+**주요 확인 사항**:
+- ✅ `ConversationMessageCreatedEvent` 발행 (conversation-events 토픽)
+- ✅ Event Consumer의 정상적인 이벤트 수신 및 처리
+- ✅ Redis 기반 멱등성 보장 (중복 처리 방지, TTL: 7일)
+- ✅ 실시간 동기화 완료 (목표: 1초 이내)
+
+##### 테스트 결론
+
+✅ **RAG 파이프라인 정상 동작**: MongoDB Atlas Vector Search를 통한 문서 검색 및 OpenAI GPT-4o-mini 응답 생성
+✅ **CQRS 패턴 정상 동작**: Aurora MySQL (Command) → Kafka → MongoDB Atlas (Query) 동기화 완료
+✅ **멀티턴 대화 지원**: TokenWindowChatMemory를 통한 대화 컨텍스트 유지
+✅ **데이터 일관성 보장**: Command Side와 Query Side 간 데이터 동기화 확인
+
+---
 
 ## 🤖 AI Agent 자동화 시스템
 
