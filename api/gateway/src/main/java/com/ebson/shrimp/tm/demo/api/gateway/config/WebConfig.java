@@ -1,4 +1,4 @@
-package com.tech.n.ai.api.gateway.config;
+package com.ebson.shrimp.tm.demo.api.gateway.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;

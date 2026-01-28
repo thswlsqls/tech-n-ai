@@ -1,10 +1,10 @@
-package com.tech.n.ai.api.gateway.filter;
+package com.ebson.shrimp.tm.demo.api.gateway.filter;
 
-import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.core.dto.MessageCode;
-import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
-import com.tech.n.ai.common.security.jwt.JwtTokenProvider;
+import com.ebson.shrimp.tm.demo.common.core.constants.ErrorCodeConstants;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.MessageCode;
+import com.ebson.shrimp.tm.demo.common.security.jwt.JwtTokenPayload;
+import com.ebson.shrimp.tm.demo.common.security.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +72,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
                 .header(USER_ID_HEADER, payload.userId())
                 .header(USER_EMAIL_HEADER, payload.email())
                 .header(USER_ROLE_HEADER, payload.role())
+                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + token) // Forward JWT token to backend
                 .build();
             
             log.debug("JWT authentication successful for user: {}", payload.userId());

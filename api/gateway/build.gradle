@@ -1,4 +1,4 @@
-group = 'com.tech.n.ai.api'
+group = 'com.ebson.shrimp.tm.demo.api'
 version = '0.0.1-SNAPSHOT'
 description = 'api-gateway'
 
@@ -11,8 +11,8 @@ dependencies {
 	implementation project(':common-core')
 	implementation project(':common-security')
 
-	// Spring Cloud Gateway
-	implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+	// Spring Cloud Gateway (WebFlux)
+	implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'

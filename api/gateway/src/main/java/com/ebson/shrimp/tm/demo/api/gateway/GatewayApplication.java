@@ -1,4 +1,4 @@
-package com.tech.n.ai.api.gateway;
+package com.ebson.shrimp.tm.demo.api.gateway;
 
 
 import org.springframework.boot.SpringApplication;
@@ -12,6 +12,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration;
 
 
 @SpringBootApplication(exclude = {
@@ -23,7 +26,10 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 	MongoReactiveDataAutoConfiguration.class,
 	RedisAutoConfiguration.class,
 	RedisReactiveAutoConfiguration.class,
-	SecurityAutoConfiguration.class
+	SecurityAutoConfiguration.class,
+	ReactiveSecurityAutoConfiguration.class,
+	ReactiveUserDetailsServiceAutoConfiguration.class,
+	ReactiveManagementWebSecurityAutoConfiguration.class
 })
 public class GatewayApplication {
 

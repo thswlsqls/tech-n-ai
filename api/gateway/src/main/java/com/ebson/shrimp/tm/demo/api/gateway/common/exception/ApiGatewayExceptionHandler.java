@@ -1,8 +1,8 @@
-package com.tech.n.ai.api.gateway.common.exception;
+package com.ebson.shrimp.tm.demo.api.gateway.common.exception;
 
-import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.core.dto.MessageCode;
+import com.ebson.shrimp.tm.demo.common.core.constants.ErrorCodeConstants;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.MessageCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -24,16 +24,18 @@ gateway:
 spring:
   cloud:
     gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowCredentials: true
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-            allowedHeaders: "*"
-            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
-            maxAge: 3600
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowCredentials: true
+                allowedOriginPatterns:
+                  - "http://localhost:*"
+                  - "http://127.0.0.1:*"
+                allowedHeaders: "*"
+                allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+                maxAge: 3600
 
 jwt:
   secret-key: ${JWT_SECRET_KEY:default-secret-key-change-in-production-minimum-256-bits}
@@ -42,4 +44,4 @@ jwt:
 
 logging:
   level:
-    com.tech.n.ai.api.gateway: DEBUG
+    com.ebson.shrimp.tm.demo.api.gateway: DEBUG

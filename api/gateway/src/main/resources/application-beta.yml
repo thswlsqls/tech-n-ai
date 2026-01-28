@@ -21,17 +21,19 @@ gateway:
 spring:
   cloud:
     gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowCredentials: true
-            allowedOriginPatterns:
-              - "https://beta.example.com"
-              - "https://example.com"
-            allowedHeaders: "*"
-            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
-            maxAge: 3600
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowCredentials: true
+                allowedOriginPatterns:
+                  - "https://beta.example.com"
+                  - "https://example.com"
+                allowedHeaders: "*"
+                allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+                maxAge: 3600
 
 logging:
   level:
-    com.tech.n.ai.api.gateway: WARN
+    com.ebson.shrimp.tm.demo.api.gateway: WARN
