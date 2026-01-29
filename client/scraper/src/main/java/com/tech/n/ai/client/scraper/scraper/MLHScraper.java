@@ -6,11 +6,11 @@ import com.tech.n.ai.client.scraper.exception.ScrapingException;
 import com.tech.n.ai.client.scraper.util.RobotsTxtChecker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -25,13 +25,23 @@ import java.util.List;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class MLHScraper implements WebScraper {
     
     private final WebClient.Builder webClientBuilder;
     private final RobotsTxtChecker robotsTxtChecker;
     private final ScraperProperties properties;
     private final RetryRegistry retryRegistry;
+    
+    public MLHScraper(
+            @Qualifier("scraperWebClientBuilder") WebClient.Builder webClientBuilder,
+            RobotsTxtChecker robotsTxtChecker,
+            ScraperProperties properties,
+            RetryRegistry retryRegistry) {
+        this.webClientBuilder = webClientBuilder;
+        this.robotsTxtChecker = robotsTxtChecker;
+        this.properties = properties;
+        this.retryRegistry = retryRegistry;
+    }
     
     private static final String EVENTS_PAGE = "/events";
     

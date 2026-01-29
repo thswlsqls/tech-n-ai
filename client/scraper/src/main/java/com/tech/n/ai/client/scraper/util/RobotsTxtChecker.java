@@ -1,7 +1,7 @@
 package com.tech.n.ai.client.scraper.util;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import crawlercommons.robots.BaseRobotRules;
@@ -13,10 +13,13 @@ import crawlercommons.robots.SimpleRobotRulesParser;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class RobotsTxtChecker {
     
     private final WebClient.Builder webClientBuilder;
+    
+    public RobotsTxtChecker(@Qualifier("scraperWebClientBuilder") WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
+    }
     
     /**
      * robots.txt를 확인하여 특정 경로의 스크래핑이 허용되는지 확인
