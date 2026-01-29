@@ -1,8 +1,8 @@
 package com.tech.n.ai.client.feign.domain.internal.contract;
 
-import com.tech.n.ai.api.news.dto.response.NewsBatchResponse;
-import com.tech.n.ai.api.news.dto.response.NewsDetailResponse;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.api.news.dto.response.NewsBatchResponse;
+import com.ebson.shrimp.tm.demo.api.news.dto.response.NewsDetailResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;

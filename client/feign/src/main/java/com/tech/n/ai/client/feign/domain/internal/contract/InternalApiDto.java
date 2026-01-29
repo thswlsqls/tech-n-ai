@@ -96,17 +96,17 @@ public class InternalApiDto {
         private Integer likeCount;
     }
 
-    // ========== AI Update 관련 DTO ==========
+    // ========== Emerging Tech 관련 DTO ==========
 
     /**
-     * AI Update 생성 요청 DTO
-     * api-ai-update 모듈의 AiUpdateCreateRequest와 필드가 같아도 별도 정의
+     * Emerging Tech 생성 요청 DTO
+     * api-emerging-tech 모듈의 EmergingTechCreateRequest와 필드가 같아도 별도 정의
      */
     @Data
     @Builder
-    public static class AiUpdateCreateRequest {
-        private String provider;      // AiProvider enum value
-        private String updateType;    // AiUpdateType enum value
+    public static class EmergingTechCreateRequest {
+        private String provider;      // TechProvider enum value
+        private String updateType;    // EmergingTechType enum value
         private String title;
         private String summary;
         private String url;
@@ -114,24 +114,24 @@ public class InternalApiDto {
         private String sourceType;    // SourceType enum value
         private String status;        // PostStatus enum value
         private String externalId;    // 중복 체크용
-        private AiUpdateMetadataRequest metadata;
+        private EmergingTechMetadataRequest metadata;
     }
 
     /**
-     * AI Update 다건 생성 요청 DTO
+     * Emerging Tech 다건 생성 요청 DTO
      */
     @Data
     @Builder
-    public static class AiUpdateBatchRequest {
-        private List<AiUpdateCreateRequest> items;
+    public static class EmergingTechBatchRequest {
+        private List<EmergingTechCreateRequest> items;
     }
 
     /**
-     * AI Update Metadata 요청 DTO
+     * Emerging Tech Metadata 요청 DTO
      */
     @Data
     @Builder
-    public static class AiUpdateMetadataRequest {
+    public static class EmergingTechMetadataRequest {
         private String version;
         private List<String> tags;
         private String author;

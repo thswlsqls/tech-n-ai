@@ -5,15 +5,13 @@ import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.GoogleTokenResp
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.GoogleUserInfoResponse;
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
-import com.tech.n.ai.common.exception.exception.UnauthorizedException;
+import com.ebson.shrimp.tm.demo.common.exception.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class GoogleOAuthApi implements OAuthProviderContract {
     

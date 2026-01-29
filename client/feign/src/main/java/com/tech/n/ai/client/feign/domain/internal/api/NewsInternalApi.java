@@ -1,11 +1,11 @@
 package com.tech.n.ai.client.feign.domain.internal.api;
 
-import com.tech.n.ai.api.news.dto.response.NewsBatchResponse;
-import com.tech.n.ai.api.news.dto.response.NewsDetailResponse;
+import com.ebson.shrimp.tm.demo.api.news.dto.response.NewsBatchResponse;
+import com.ebson.shrimp.tm.demo.api.news.dto.response.NewsDetailResponse;
 import com.tech.n.ai.client.feign.domain.internal.client.NewsInternalFeignClient;
 import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 /**

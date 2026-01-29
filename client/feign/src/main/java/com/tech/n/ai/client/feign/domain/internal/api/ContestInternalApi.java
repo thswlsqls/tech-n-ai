@@ -1,11 +1,11 @@
 package com.tech.n.ai.client.feign.domain.internal.api;
 
-import com.tech.n.ai.api.contest.dto.response.ContestBatchResponse;
-import com.tech.n.ai.api.contest.dto.response.ContestDetailResponse;
+import com.ebson.shrimp.tm.demo.api.contest.dto.response.ContestBatchResponse;
+import com.ebson.shrimp.tm.demo.api.contest.dto.response.ContestDetailResponse;
 import com.tech.n.ai.client.feign.domain.internal.client.ContestInternalFeignClient;
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 /**

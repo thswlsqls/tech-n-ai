@@ -11,8 +11,8 @@ feign:
         connectTimeout: 5000
         readTimeout: 30000
         loggerLevel: full
-      ai-update-internal-api:
-        url: http://localhost:8087  # api-ai-update 서버 URL
+      emerging-tech-internal-api:
+        url: http://localhost:8087  # api-emerging-tech 서버 URL
         connectTimeout: 5000
         readTimeout: 30000
         loggerLevel: full
@@ -23,5 +23,5 @@ internal-api:
     api-key: ${INTERNAL_API_CONTEST_KEY:default-contest-api-key}
   news:
     api-key: ${INTERNAL_API_NEWS_KEY:default-news-api-key}
-  ai-update:
-    api-key: ${INTERNAL_API_AI_UPDATE_KEY:default-ai-update-api-key}
+  emerging-tech:
+    api-key: ${INTERNAL_API_EMERGING_TECH_KEY:default-emerging-tech-api-key}
