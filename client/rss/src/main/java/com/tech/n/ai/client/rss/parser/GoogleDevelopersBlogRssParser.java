@@ -8,8 +8,8 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -26,12 +26,20 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class GoogleDevelopersBlogRssParser implements RssParser {
     
     private final WebClient.Builder webClientBuilder;
     private final RssProperties properties;
     private final RetryRegistry retryRegistry;
+    
+    public GoogleDevelopersBlogRssParser(
+            @Qualifier("rssWebClientBuilder") WebClient.Builder webClientBuilder,
+            RssProperties properties,
+            RetryRegistry retryRegistry) {
+        this.webClientBuilder = webClientBuilder;
+        this.properties = properties;
+        this.retryRegistry = retryRegistry;
+    }
     
     @Override
     public List<RssFeedItem> parse() {
@@ -56,6 +64,9 @@ public class GoogleDevelopersBlogRssParser implements RssParser {
                     throw new RssParsingException("Empty RSS feed content received from Google Developers Blog");
                 }
                 
+                // BOM 및 앞뒤 공백 제거
+                feedContent = removeBOM(feedContent).trim();
+                
                 SyndFeedInput input = new SyndFeedInput();
                 SyndFeed feed = input.build(new StringReader(feedContent));
                 
@@ -75,17 +86,39 @@ public class GoogleDevelopersBlogRssParser implements RssParser {
     }
     
     /**
+     * BOM (Byte Order Mark) 제거
+     * UTF-8 BOM(U+FEFF)이 문자열 시작에 있을 경우 제거
+     */
+    private String removeBOM(String content) {
+        if (content != null && content.startsWith("\uFEFF")) {
+            return content.substring(1);
+        }
+        return content;
+    }
+    
+    /**
      * SyndEntry를 RssFeedItem으로 변환
      * Rome 라이브러리가 Atom 1.0과 RSS 2.0을 모두 SyndEntry로 추상화하므로 동일한 로직 사용
+     * 발행일이 없는 경우 null로 유지 (데이터 무결성 보장)
      */
     private RssFeedItem convertToRssFeedItem(SyndEntry entry) {
         LocalDateTime publishedDate = null;
+        
+        // 1. entry.getPublishedDate() 우선 사용
         if (entry.getPublishedDate() != null) {
             publishedDate = LocalDateTime.ofInstant(
                 entry.getPublishedDate().toInstant(),
                 ZoneId.systemDefault()
             );
         }
+        // 2. entry.getUpdatedDate() fallback (Atom 피드에서 사용)
+        else if (entry.getUpdatedDate() != null) {
+            publishedDate = LocalDateTime.ofInstant(
+                entry.getUpdatedDate().toInstant(),
+                ZoneId.systemDefault()
+            );
+        }
+        // 3. 발행일 정보가 없으면 null 유지 (정확하지 않은 데이터 저장 방지)
         
         String description = entry.getDescription() != null 
             ? entry.getDescription().getValue() 

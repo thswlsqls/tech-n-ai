@@ -1,7 +1,7 @@
 package com.tech.n.ai.client.rss.exception;
 
-import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
-import com.tech.n.ai.common.core.exception.BaseException;
+import com.ebson.shrimp.tm.demo.common.core.constants.ErrorCodeConstants;
+import com.ebson.shrimp.tm.demo.common.core.exception.BaseException;
 
 /**
  * RSS 피드 파싱 실패 시 발생하는 예외

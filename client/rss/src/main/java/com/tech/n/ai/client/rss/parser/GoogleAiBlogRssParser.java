@@ -3,6 +3,7 @@ package com.tech.n.ai.client.rss.parser;
 import com.tech.n.ai.client.rss.config.RssProperties;
 import com.tech.n.ai.client.rss.dto.RssFeedItem;
 import com.tech.n.ai.client.rss.exception.RssParsingException;
+import com.rometools.rome.feed.synd.SyndCategory;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
@@ -21,18 +22,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Ars Technica RSS 피드 파서
- * RSS 2.0 형식의 Ars Technica 피드를 파싱
+ * Google AI Blog RSS 피드 파서
+ * RSS 2.0 형식의 Google AI Blog 피드를 파싱
+ * media:content 등 추가 필드에서 이미지 URL 추출
  */
 @Component
 @Slf4j
-public class ArsTechnicaRssParser implements RssParser {
-    
+public class GoogleAiBlogRssParser implements RssParser {
+
     private final WebClient.Builder webClientBuilder;
     private final RssProperties properties;
     private final RetryRegistry retryRegistry;
-    
-    public ArsTechnicaRssParser(
+
+    public GoogleAiBlogRssParser(
             @Qualifier("rssWebClientBuilder") WebClient.Builder webClientBuilder,
             RssProperties properties,
             RetryRegistry retryRegistry) {
@@ -40,119 +42,104 @@ public class ArsTechnicaRssParser implements RssParser {
         this.properties = properties;
         this.retryRegistry = retryRegistry;
     }
-    
+
     @Override
     public List<RssFeedItem> parse() {
-        RssProperties.RssSourceConfig config = properties.getSources().get("ars-technica");
+        RssProperties.RssSourceConfig config = properties.getSources().get("google-ai-blog");
         if (config == null) {
-            throw new RssParsingException("Ars Technica RSS source configuration not found");
+            throw new RssParsingException("Google AI Blog RSS source configuration not found");
         }
-        
+
         WebClient webClient = webClientBuilder.baseUrl(config.getFeedUrl()).build();
         Retry retry = retryRegistry.retry("rssRetry");
-        
+
         return retry.executeSupplier(() -> {
             try {
-                log.debug("Fetching Ars Technica RSS feed from: {}", config.getFeedUrl());
+                log.debug("Fetching Google AI Blog RSS feed from: {}", config.getFeedUrl());
                 String feedContent = webClient.get()
                     .uri("")
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
-                
+
                 if (feedContent == null || feedContent.isEmpty()) {
-                    throw new RssParsingException("Empty RSS feed content received from Ars Technica");
+                    throw new RssParsingException("Empty RSS feed content received from Google AI Blog");
                 }
-                
-                // BOM 및 앞뒤 공백 제거
+
                 feedContent = removeBOM(feedContent).trim();
-                
+
                 SyndFeedInput input = new SyndFeedInput();
                 SyndFeed feed = input.build(new StringReader(feedContent));
-                
-                log.debug("Successfully parsed Ars Technica RSS feed. Found {} entries", feed.getEntries().size());
-                
+
+                log.debug("Successfully parsed Google AI Blog RSS feed. Found {} entries", feed.getEntries().size());
+
                 return feed.getEntries().stream()
                     .map(this::convertToRssFeedItem)
                     .collect(Collectors.toList());
             } catch (WebClientException e) {
-                log.error("Failed to fetch Ars Technica RSS feed", e);
-                throw new RssParsingException("Ars Technica RSS feed fetch failed", e);
+                log.error("Failed to fetch Google AI Blog RSS feed", e);
+                throw new RssParsingException("Google AI Blog RSS feed fetch failed", e);
             } catch (Exception e) {
-                log.error("Failed to parse Ars Technica RSS feed", e);
-                throw new RssParsingException("Ars Technica RSS parsing failed", e);
+                log.error("Failed to parse Google AI Blog RSS feed", e);
+                throw new RssParsingException("Google AI Blog RSS parsing failed", e);
             }
         });
     }
-    
-    /**
-     * BOM (Byte Order Mark) 제거
-     * UTF-8 BOM(U+FEFF)이 문자열 시작에 있을 경우 제거
-     */
+
     private String removeBOM(String content) {
         if (content != null && content.startsWith("\uFEFF")) {
             return content.substring(1);
         }
         return content;
     }
-    
-    /**
-     * SyndEntry를 RssFeedItem으로 변환
-     * 발행일이 없는 경우 null로 유지 (데이터 무결성 보장)
-     */
+
     private RssFeedItem convertToRssFeedItem(SyndEntry entry) {
         LocalDateTime publishedDate = null;
-        
-        // 1. entry.getPublishedDate() 우선 사용
+
         if (entry.getPublishedDate() != null) {
             publishedDate = LocalDateTime.ofInstant(
-                entry.getPublishedDate().toInstant(),
-                ZoneId.systemDefault()
-            );
-        }
-        // 2. entry.getUpdatedDate() fallback (Atom 피드에서 사용)
-        else if (entry.getUpdatedDate() != null) {
+                entry.getPublishedDate().toInstant(), ZoneId.systemDefault());
+        } else if (entry.getUpdatedDate() != null) {
             publishedDate = LocalDateTime.ofInstant(
-                entry.getUpdatedDate().toInstant(),
-                ZoneId.systemDefault()
-            );
+                entry.getUpdatedDate().toInstant(), ZoneId.systemDefault());
         }
-        // 3. 발행일 정보가 없으면 null 유지 (정확하지 않은 데이터 저장 방지)
-        
-        String description = entry.getDescription() != null 
-            ? entry.getDescription().getValue() 
+
+        String description = entry.getDescription() != null
+            ? entry.getDescription().getValue()
             : null;
-        
-        String author = entry.getAuthor();
-        
-        String category = entry.getCategories().isEmpty() 
-            ? null 
-            : entry.getCategories().get(0).getName();
-        
-        String guid = entry.getUri() != null 
-            ? entry.getUri() 
-            : entry.getLink();
-        
+
+        String category = entry.getCategories().isEmpty()
+            ? null
+            : entry.getCategories().stream()
+                .map(SyndCategory::getName)
+                .collect(Collectors.joining(","));
+
+        // Google RSS: enclosure에서 이미지 URL 추출
+        String imageUrl = null;
+        if (!entry.getEnclosures().isEmpty()) {
+            imageUrl = entry.getEnclosures().get(0).getUrl();
+        }
+
         return RssFeedItem.builder()
             .title(entry.getTitle())
             .link(entry.getLink())
             .description(description)
             .publishedDate(publishedDate)
-            .author(author)
+            .author(entry.getAuthor())
             .category(category)
-            .guid(guid)
-            .imageUrl(null) // RSS 2.0 doesn't have direct image URL, would need to parse from description
+            .guid(entry.getUri() != null ? entry.getUri() : entry.getLink())
+            .imageUrl(imageUrl)
             .build();
     }
-    
+
     @Override
     public String getSourceName() {
-        return "Ars Technica";
+        return "Google AI Blog";
     }
-    
+
     @Override
     public String getFeedUrl() {
-        RssProperties.RssSourceConfig config = properties.getSources().get("ars-technica");
+        RssProperties.RssSourceConfig config = properties.getSources().get("google-ai-blog");
         return config != null ? config.getFeedUrl() : null;
     }
 }
