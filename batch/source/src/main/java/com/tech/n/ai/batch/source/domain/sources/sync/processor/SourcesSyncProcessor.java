@@ -1,7 +1,7 @@
 package com.tech.n.ai.batch.source.domain.sources.sync.processor;
 
 import com.tech.n.ai.batch.source.domain.sources.sync.dto.SourceJsonDto;
-import com.tech.n.ai.datasource.mongodb.document.SourcesDocument;
+import com.tech.n.ai.domain.mongodb.document.SourcesDocument;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

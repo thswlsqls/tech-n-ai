@@ -33,8 +33,10 @@ public class Constants {
     // Job - Sources
     public final static String SOURCES_SYNC = "sources.sync.job";
 
-    // Job - AI Update
-    public final static String AI_UPDATE_GITHUB = "ai-update.github.job";
+    // Job - Emerging Tech
+    public final static String EMERGING_TECH_GITHUB = "emerging-tech.github.job";
+    public final static String EMERGING_TECH_RSS = "emerging-tech.rss.job";
+    public final static String EMERGING_TECH_SCRAPER = "emerging-tech.scraper.job";
 
     // Job Parameter
     public final static String PARAMETER = ".parameter";

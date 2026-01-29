@@ -37,11 +37,11 @@ import com.tech.n.ai.batch.source.domain.news.reddit.jobconfig.NewsRedditApiJobC
 import com.tech.n.ai.batch.source.domain.news.techcrunch.jobconfig.NewsTechCrunchRssParserJobConfig;
 
 // Domain Config Import
-import com.tech.n.ai.datasource.mariadb.config.BatchDomainConfig;
-import com.tech.n.ai.datasource.mongodb.config.MongoClientConfig;
+import com.ebson.shrimp.tm.demo.domain.mariadb.config.BatchDomainConfig;
+import com.tech.n.ai.domain.mongodb.config.MongoClientConfig;
 
-import com.tech.n.ai.datasource.mongodb.config.MongoIndexConfig;
-import com.tech.n.ai.datasource.mongodb.config.VectorSearchIndexConfig;
+import com.tech.n.ai.domain.mongodb.config.MongoIndexConfig;
+import com.tech.n.ai.domain.mongodb.config.VectorSearchIndexConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -50,8 +50,8 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ComponentScan(basePackages = {
     "com.tech.n.ai.batch.source",
-    "com.tech.n.ai.datasource.mariadb",
-    "com.tech.n.ai.datasource.mongodb",
+    "com.ebson.shrimp.tm.demo.domain.mariadb",
+    "com.tech.n.ai.domain.mongodb",
     "com.tech.n.ai.client.scraper",
     "com.tech.n.ai.client.feign",
     "com.tech.n.ai.client.rss"

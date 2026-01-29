@@ -1,7 +1,7 @@
 package com.tech.n.ai.batch.source.domain.contest.codeforces.processor;
 
 
-import com.tech.n.ai.datasource.mongodb.document.ContestDocument;
+import com.tech.n.ai.domain.mongodb.document.ContestDocument;
 import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 

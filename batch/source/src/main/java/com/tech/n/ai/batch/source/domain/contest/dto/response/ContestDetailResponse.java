@@ -1,6 +1,6 @@
 package com.tech.n.ai.batch.source.domain.contest.dto.response;
 
-import com.tech.n.ai.datasource.mongodb.document.ContestDocument;
+import com.tech.n.ai.domain.mongodb.document.ContestDocument;
 import java.time.LocalDateTime;
 import java.util.List;
 

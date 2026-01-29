@@ -1,6 +1,6 @@
 package com.tech.n.ai.batch.source.domain.contest.codeforces.writer;
 
-import com.tech.n.ai.datasource.mongodb.document.ContestDocument;
+import com.tech.n.ai.domain.mongodb.document.ContestDocument;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;

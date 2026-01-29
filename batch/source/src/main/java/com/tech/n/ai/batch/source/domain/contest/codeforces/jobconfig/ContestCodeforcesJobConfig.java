@@ -14,7 +14,7 @@ import com.tech.n.ai.batch.source.domain.contest.codeforces.writer.CodeforcesSte
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.feign.domain.codeforces.contract.CodeforcesDto.Contest;
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
-import com.tech.n.ai.datasource.mongodb.document.ContestDocument;
+import com.tech.n.ai.domain.mongodb.document.ContestDocument;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,10 +1,10 @@
 package com.tech.n.ai.batch.source.domain.news.arstechnica.writer;
 
-import com.tech.n.ai.api.news.dto.response.NewsBatchResponse;
+import com.ebson.shrimp.tm.demo.api.news.dto.response.NewsBatchResponse;
 import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
 import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

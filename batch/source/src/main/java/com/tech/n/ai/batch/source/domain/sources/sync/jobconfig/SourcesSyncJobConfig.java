@@ -8,7 +8,7 @@ import com.tech.n.ai.batch.source.domain.sources.sync.processor.SourcesSyncProce
 import com.tech.n.ai.batch.source.domain.sources.sync.reader.SourcesJsonItemReader;
 import com.tech.n.ai.batch.source.domain.sources.sync.writer.SourcesMongoWriter;
 import com.tech.n.ai.batch.source.domain.sources.sync.writer.SourcesRedisWriter;
-import com.tech.n.ai.datasource.mongodb.document.SourcesDocument;
+import com.tech.n.ai.domain.mongodb.document.SourcesDocument;
 
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

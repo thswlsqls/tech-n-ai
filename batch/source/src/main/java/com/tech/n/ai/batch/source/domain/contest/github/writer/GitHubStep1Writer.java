@@ -1,10 +1,10 @@
 package com.tech.n.ai.batch.source.domain.contest.github.writer;
 
-import com.tech.n.ai.api.contest.dto.response.ContestBatchResponse;
+import com.ebson.shrimp.tm.demo.api.contest.dto.response.ContestBatchResponse;
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

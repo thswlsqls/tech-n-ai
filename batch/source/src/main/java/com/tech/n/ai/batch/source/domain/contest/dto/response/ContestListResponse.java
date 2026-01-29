@@ -1,6 +1,6 @@
 package com.tech.n.ai.batch.source.domain.contest.dto.response;
 
-import com.tech.n.ai.common.core.dto.PageData;
+import com.ebson.shrimp.tm.demo.common.core.dto.PageData;
 
 /**
  * Contest 목록 조회 응답 DTO

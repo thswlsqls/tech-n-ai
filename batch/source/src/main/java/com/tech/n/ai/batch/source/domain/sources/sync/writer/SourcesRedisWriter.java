@@ -1,6 +1,6 @@
 package com.tech.n.ai.batch.source.domain.sources.sync.writer;
 
-import com.tech.n.ai.datasource.mongodb.document.SourcesDocument;
+import com.tech.n.ai.domain.mongodb.document.SourcesDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;

@@ -1,10 +1,10 @@
 package com.tech.n.ai.batch.source.domain.contest.devto.writer;
 
-import com.tech.n.ai.api.contest.dto.response.ContestBatchResponse;
+import com.ebson.shrimp.tm.demo.api.contest.dto.response.ContestBatchResponse;
 import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
 import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
