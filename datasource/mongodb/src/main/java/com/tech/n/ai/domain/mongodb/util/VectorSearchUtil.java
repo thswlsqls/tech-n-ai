@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.util;
+package com.tech.n.ai.domain.mongodb.util;
 
 import org.bson.Document;
 

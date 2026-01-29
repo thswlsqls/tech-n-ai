@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.document;
+package com.tech.n.ai.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;

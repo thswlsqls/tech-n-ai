@@ -1,6 +1,6 @@
-package com.tech.n.ai.datasource.mongodb.repository;
+package com.tech.n.ai.domain.mongodb.repository;
 
-import com.tech.n.ai.datasource.mongodb.document.SourcesDocument;
+import com.tech.n.ai.domain.mongodb.document.SourcesDocument;
 import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;

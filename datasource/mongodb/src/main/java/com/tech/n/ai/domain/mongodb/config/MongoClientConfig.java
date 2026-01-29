@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.config;
+package com.tech.n.ai.domain.mongodb.config;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Configuration
-@EnableMongoRepositories(basePackages = "com.tech.n.ai.datasource.mongodb.repository")
+@EnableMongoRepositories(basePackages = "com.tech.n.ai.domain.mongodb.repository")
 public class MongoClientConfig extends AbstractMongoClientConfiguration {
     
     @Value("${spring.data.mongodb.uri}")

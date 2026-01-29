@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.enums;
+package com.tech.n.ai.domain.mongodb.enums;
 
 /**
  * 게시물 상태

@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.config;
+package com.tech.n.ai.domain.mongodb.config;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +20,7 @@ public class VectorSearchIndexConfig {
     // Vector Search Index 이름
     public static final String INDEX_NAME_CONTESTS = "vector_index_contests";
     public static final String INDEX_NAME_NEWS_ARTICLES = "vector_index_news_articles";
+    public static final String INDEX_NAME_EMERGING_TECHS = "vector_index_emerging_techs";
     
     // 벡터 차원 수 (OpenAI text-embedding-3-small)
     public static final int VECTOR_DIMENSIONS = 1536;
@@ -78,6 +79,34 @@ public class VectorSearchIndexConfig {
     }
     
     /**
+     * EmergingTechDocument Vector Search Index 정의
+     *
+     * @return Index 정의 JSON 문자열
+     */
+    public static String getEmergingTechVectorIndexDefinition() {
+        return """
+            {
+              "fields": [
+                {
+                  "type": "vector",
+                  "path": "embedding_vector",
+                  "numDimensions": 1536,
+                  "similarity": "cosine"
+                },
+                {
+                  "type": "filter",
+                  "path": "provider"
+                },
+                {
+                  "type": "filter",
+                  "path": "status"
+                }
+              ]
+            }
+            """;
+    }
+
+    /**
      * Atlas CLI를 사용한 Index 생성 명령어 반환
      * 
      * @param clusterName 클러스터 이름
@@ -118,6 +147,7 @@ public class VectorSearchIndexConfig {
         log.info("필요한 Vector Search Index:");
         log.info("  1. {} (contests 컬렉션)", INDEX_NAME_CONTESTS);
         log.info("  2. {} (news_articles 컬렉션)", INDEX_NAME_NEWS_ARTICLES);
+        log.info("  3. {} (emerging_techs 컬렉션)", INDEX_NAME_EMERGING_TECHS);
         log.info("");
         log.info("가이드 문서: docs/step1/6. mongodb-atlas-integration-guide.md");
         log.info("공식 문서: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/");
@@ -133,5 +163,8 @@ public class VectorSearchIndexConfig {
         
         log.debug("=== NewsArticle Vector Index Definition ===");
         log.debug(getNewsArticleVectorIndexDefinition());
+
+        log.debug("=== EmergingTech Vector Index Definition ===");
+        log.debug(getEmergingTechVectorIndexDefinition());
     }
 }

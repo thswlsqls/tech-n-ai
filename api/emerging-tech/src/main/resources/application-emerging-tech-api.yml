@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: emerging-tech-api
+
+emerging-tech:
+  internal:
+    api-key: ${EMERGING_TECH_INTERNAL_API_KEY:default-emerging-tech-api-key}
+
+# Slack 알림 설정 (기본 비활성화)
+slack:
+  emerging-tech:
+    enabled: false
+    channel: "#emerging-tech"

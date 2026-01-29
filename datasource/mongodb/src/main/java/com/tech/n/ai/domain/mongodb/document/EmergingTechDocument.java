@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.document;
+package com.tech.n.ai.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,22 +13,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * AI 업데이트 정보 Document (MongoDB)
+ * Emerging Tech 업데이트 정보 Document (MongoDB)
  */
-@Document(collection = "ai_updates")
+@Document(collection = "emerging_techs")
 @Getter
 @Setter
-public class AiUpdateDocument {
+public class EmergingTechDocument {
 
     @Id
     private ObjectId id;
 
     @Field("provider")
     @Indexed
-    private String provider;  // AiProvider enum value
+    private String provider;  // TechProvider enum value
 
     @Field("update_type")
-    private String updateType;  // AiUpdateType enum value
+    private String updateType;  // EmergingTechType enum value
 
     @Field("title")
     private String title;
@@ -52,11 +52,17 @@ public class AiUpdateDocument {
     private String status;  // PostStatus enum value
 
     @Field("metadata")
-    private AiUpdateMetadata metadata;
+    private EmergingTechMetadata metadata;
 
     @Field("external_id")
     @Indexed(unique = true)
     private String externalId;  // 중복 체크용 (GitHub release ID 등)
+
+    @Field("embedding_text")
+    private String embeddingText;  // 임베딩 대상 텍스트
+
+    @Field("embedding_vector")
+    private List<Float> embeddingVector;  // 벡터 필드 (1536차원 - OpenAI text-embedding-3-small 기본값)
 
     @Field("created_at")
     private LocalDateTime createdAt;
@@ -71,11 +77,11 @@ public class AiUpdateDocument {
     private String updatedBy;
 
     /**
-     * AI 업데이트 메타데이터
+     * Emerging Tech 메타데이터
      */
     @Getter
     @Setter
-    public static class AiUpdateMetadata {
+    public static class EmergingTechMetadata {
 
         @Field("version")
         private String version;  // SDK 버전

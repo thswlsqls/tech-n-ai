@@ -1,6 +1,6 @@
-package com.tech.n.ai.datasource.mongodb.repository;
+package com.tech.n.ai.domain.mongodb.repository;
 
-import com.tech.n.ai.datasource.mongodb.document.ExceptionLogDocument;
+import com.tech.n.ai.domain.mongodb.document.ExceptionLogDocument;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;

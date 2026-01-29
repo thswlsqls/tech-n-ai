@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mongodb.enums;
+package com.tech.n.ai.domain.mongodb.enums;
 
 /**
  * 데이터 수집 소스 유형
