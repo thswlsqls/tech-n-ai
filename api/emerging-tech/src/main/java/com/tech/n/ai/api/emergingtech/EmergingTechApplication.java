@@ -1,4 +1,4 @@
-package com.ebson.shrimp.tm.demo.api.emergingtech;
+package com.tech.n.ai.api.emergingtech;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

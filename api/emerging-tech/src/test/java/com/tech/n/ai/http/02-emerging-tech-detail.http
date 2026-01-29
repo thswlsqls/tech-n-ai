@@ -1,0 +1,108 @@
+###
+# GET /api/v1/emerging-tech/{id} - Emerging Tech 상세 조회 API 테스트
+# Description: 특정 Emerging Tech 항목의 상세 정보를 조회합니다.
+# Authentication: Not Required (Public)
+# @no-cookie-jar
+###
+
+### 0. [사전 작업] 목록에서 테스트용 ID 가져오기
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=1
+
+> {%
+    client.test("사전 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("테스트용 ID 저장", function() {
+        var data = response.body.data;
+        if (data.items && data.items.length > 0) {
+            client.global.set("testEmergingTechId", data.items[0].id);
+        }
+    });
+%}
+
+### 1. 상세 조회 성공
+GET {{gatewayUrl}}/api/v1/emerging-tech/{{testEmergingTechId}}
+
+> {%
+    client.test("상세 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("상세 데이터 필드 확인", function() {
+        var data = response.body.data;
+        client.assert(data.id !== undefined, "id가 존재해야 합니다");
+        client.assert(data.provider !== undefined, "provider가 존재해야 합니다");
+        client.assert(data.updateType !== undefined, "updateType이 존재해야 합니다");
+        client.assert(data.title !== undefined, "title이 존재해야 합니다");
+        client.assert(data.url !== undefined, "url이 존재해야 합니다");
+        client.assert(data.sourceType !== undefined, "sourceType이 존재해야 합니다");
+        client.assert(data.status !== undefined, "status가 존재해야 합니다");
+        client.assert(data.createdAt !== undefined, "createdAt이 존재해야 합니다");
+    });
+
+    client.test("metadata 필드 확인", function() {
+        var data = response.body.data;
+        if (data.metadata !== null) {
+            // metadata가 있는 경우 구조 확인
+            client.assert(typeof data.metadata === "object", "metadata는 객체여야 합니다");
+        }
+    });
+%}
+
+### 2. 동일 ID 재조회 (일관성 확인)
+GET {{gatewayUrl}}/api/v1/emerging-tech/{{testEmergingTechId}}
+
+> {%
+    client.test("재조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("ID 일치 확인", function() {
+        var data = response.body.data;
+        client.assert(data.id === client.global.get("testEmergingTechId"),
+            "조회된 ID가 요청한 ID와 일치해야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 존재하지 않는 ID (유효한 ObjectId 형식)
+GET {{gatewayUrl}}/api/v1/emerging-tech/000000000000000000000000
+
+> {%
+    client.test("존재하지 않는 ID 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404여야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 잘못된 ID 형식 (비정상 문자열)
+GET {{gatewayUrl}}/api/v1/emerging-tech/invalid-id-format
+
+> {%
+    client.test("잘못된 ID 형식 오류", function() {
+        // 유효하지 않은 ObjectId → 404 또는 400
+        client.assert(response.status === 404 || response.status === 400,
+            "응답 상태 코드가 404 또는 400이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 빈 ID
+GET {{gatewayUrl}}/api/v1/emerging-tech/
+
+> {%
+    client.test("빈 ID 처리", function() {
+        // 빈 경로는 목록 조회로 라우팅될 수 있음
+        client.assert(response.status === 200 || response.status === 400 || response.status === 404,
+            "적절한 응답 상태 코드여야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 특수문자가 포함된 ID
+GET {{gatewayUrl}}/api/v1/emerging-tech/!@#$%^&*()
+
+> {%
+    client.test("특수문자 ID 오류", function() {
+        client.assert(response.status === 404 || response.status === 400,
+            "응답 상태 코드가 404 또는 400이어야 합니다");
+    });
+%}

@@ -1,0 +1,130 @@
+###
+# GET /api/v1/emerging-tech/search - Emerging Tech 검색 API 테스트
+# Description: 키워드로 Emerging Tech를 검색합니다. (대소문자 구분 없음)
+# Authentication: Not Required (Public)
+# @no-cookie-jar
+###
+
+### 1. 기본 검색 (영문 키워드)
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=AI&page=1&size=20
+
+> {%
+    client.test("검색 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+    });
+
+    client.test("검색 응답 구조 확인", function() {
+        var data = response.body.data;
+        client.assert(data.items !== undefined, "items가 존재해야 합니다");
+        client.assert(data.pageSize !== undefined, "pageSize가 존재해야 합니다");
+        client.assert(data.pageNumber !== undefined, "pageNumber가 존재해야 합니다");
+        client.assert(data.totalCount !== undefined, "totalCount가 존재해야 합니다");
+    });
+%}
+
+### 2. 한글 키워드 검색
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=기술&page=1&size=20
+
+> {%
+    client.test("한글 검색 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 3. 검색 결과 페이지네이션 - 두 번째 페이지
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=release&page=2&size=5
+
+> {%
+    client.test("검색 페이지네이션 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("페이지 정보 확인", function() {
+        var data = response.body.data;
+        client.assert(data.pageNumber === 2, "pageNumber가 2여야 합니다");
+        client.assert(data.pageSize === 5, "pageSize가 5여야 합니다");
+    });
+%}
+
+### 4. 검색 결과 없음 (존재하지 않는 키워드)
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=zzzznonexistentkeyword99999&page=1&size=20
+
+> {%
+    client.test("검색 성공 (빈 결과)", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("빈 결과 확인", function() {
+        var data = response.body.data;
+        client.assert(data.items.length === 0, "결과가 비어있어야 합니다");
+        client.assert(data.totalCount === 0, "totalCount가 0이어야 합니다");
+    });
+%}
+
+### 5. 대소문자 구분 없는 검색
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=github&page=1&size=20
+
+> {%
+    client.test("소문자 검색 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 6. 긴 검색어
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=artificial intelligence machine learning deep learning&page=1&size=20
+
+> {%
+    client.test("긴 검색어 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 검색어 누락 (q 파라미터 없음)
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?page=1&size=20
+
+> {%
+    client.test("검색어 누락 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 빈 검색어
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=&page=1&size=20
+
+> {%
+    client.test("빈 검색어 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 공백만 있는 검색어
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=%20%20%20&page=1&size=20
+
+> {%
+    client.test("공백 검색어 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 10. 엣지 케이스 - page=0 (최소값 미만)
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=AI&page=0&size=20
+
+> {%
+    client.test("page 최소값 미만 처리", function() {
+        // 서버에서 page=1로 정규화하거나 400 반환 가능
+        client.assert(response.status === 400 || response.status === 200,
+            "응답 상태 코드가 400 또는 200이어야 합니다");
+    });
+%}
+
+### 11. 엣지 케이스 - size 초과 (101)
+GET {{gatewayUrl}}/api/v1/emerging-tech/search?q=AI&page=1&size=101
+
+> {%
+    client.test("size 최대값 초과 처리", function() {
+        // 서버에서 size=100으로 정규화하거나 400 반환 가능
+        client.assert(response.status === 400 || response.status === 200,
+            "응답 상태 코드가 400 또는 200이어야 합니다");
+    });
+%}

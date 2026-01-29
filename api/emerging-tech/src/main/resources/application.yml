@@ -3,9 +3,9 @@ server:
 
 spring:
   application:
-    name: ai-update-api
+    name: emerging-tech-api
   profiles:
     include:
       - common-core
       - mongodb-domain
-      - ai-update-api
+      - emerging-tech-api
