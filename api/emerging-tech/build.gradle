@@ -1,6 +1,6 @@
 group = 'com.tech.n.ai.api'
 version = '0.0.1-SNAPSHOT'
-description = 'api-ai-update'
+description = 'api-emerging-tech'
 
 bootJar.enabled = true
 jar.enabled = false

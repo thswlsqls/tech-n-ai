@@ -19,7 +19,7 @@ dependencies {
 	implementation project(':client-scraper')
 	implementation project(':api-contest')
 	implementation project(':api-news')
-	implementation project(':api-ai-update')
+	implementation project(':api-emerging-tech')
 
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 
