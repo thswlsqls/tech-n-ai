@@ -16,14 +16,10 @@ import java.util.List;
 public final class VectorSearchUtil {
     
     // 기본 컬렉션명
-    public static final String COLLECTION_CONTESTS = "contests";
-    public static final String COLLECTION_NEWS_ARTICLES = "news_articles";
-    public static final String COLLECTION_ARCHIVES = "archives";
-    
+    public static final String COLLECTION_BOOKMARKS = "bookmarks";
+
     // 기본 Vector Index 이름
-    public static final String INDEX_CONTESTS = "vector_index_contests";
-    public static final String INDEX_NEWS_ARTICLES = "vector_index_news_articles";
-    public static final String INDEX_ARCHIVES = "vector_index_archives";
+    public static final String INDEX_BOOKMARKS = "vector_index_bookmarks";
     
     private VectorSearchUtil() {
         // 유틸리티 클래스
@@ -139,88 +135,14 @@ public final class VectorSearchUtil {
     }
     
     /**
-     * Contest 컬렉션 Vector Search 파이프라인 생성
-     * 
-     * @param queryVector 쿼리 벡터
-     * @param options 검색 옵션
-     * @return aggregation pipeline
-     */
-    public static List<Document> createContestSearchPipeline(
-            List<Float> queryVector,
-            VectorSearchOptions options) {
-        
-        List<Document> pipeline = new ArrayList<>();
-        
-        // 1. $vectorSearch stage
-        VectorSearchOptions contestOptions = VectorSearchOptions.builder()
-            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_CONTESTS)
-            .path(options.getPath())
-            .numCandidates(options.getNumCandidates())
-            .limit(options.getLimit())
-            .minScore(options.getMinScore())
-            .filter(options.getFilter())
-            .exact(options.isExact())
-            .build();
-        
-        pipeline.add(createVectorSearchStage(queryVector, contestOptions));
-        
-        // 2. $addFields stage (score 추가)
-        pipeline.add(createScoreAddFieldsStage());
-        
-        // 3. $match stage (minScore 필터링)
-        if (options.getMinScore() > 0) {
-            pipeline.add(createScoreFilterStage(options.getMinScore()));
-        }
-        
-        return pipeline;
-    }
-    
-    /**
-     * NewsArticle 컬렉션 Vector Search 파이프라인 생성
-     * 
-     * @param queryVector 쿼리 벡터
-     * @param options 검색 옵션
-     * @return aggregation pipeline
-     */
-    public static List<Document> createNewsArticleSearchPipeline(
-            List<Float> queryVector,
-            VectorSearchOptions options) {
-        
-        List<Document> pipeline = new ArrayList<>();
-        
-        // 1. $vectorSearch stage
-        VectorSearchOptions newsOptions = VectorSearchOptions.builder()
-            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_NEWS_ARTICLES)
-            .path(options.getPath())
-            .numCandidates(options.getNumCandidates())
-            .limit(options.getLimit())
-            .minScore(options.getMinScore())
-            .filter(options.getFilter())
-            .exact(options.isExact())
-            .build();
-        
-        pipeline.add(createVectorSearchStage(queryVector, newsOptions));
-        
-        // 2. $addFields stage (score 추가)
-        pipeline.add(createScoreAddFieldsStage());
-        
-        // 3. $match stage (minScore 필터링)
-        if (options.getMinScore() > 0) {
-            pipeline.add(createScoreFilterStage(options.getMinScore()));
-        }
-        
-        return pipeline;
-    }
-    
-    /**
-     * Archive 컬렉션 Vector Search 파이프라인 생성 (userId 필터 포함)
-     * 
+     * Bookmark 컬렉션 Vector Search 파이프라인 생성 (userId 필터 포함)
+     *
      * @param queryVector 쿼리 벡터
      * @param userId 사용자 ID (필터링용)
      * @param options 검색 옵션
      * @return aggregation pipeline
      */
-    public static List<Document> createArchiveSearchPipeline(
+    public static List<Document> createBookmarkSearchPipeline(
             List<Float> queryVector,
             String userId,
             VectorSearchOptions options) {
@@ -238,8 +160,8 @@ public final class VectorSearchUtil {
         }
         
         // 1. $vectorSearch stage
-        VectorSearchOptions archiveOptions = VectorSearchOptions.builder()
-            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_ARCHIVES)
+        VectorSearchOptions bookmarkOptions = VectorSearchOptions.builder()
+            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_BOOKMARKS)
             .path(options.getPath())
             .numCandidates(options.getNumCandidates())
             .limit(options.getLimit())
@@ -248,7 +170,7 @@ public final class VectorSearchUtil {
             .exact(options.isExact())
             .build();
         
-        pipeline.add(createVectorSearchStage(queryVector, archiveOptions));
+        pipeline.add(createVectorSearchStage(queryVector, bookmarkOptions));
         
         // 2. $addFields stage (score 추가)
         pipeline.add(createScoreAddFieldsStage());

@@ -48,90 +48,12 @@ public class MongoIndexConfig {
      */
     @PostConstruct
     public void createIndexes() {
-        createSourcesIndexes();
-        createContestsIndexes();
-        createNewsArticlesIndexes();
         createExceptionLogsIndexes();
         createConversationSessionsIndexes();
         createConversationMessagesIndexes();
         createEmergingTechsIndexes();
 
         log.info("MongoDB 인덱스 생성 완료: 모든 컬렉션의 인덱스가 확인되었습니다.");
-    }
-
-    private void createSourcesIndexes() {
-        var collection = mongoTemplate.getCollection("sources");
-
-        // category + priority 복합 인덱스 (ESR: E, S)
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("category"),
-            Indexes.ascending("priority")
-        ));
-
-        // type + enabled 복합 인덱스 (ESR: E, E)
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("type"),
-            Indexes.ascending("enabled")
-        ));
-
-        // priority 단일 인덱스
-        collection.createIndex(Indexes.ascending("priority"));
-
-        // url + category 복합 UNIQUE 인덱스 (UPSERT 키, ESR: E, E)
-        // 동일한 URL이라도 다른 카테고리에 등록 가능
-        collection.createIndex(
-            Indexes.compoundIndex(
-                Indexes.ascending("url"),
-                Indexes.ascending("category")
-            ),
-            new IndexOptions().unique(true)
-        );
-    }
-
-    private void createContestsIndexes() {
-        var collection = mongoTemplate.getCollection("contests");
-
-        // sourceId + startDate 복합 인덱스 (ESR: E, S)
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("source_id"),
-            Indexes.descending("start_date")
-        ));
-
-        // sourceId 단일 인덱스 (외래 키 인덱스)
-        collection.createIndex(Indexes.ascending("source_id"));
-
-        // endDate 단일 인덱스
-        collection.createIndex(Indexes.ascending("end_date"));
-
-        // status + startDate 복합 인덱스 (부분 인덱스는 MongoDB에서 직접 생성 필요)
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("status"),
-            Indexes.descending("start_date")
-        ));
-    }
-
-    private void createNewsArticlesIndexes() {
-        var collection = mongoTemplate.getCollection("news_articles");
-
-        // sourceId + publishedAt 복합 인덱스 (ESR: E, S)
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("source_id"),
-            Indexes.descending("published_at")
-        ));
-
-        collection.createIndex(Indexes.compoundIndex(
-            Indexes.ascending("source_id"),
-            Indexes.descending("url")
-        ));
-
-        // sourceId 단일 인덱스 (외래 키 인덱스)
-        collection.createIndex(Indexes.ascending("source_id"));
-
-        // publishedAt TTL 인덱스 (90일 후 자동 삭제)
-        collection.createIndex(
-            Indexes.ascending("published_at"),
-            new IndexOptions().expireAfter(90L, TimeUnit.DAYS)
-        );
     }
 
     private void createExceptionLogsIndexes() {

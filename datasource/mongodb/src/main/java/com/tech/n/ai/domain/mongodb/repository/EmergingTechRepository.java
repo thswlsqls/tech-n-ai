@@ -11,24 +11,10 @@ import java.util.Optional;
 
 /**
  * Emerging Tech Repository
+ * - 필터 조합 쿼리는 MongoTemplate 동적 Criteria로 처리
  */
 @Repository
 public interface EmergingTechRepository extends MongoRepository<EmergingTechDocument, ObjectId> {
-
-    /**
-     * Provider로 조회
-     */
-    Page<EmergingTechDocument> findByProvider(String provider, Pageable pageable);
-
-    /**
-     * Status로 조회
-     */
-    Page<EmergingTechDocument> findByStatus(String status, Pageable pageable);
-
-    /**
-     * Provider와 Status로 조회
-     */
-    Page<EmergingTechDocument> findByProviderAndStatus(String provider, String status, Pageable pageable);
 
     /**
      * 외부 ID로 조회 (중복 체크용)
@@ -36,19 +22,9 @@ public interface EmergingTechRepository extends MongoRepository<EmergingTechDocu
     Optional<EmergingTechDocument> findByExternalId(String externalId);
 
     /**
-     * 외부 ID 존재 여부 확인
-     */
-    boolean existsByExternalId(String externalId);
-
-    /**
      * URL로 조회 (중복 체크용)
      */
     Optional<EmergingTechDocument> findByUrl(String url);
-
-    /**
-     * URL 존재 여부 확인
-     */
-    boolean existsByUrl(String url);
 
     /**
      * 제목 검색 (대소문자 무시)
