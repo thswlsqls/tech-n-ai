@@ -1,6 +1,6 @@
 package com.tech.n.ai.api.emergingtech.dto.response;
 
-import com.ebson.shrimp.tm.demo.common.core.dto.PageData;
+import com.tech.n.ai.common.core.dto.PageData;
 import lombok.Builder;
 
 import java.util.List;

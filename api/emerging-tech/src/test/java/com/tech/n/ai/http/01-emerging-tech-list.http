@@ -11,7 +11,7 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20
 > {%
     client.test("목록 조회 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
     });
 
     client.test("페이지네이션 응답 확인", function() {
@@ -37,7 +37,7 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=2&size=5
 > {%
     client.test("두 번째 페이지 조회 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
     });
 
     client.test("페이지 크기 확인", function() {
@@ -85,7 +85,7 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=100
 %}
 
 ### 6. 필터 - provider별 조회
-GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=GITHUB
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=ANTHROPIC
 
 > {%
     client.test("provider 필터 조회 성공", function() {
@@ -95,13 +95,13 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=GITHUB
     client.test("provider 필터 결과 확인", function() {
         var data = response.body.data;
         if (data.items && data.items.length > 0) {
-            client.assert(data.items[0].provider === "GITHUB", "provider가 GITHUB이어야 합니다");
+            client.assert(data.items[0].provider === "ANTHROPIC", "provider가 ANTHROPIC이어야 합니다");
         }
     });
 %}
 
 ### 7. 필터 - updateType별 조회
-GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&updateType=RELEASE
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&updateType=SDK_RELEASE
 
 > {%
     client.test("updateType 필터 조회 성공", function() {
@@ -110,7 +110,7 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&updateType=RELEASE
 %}
 
 ### 8. 필터 - status별 조회
-GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&status=PUBLISHED
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&status=DRAFT
 
 > {%
     client.test("status 필터 조회 성공", function() {
@@ -120,13 +120,13 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&status=PUBLISHED
     client.test("status 필터 결과 확인", function() {
         var data = response.body.data;
         if (data.items && data.items.length > 0) {
-            client.assert(data.items[0].status === "PUBLISHED", "status가 PUBLISHED여야 합니다");
+            client.assert(data.items[0].status === "DRAFT", "status가 DRAFT여야 합니다");
         }
     });
 %}
 
 ### 9. 필터 - 복합 필터 (provider + status)
-GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=GITHUB&status=PUBLISHED
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=ANTHROPIC&status=DRAFT
 
 > {%
     client.test("복합 필터 조회 성공", function() {
@@ -156,10 +156,8 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sort=createdAt,desc
 GET {{gatewayUrl}}/api/v1/emerging-tech?page=0&size=20
 
 > {%
-    client.test("page 최소값 미만 처리", function() {
-        // 서버에서 page=1로 정규화하거나 400 반환 가능
-        client.assert(response.status === 400 || response.status === 200,
-            "응답 상태 코드가 400 또는 200이어야 합니다");
+    client.test("page 최소값 미만 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
     });
 %}
 
@@ -167,10 +165,8 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=0&size=20
 GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=0
 
 > {%
-    client.test("size 최소값 미만 처리", function() {
-        // 서버에서 size=20으로 정규화하거나 400 반환 가능
-        client.assert(response.status === 400 || response.status === 200,
-            "응답 상태 코드가 400 또는 200이어야 합니다");
+    client.test("size 최소값 미만 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
     });
 %}
 
@@ -178,10 +174,8 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=0
 GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=101
 
 > {%
-    client.test("size 최대값 초과 처리", function() {
-        // 서버에서 size=100으로 정규화하거나 400 반환 가능
-        client.assert(response.status === 400 || response.status === 200,
-            "응답 상태 코드가 400 또는 200이어야 합니다");
+    client.test("size 최대값 초과 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
     });
 %}
 
@@ -189,20 +183,16 @@ GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=101
 GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=INVALID_PROVIDER
 
 > {%
-    client.test("잘못된 provider 값 처리", function() {
-        // 빈 결과 또는 400 반환 가능
-        client.assert(response.status === 400 || response.status === 200,
-            "응답 상태 코드가 400 또는 200이어야 합니다");
+    client.test("잘못된 provider 값 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
     });
 %}
 
-### 16. 엣지 케이스 - 파라미터 없이 요청
+### 16. 엣지 케이스 - 파라미터 없이 요청 (기본값 적용)
 GET {{gatewayUrl}}/api/v1/emerging-tech
 
 > {%
-    client.test("파라미터 없이 요청 처리", function() {
-        // 기본값 적용 또는 400 반환 가능
-        client.assert(response.status === 400 || response.status === 200,
-            "응답 상태 코드가 400 또는 200이어야 합니다");
+    client.test("파라미터 없이 요청 - 기본값 적용 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
     });
 %}

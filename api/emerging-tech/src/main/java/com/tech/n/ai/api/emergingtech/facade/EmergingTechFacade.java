@@ -9,7 +9,7 @@ import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechDetailResponse;
 import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechListResponse;
 import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechSearchResponse;
 import com.tech.n.ai.api.emergingtech.service.EmergingTechService;
-import com.ebson.shrimp.tm.demo.common.core.dto.PageData;
+import com.tech.n.ai.common.core.dto.PageData;
 import com.tech.n.ai.domain.mongodb.document.EmergingTechDocument;
 import com.tech.n.ai.domain.mongodb.enums.PostStatus;
 import lombok.RequiredArgsConstructor;

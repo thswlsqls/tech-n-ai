@@ -1,7 +1,7 @@
 package com.tech.n.ai.api.emergingtech.service;
 
 import com.tech.n.ai.api.emergingtech.dto.request.EmergingTechCreateRequest;
-import com.ebson.shrimp.tm.demo.common.exception.exception.ResourceNotFoundException;
+import com.tech.n.ai.common.exception.exception.ResourceNotFoundException;
 import com.tech.n.ai.domain.mongodb.document.EmergingTechDocument;
 import com.tech.n.ai.domain.mongodb.repository.EmergingTechRepository;
 import lombok.RequiredArgsConstructor;
