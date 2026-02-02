@@ -1,0 +1,78 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#C8E6C9', 'primaryTextColor': '#1a1a1a', 'primaryBorderColor': '#2E7D32', 'lineColor': '#2E7D32', 'secondaryColor': '#E8F5E9', 'tertiaryColor': '#F1F8E9'}}}%%
+erDiagram
+    emerging_techs {
+        ObjectId _id PK
+        String provider "OPENAI/ANTHROPIC/GOOGLE/META"
+        String update_type "MODEL_RELEASE/API_UPDATE/SDK_RELEASE/BLOG_POST"
+        String title
+        String summary
+        String url UK
+        DateTime published_at
+        String source_type "RSS/GITHUB_RELEASE/WEB_SCRAPING"
+        String status "DRAFT/PENDING/PUBLISHED/REJECTED"
+        String external_id UK
+        Object metadata "EmergingTechMetadata"
+        String embedding_text
+        FloatArray embedding_vector "1536dim"
+        DateTime created_at
+        DateTime updated_at
+        String created_by
+        String updated_by
+    }
+
+    emerging_techs_metadata {
+        String version
+        StringArray tags
+        String author
+        String github_repo
+        Map additional_info
+    }
+
+    conversation_sessions {
+        ObjectId _id PK
+        String session_id UK "TSID"
+        String user_id
+        String title
+        DateTime last_message_at
+        Boolean is_active
+        DateTime created_at
+        DateTime updated_at
+    }
+
+    conversation_messages {
+        ObjectId _id PK
+        String message_id UK "TSID"
+        String session_id
+        String role "USER/ASSISTANT/SYSTEM"
+        String content
+        Integer token_count
+        Integer sequence_number
+        DateTime created_at
+    }
+
+    exception_logs {
+        ObjectId _id PK
+        String source
+        String exception_type
+        String exception_message
+        String stack_trace
+        Object context "ExceptionContext"
+        DateTime occurred_at
+        String severity
+        DateTime created_at
+        String created_by
+        DateTime updated_at
+        String updated_by
+    }
+
+    exception_logs_context {
+        String module
+        String method
+        Map parameters
+        String user_id
+        String request_id
+    }
+
+    emerging_techs ||--|| emerging_techs_metadata : "embedded"
+    exception_logs ||--|| exception_logs_context : "embedded"
+    conversation_sessions ||--o{ conversation_messages : "session_id"

@@ -2,7 +2,7 @@
 
 ## 개요
 
-최신 IT 빅테크 뉴스, 제품 릴리즈 정보들을 수집하고 제공하는 Spring Boot RESTful API 서버입니다.
+빅테크 AI 서비스(OpenAI, Anthropic, Google, Meta)의 최신 업데이트를 자동 추적하고 제공하는 Spring Boot RESTful API 서버입니다.
 CQRS 패턴, Kafka 이벤트 기반, Redis 활용 멱등성 보장, API Gateway 사용의 MSA 설계되었습니다.
 langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent 자율프로세싱 설계되었습니다.
 
@@ -10,11 +10,11 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ### 문제
 
-기존 LLM(대규모 언어 모델)은 학습 데이터에 포함된 정보만을 기반으로 응답을 생성하기 때문에, 최신 개발자 대회 정보나 최근 IT 테크 뉴스와 같은 실시간 정보를 제공할 수 없었습니다. 특히 다음과 같은 한계가 있었습니다:
+기존 LLM(대규모 언어 모델)은 학습 데이터에 포함된 정보만을 기반으로 응답을 생성하기 때문에, 빅테크 AI 서비스의 최신 업데이트와 같은 실시간 정보를 제공할 수 없었습니다. 특히 다음과 같은 한계가 있었습니다:
 
-- **최신 정보 부재**: LLM의 학습 데이터는 특정 시점까지의 정보로 제한되어 있어, 최신 대회 일정이나 최근 뉴스 기사를 알 수 없음
-- **비정규 데이터 접근 불가**: 대회 정보나 뉴스 기사 제공자의 일부 구조화되지 않은 비정규 데이터를 LLM이 직접 검색하거나 활용하는지 확인할 수 없음
-- **동적 정보 업데이트 불가**: 새로운 대회나 뉴스가 발생해도 LLM의 지식 베이스에 자동으로 반영되지 않음
+- **최신 정보 부재**: LLM의 학습 데이터는 특정 시점까지의 정보로 제한되어 있어, 최신 AI SDK 릴리스나 서비스 업데이트를 알 수 없음
+- **비정규 데이터 접근 불가**: AI 서비스 업데이트 정보 제공자의 일부 구조화되지 않은 비정규 데이터를 LLM이 직접 검색하거나 활용하는지 확인할 수 없음
+- **동적 정보 업데이트 불가**: 새로운 AI 업데이트가 발생해도 LLM의 지식 베이스에 자동으로 반영되지 않음
 
 ### 해결
 
@@ -29,23 +29,21 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
    - **6시간 주기 스케줄링**: 정기적으로 최신 AI 업데이트 자동 확인 및 저장
 
 2. **최신 정보 수집 서버 구축**
-   - 개발자 대회 정보 수집: RSS 피드, 웹 스크래핑, 외부 API를 통한 대회 정보 수집 (`api-contest` 모듈)
-   - 최신 IT 테크 뉴스 수집: RSS 피드 파싱을 통한 뉴스 기사 수집 (`api-news` 모듈)
-   - **AI 서비스 업데이트 추적**: AI Agent를 통한 빅테크 AI 서비스 업데이트 자동 수집 (`api-agent`, `api-ai-update` 모듈)
+   - **AI 서비스 업데이트 추적**: AI Agent를 통한 빅테크 AI 서비스 업데이트 자동 수집 (`api-agent`, `api-emerging-tech` 모듈)
    - 정기적인 배치 작업을 통한 최신 정보 자동 업데이트
 
 3. **비정규 데이터 임베딩 및 RAG 구축**
-   - MongoDB Atlas에 저장된 비정규 데이터(ContestDocument, NewsArticleDocument, ArchiveDocument, AiUpdateDocument)를 OpenAI text-embedding-3-small 모델로 임베딩
+   - MongoDB Atlas에 저장된 비정규 데이터(AiUpdateDocument, BookmarkDocument)를 OpenAI text-embedding-3-small 모델로 임베딩
    - MongoDB Atlas Vector Search를 활용한 벡터 검색 인덱스 구축 (1536차원, cosine similarity)
    - langchain4j RAG 파이프라인을 통한 지식 검색 및 응답 생성
    - 사용자 질문에 대한 관련 문서 검색 후, 검색된 컨텍스트를 기반으로 OpenAI GPT-4o-mini가 최신 정보를 포함한 응답 생성
 
 4. **실시간 정보 제공**
-   - 수집된 최신 대회 정보, 뉴스 기사, AI 업데이트를 MongoDB Atlas에 저장
+   - 수집된 최신 AI 업데이트를 MongoDB Atlas에 저장
    - 사용자 질문 시 Vector Search를 통해 관련 최신 정보를 실시간으로 검색
    - 검색된 최신 정보를 컨텍스트로 제공하여 LLM이 정확하고 최신의 응답을 생성
 
-이를 통해 사용자는 자연어로 최신 개발자 대회 정보, IT 테크 뉴스, AI 서비스 업데이트를 검색하고 질문할 수 있으며, LLM이 학습 데이터에 없는 최신 정보도 정확하게 제공할 수 있습니다. 특히 **AI Agent 시스템**은 인간의 개입 없이 자율적으로 최신 AI 트렌드를 추적하고 정보를 업데이트합니다.
+이를 통해 사용자는 자연어로 최신 AI 서비스 업데이트를 검색하고 질문할 수 있으며, LLM이 학습 데이터에 없는 최신 정보도 정확하게 제공할 수 있습니다. 특히 **AI Agent 시스템**은 인간의 개입 없이 자율적으로 최신 AI 트렌드를 추적하고 정보를 업데이트합니다.
 
 
 ### 핵심 기능
@@ -57,9 +55,7 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 - **Kafka 기반 실시간 동기화**: 이벤트 기반 CQRS 동기화 (1초 이내 목표)
 - **OAuth 2.0 인증**: Google, Naver, Kakao 소셜 로그인 지원
 - **API Gateway**: 중앙화된 라우팅 및 인증 처리
-- **개발자 대회 정보 수집 및 제공**: 해커톤, 알고리즘 대회, 오픈소스 대회 등의 정보를 수집하고 API로 제공
-- **최신 IT 테크 뉴스 수집 및 제공**: 최신 IT 기술 뉴스를 수집하고 API로 제공
-- **사용자 아카이브 기능**: 사용자가 관심 있는 대회/뉴스를 개인 아카이브에 저장 및 관리
+- **사용자 북마크 기능**: 사용자가 관심 있는 AI 업데이트를 개인 북마크에 저장 및 관리
 
 
 ## 시스템 아키텍처
@@ -114,7 +110,7 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ### 개요
 
-**langchain4j RAG 기반 멀티턴 챗봇**은 이 프로젝트의 핵심 기능으로, MongoDB Atlas Vector Search와 OpenAI GPT-4o-mini를 활용하여 사용자가 자연어로 대회 정보, 뉴스 기사, 자신의 아카이브를 검색하고 질문할 수 있도록 합니다.
+**langchain4j RAG 기반 멀티턴 챗봇**은 이 프로젝트의 핵심 기능으로, MongoDB Atlas Vector Search와 OpenAI GPT-4o-mini를 활용하여 사용자가 자연어로 AI 업데이트 정보, 자신의 북마크를 검색하고 질문할 수 있도록 합니다.
 
 ### 주요 특징
 
@@ -138,9 +134,8 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 챗봇은 다음 MongoDB Atlas 컬렉션의 벡터 검색을 지원합니다:
 
-- **ContestDocument**: 개발자 대회 정보 (`title + description + metadata.tags`)
-- **NewsArticleDocument**: IT 테크 뉴스 기사 (`title + summary + content`)
-- **ArchiveDocument**: 사용자 아카이브 항목 (`itemTitle + itemSummary + tag + memo`, 사용자별 필터링)
+- **AiUpdateDocument**: AI 서비스 업데이트 정보 (`title + summary + metadata`)
+- **BookmarkDocument**: 사용자 북마크 항목 (`itemTitle + itemSummary + tag + memo`, 사용자별 필터링)
 
 ### API 엔드포인트
 
@@ -244,7 +239,7 @@ AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 �
 - Spring Batch Jobs를 통한 GitHub Release 및 Web Scraping
 - 주기적으로 OpenAI, Anthropic, Google, Meta의 업데이트 정보 수집
 
-**Phase 2: 저장 및 관리 (api-ai-update)**
+**Phase 2: 저장 및 관리 (api-emerging-tech)**
 - MongoDB에 AiUpdateDocument 저장
 - REST API를 통한 목록/상세 조회, 검색, 상태 관리
 - Draft/Published 상태 관리
@@ -321,9 +316,9 @@ Agent가 사용할 수 있는 6가지 Tool:
 
 ![AI Agent System Architecture](contents/api-agent/sytem-architecture.png)
 
-AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-ai-update API, Slack과 상호작용하며, 최종적으로 MongoDB에 데이터를 저장합니다.
+AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-emerging-tech API, Slack과 상호작용하며, 최종적으로 MongoDB에 데이터를 저장합니다.
 
-ai-update API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Slack 알림 기능도 통합되어 있습니다.
+emerging-tech API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Slack 알림 기능도 통합되어 있습니다.
 
 ### API 엔드포인트
 
@@ -354,18 +349,18 @@ Content-Type: application/json
 }
 ```
 
-#### AI Update API (api-ai-update)
+#### Emerging Tech API (api-emerging-tech)
 ```http
 # 공개 API
-GET /api/v1/ai-update                    # 목록 조회
-GET /api/v1/ai-update/{id}               # 상세 조회
-GET /api/v1/ai-update/search             # 검색
+GET /api/v1/emerging-tech                    # 목록 조회
+GET /api/v1/emerging-tech/{id}               # 상세 조회
+GET /api/v1/emerging-tech/search             # 검색
 
 # 내부 API (X-Internal-Api-Key 필요)
-POST /api/v1/ai-update/internal          # 단건 생성
-POST /api/v1/ai-update/internal/batch    # 배치 생성
-POST /api/v1/ai-update/{id}/approve      # 승인
-POST /api/v1/ai-update/{id}/reject       # 거부
+POST /api/v1/emerging-tech/internal          # 단건 생성
+POST /api/v1/emerging-tech/internal/batch    # 배치 생성
+POST /api/v1/emerging-tech/{id}/approve      # 승인
+POST /api/v1/emerging-tech/{id}/reject       # 거부
 ```
 
 ### 기술 스택
@@ -382,7 +377,7 @@ POST /api/v1/ai-update/{id}/reject       # 거부
 | 변수명 | 설명 | 필수 |
 |--------|------|------|
 | `OPENAI_API_KEY` | Agent용 OpenAI API 키 | Yes |
-| `AI_UPDATE_INTERNAL_API_KEY` | ai-update 및 Agent API 인증 키 | Yes |
+| `AI_UPDATE_INTERNAL_API_KEY` | emerging-tech 및 Agent API 인증 키 | Yes |
 | `AGENT_SCHEDULER_ENABLED` | 스케줄러 활성화 (true/false) | No |
 | `GITHUB_TOKEN` | GitHub API 토큰 (Rate Limit 완화) | No |
 
@@ -408,14 +403,14 @@ api/
 │   └── scheduler/
 │       └── AiUpdateAgentScheduler.java
 │
-└── ai-update/               # AI Update API 모듈 (Port 8088)
+└── emerging-tech/            # Emerging Tech API 모듈 (Port 8087)
     ├── controller/
-    │   └── AiUpdateController.java
+    │   └── EmergingTechController.java
     ├── facade/
-    │   └── AiUpdateFacade.java
+    │   └── EmergingTechFacade.java
     └── service/
-        ├── AiUpdateService.java
-        └── AiUpdateServiceImpl.java
+        ├── EmergingTechService.java
+        └── EmergingTechServiceImpl.java
 ```
 
 자세한 AI Agent 설계는 [참고 문서](#참고-문서) 섹션의 "AI Agent 자동화 파이프라인 설계서"를 참고하세요.
@@ -428,7 +423,7 @@ api/
 
 ### 주요 기능
 
-- **URI 기반 라우팅**: 요청 URI 경로를 기준으로 5개 API 서버(auth, archive, contest, news, chatbot)로 요청 전달
+- **URI 기반 라우팅**: 요청 URI 경로를 기준으로 API 서버(auth, bookmark, emerging-tech, chatbot, agent)로 요청 전달
 - **JWT 토큰 검증**: `common-security` 모듈의 `JwtTokenProvider`를 활용한 JWT 토큰 검증
 - **인증 필요/불필요 경로 구분**: 공개 API와 인증 필요 API 자동 구분
 - **사용자 정보 헤더 주입**: 검증 성공 시 사용자 정보를 헤더에 주입하여 백엔드 서버로 전달
@@ -449,10 +444,10 @@ API Gateway (Spring Cloud Gateway)
   └── 라우팅
   ↓
   ├─ /api/v1/auth/** → @api/auth (인증 불필요)
-  ├─ /api/v1/archive/** → @api/archive (인증 필요)
-  ├─ /api/v1/contest/** → @api/contest (공개 API)
-  ├─ /api/v1/news/** → @api/news (공개 API)
-  └─ /api/v1/chatbot/** → @api/chatbot (인증 필요)
+  ├─ /api/v1/bookmark/** → @api/bookmark (인증 필요)
+  ├─ /api/v1/emerging-tech/** → @api/emerging-tech (공개 API)
+  ├─ /api/v1/chatbot/** → @api/chatbot (인증 필요)
+  └─ /api/v1/agent/** → @api/agent (내부 API)
 ```
 
 ### 라우팅 규칙
@@ -460,30 +455,30 @@ API Gateway (Spring Cloud Gateway)
 | 경로 패턴 | 대상 서버 | 인증 필요 | 설명 |
 |----------|---------|---------|------|
 | `/api/v1/auth/**` | `@api/auth` | ❌ | 인증 서버 (회원가입, 로그인, 토큰 갱신 등) |
-| `/api/v1/archive/**` | `@api/archive` | ✅ | 사용자 아카이브 관리 API |
-| `/api/v1/contest/**` | `@api/contest` | ❌ | 대회 정보 조회 API (공개) |
-| `/api/v1/news/**` | `@api/news` | ❌ | 뉴스 정보 조회 API (공개) |
+| `/api/v1/bookmark/**` | `@api/bookmark` | ✅ | 사용자 북마크 관리 API |
+| `/api/v1/emerging-tech/**` | `@api/emerging-tech` | ❌ | AI 업데이트 정보 조회 API (공개) |
 | `/api/v1/chatbot/**` | `@api/chatbot` | ✅ | RAG 기반 챗봇 API |
+| `/api/v1/agent/**` | `@api/agent` | ❌ | AI Agent 실행 API (내부) |
 
 ### 요청 처리 흐름
 
 **인증이 필요한 요청 처리**:
 1. Client → ALB → Gateway: 요청 수신
-2. Gateway: 라우팅 규칙 매칭 (`/api/v1/archive/**`)
+2. Gateway: 라우팅 규칙 매칭 (`/api/v1/bookmark/**`)
 3. Gateway: JWT 인증 필터 실행
    - JWT 토큰 추출 (Authorization 헤더)
    - JWT 토큰 검증 (`JwtTokenProvider.validateToken`)
    - 사용자 정보 추출 및 헤더 주입 (`x-user-id`, `x-user-email`, `x-user-role`)
-4. Gateway → Archive 서버: 인증된 요청 전달 (사용자 정보 헤더 포함)
-5. Archive 서버 → Gateway: API 응답
+4. Gateway → Bookmark 서버: 인증된 요청 전달 (사용자 정보 헤더 포함)
+5. Bookmark 서버 → Gateway: API 응답
 6. Gateway → ALB → Client: 최종 응답 (CORS 헤더 포함)
 
 **인증이 불필요한 요청 처리**:
 1. Client → ALB → Gateway: 요청 수신
-2. Gateway: 라우팅 규칙 매칭 (`/api/v1/contest/**`)
+2. Gateway: 라우팅 규칙 매칭 (`/api/v1/emerging-tech/**`)
 3. Gateway: 인증 필터 우회 (공개 API)
-4. Gateway → Contest 서버: 요청 전달
-5. Contest 서버 → Gateway: API 응답
+4. Gateway → Emerging Tech 서버: 요청 전달
+5. Emerging Tech 서버 → Gateway: API 응답
 6. Gateway → ALB → Client: 최종 응답
 
 ### Gateway 모듈 구조
@@ -615,13 +610,11 @@ OAuth 2.0 인증 플로우에서 **CSRF 공격 방지**를 위한 State 파라�
 tech-n-ai/
 ├── api/                    # REST API 서버 모듈
 │   ├── agent/              # 🤖 LangChain4j AI Agent (자율 업데이트 추적)
-│   ├── ai-update/          # AI 업데이트 정보 API
 │   ├── auth/               # 인증 API (OAuth 2.0 지원)
-│   ├── contest/            # 대회 정보 API
-│   ├── gateway/            # API Gateway
-│   ├── news/               # 뉴스 정보 API
-│   ├── archive/            # 사용자 아카이브 API
-│   └── chatbot/            # langchain4j RAG 기반 챗봇 API
+│   ├── bookmark/           # 사용자 북마크 API
+│   ├── chatbot/            # langchain4j RAG 기반 챗봇 API
+│   ├── emerging-tech/      # AI 업데이트 정보 API
+│   └── gateway/            # API Gateway
 ├── batch/                  # 배치 처리 모듈
 │   └── source/            # 정보 출처 업데이트 배치 (GitHub Release, Web Scraping)
 ├── client/                 # 외부 API 연동 모듈
@@ -664,13 +657,13 @@ Command Side (쓰기 전용)로 사용되는 Aurora MySQL의 주요 테이블:
 
 - **User**: 사용자 정보
 - **Admin**: 관리자 정보
-- **Archive**: 사용자 아카이브 정보
+- **Bookmark**: 사용자 북마크 정보
 - **RefreshToken**: JWT Refresh Token
 - **EmailVerification**: 이메일 인증 토큰
 - **Provider**: OAuth Provider 정보
 - **ConversationSession**: 대화 세션 정보 (RAG 챗봇용)
 - **ConversationMessage**: 대화 메시지 히스토리 (RAG 챗봇용)
-- **히스토리 테이블**: UserHistory, AdminHistory, ArchiveHistory
+- **히스토리 테이블**: UserHistory, AdminHistory, BookmarkHistory
 
 #### TSID Primary Key 전략
 
@@ -685,7 +678,7 @@ Command Side (쓰기 전용)로 사용되는 Aurora MySQL의 주요 테이블:
 ![Aurora MySQL ERD](contents/aurora-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
-- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3-aurora-schema-design.md)
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
 
 ### MongoDB Atlas 스키마 개요
 
@@ -693,9 +686,7 @@ Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
 
 - **SourcesDocument**: 정보 출처 정보
 - **AiUpdateDocument**: AI 서비스 업데이트 정보 (OpenAI, Anthropic, Google, Meta)
-- **ContestDocument**: 대회 정보 (읽기 최적화, Vector Search 지원)
-- **NewsArticleDocument**: 뉴스 기사 정보 (읽기 최적화, Vector Search 지원)
-- **ArchiveDocument**: 사용자 아카이브 정보 (읽기 최적화, Vector Search 지원)
+- **BookmarkDocument**: 사용자 북마크 정보 (읽기 최적화, Vector Search 지원)
 - **UserProfileDocument**: 사용자 프로필 정보 (읽기 최적화)
 - **ConversationSessionDocument**: 대화 세션 정보 (RAG 챗봇용)
 - **ConversationMessageDocument**: 대화 메시지 히스토리 (RAG 챗봇용)
@@ -713,7 +704,7 @@ Query Side (읽기 전용)로 사용되는 MongoDB Atlas의 주요 컬렉션:
 ![MongoDB Atlas ERD](contents/mongodb-erd-diagram.png)
 
 자세한 스키마 설계는 다음 문서를 참고하세요:
-- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2-mongodb-schema-design.md)
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
 
 ### 마이그레이션
 
@@ -787,18 +778,18 @@ export SLACK_WEBHOOK_URL=your-slack-webhook-url
 
 - `POST /api/v1/agent/run` - AI Agent 수동 실행 (내부 API, X-Internal-Api-Key 필요)
 
-#### AI 업데이트 API (`/api/v1/ai-update`)
+#### AI 업데이트 API (`/api/v1/emerging-tech`)
 
 **공개 API (인증 불필요)**:
-- `GET /api/v1/ai-update` - AI 업데이트 목록 조회 (필터링, 페이지네이션)
-- `GET /api/v1/ai-update/{id}` - AI 업데이트 상세 조회
-- `GET /api/v1/ai-update/search` - AI 업데이트 검색
+- `GET /api/v1/emerging-tech` - AI 업데이트 목록 조회 (필터링, 페이지네이션)
+- `GET /api/v1/emerging-tech/{id}` - AI 업데이트 상세 조회
+- `GET /api/v1/emerging-tech/search` - AI 업데이트 검색
 
 **내부 API (X-Internal-Api-Key 필요)**:
-- `POST /api/v1/ai-update/internal` - AI 업데이트 단건 생성
-- `POST /api/v1/ai-update/internal/batch` - AI 업데이트 배치 생성
-- `POST /api/v1/ai-update/{id}/approve` - AI 업데이트 승인 (PUBLISHED)
-- `POST /api/v1/ai-update/{id}/reject` - AI 업데이트 거부 (REJECTED)
+- `POST /api/v1/emerging-tech/internal` - AI 업데이트 단건 생성
+- `POST /api/v1/emerging-tech/internal/batch` - AI 업데이트 배치 생성
+- `POST /api/v1/emerging-tech/{id}/approve` - AI 업데이트 승인 (PUBLISHED)
+- `POST /api/v1/emerging-tech/{id}/reject` - AI 업데이트 거부 (REJECTED)
 
 #### 인증 API (`/api/v1/auth`)
 
@@ -812,28 +803,19 @@ export SLACK_WEBHOOK_URL=your-slack-webhook-url
 - `GET /api/v1/auth/oauth2/{provider}` - OAuth 로그인 시작
 - `GET /api/v1/auth/oauth2/{provider}/callback` - OAuth 로그인 콜백
 
-#### 대회 정보 API (`/api/v1/contest`)
+#### 사용자 북마크 API (`/api/v1/bookmark`)
 
-- `GET /api/v1/contest` - 대회 목록 조회 (공개 API, 인증 불필요)
-- `GET /api/v1/contest/{id}` - 대회 상세 조회 (공개 API, 인증 불필요)
-- `GET /api/v1/contest/search` - 대회 검색 (공개 API, 인증 불필요)
-
-#### 뉴스 정보 API (`/api/v1/news`)
-
-- `GET /api/v1/news` - 뉴스 목록 조회 (공개 API, 인증 불필요)
-- `GET /api/v1/news/{id}` - 뉴스 상세 조회 (공개 API, 인증 불필요)
-- `GET /api/v1/news/search` - 뉴스 검색 (공개 API, 인증 불필요)
-
-#### 사용자 아카이브 API (`/api/v1/archive`)
-
-- `POST /api/v1/archive` - 아카이브 저장 (인증 필요)
-- `GET /api/v1/archive` - 아카이브 목록 조회 (인증 필요)
-- `GET /api/v1/archive/{id}` - 아카이브 상세 조회 (인증 필요)
-- `PUT /api/v1/archive/{id}` - 아카이브 수정 (인증 필요)
-- `DELETE /api/v1/archive/{id}` - 아카이브 삭제 (인증 필요)
-- `GET /api/v1/archive/deleted` - 삭제된 아카이브 목록 조회 (인증 필요)
-- `POST /api/v1/archive/{id}/restore` - 아카이브 복구 (인증 필요)
-- `GET /api/v1/archive/search` - 아카이브 검색 (인증 필요)
+- `POST /api/v1/bookmark` - 북마크 저장 (인증 필요)
+- `GET /api/v1/bookmark` - 북마크 목록 조회 (인증 필요)
+- `GET /api/v1/bookmark/{id}` - 북마크 상세 조회 (인증 필요)
+- `PUT /api/v1/bookmark/{id}` - 북마크 수정 (인증 필요)
+- `DELETE /api/v1/bookmark/{id}` - 북마크 삭제 (인증 필요)
+- `GET /api/v1/bookmark/deleted` - 삭제된 북마크 목록 조회 (인증 필요)
+- `POST /api/v1/bookmark/{id}/restore` - 북마크 복구 (인증 필요)
+- `GET /api/v1/bookmark/search` - 북마크 검색 (인증 필요)
+- `GET /api/v1/bookmark/history/{entityId}` - 북마크 변경 이력 조회 (인증 필요)
+- `GET /api/v1/bookmark/history/{entityId}/at` - 특정 시점 북마크 조회 (인증 필요)
+- `POST /api/v1/bookmark/history/{entityId}/restore` - 북마크 이력 복원 (인증 필요)
 
 #### 🌟 챗봇 API (`/api/v1/chatbot`)
 
@@ -848,8 +830,8 @@ export SLACK_WEBHOOK_URL=your-slack-webhook-url
 
 #### 인증 필요 여부
 
-- **인증 필요**: `/api/v1/archive/**`, `/api/v1/chatbot/**`
-- **인증 불필요**: `/api/v1/auth/**`, `/api/v1/contest/**`, `/api/v1/news/**`
+- **인증 필요**: `/api/v1/bookmark/**`, `/api/v1/chatbot/**`
+- **인증 불필요**: `/api/v1/auth/**`, `/api/v1/emerging-tech/**`
 
 #### 인증 헤더
 
@@ -886,7 +868,7 @@ Authorization: Bearer {access_token}
 
 **API Gateway 설정**:
 - Gateway는 모든 클라이언트 요청의 단일 진입점으로, 환경별 백엔드 서비스 URL을 설정합니다.
-- Local 환경: `http://localhost:8082~8086` (각 API 서버별 포트)
+- Local 환경: `http://localhost:8082~8087` (각 API 서버별 포트)
 - Dev/Beta/Prod 환경: `http://api-{service}-service:8080` (Kubernetes Service 이름)
 
 
@@ -901,8 +883,8 @@ Authorization: Bearer {access_token}
   - [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
   - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
   - [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
-- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2-mongodb-schema-design.md)
-- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3-aurora-schema-design.md)
+- [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
+- [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
 
 #### 인증/인가 설계
 - [Spring Security 인증/인가 설계 가이드](docs/step6/spring-security-auth-design-guide.md)
@@ -913,8 +895,7 @@ Authorization: Bearer {access_token}
 - [Gateway 구현 계획](docs/step14/gateway-implementation-plan.md)
 
 #### API 설계
-- [Contest 및 News API 설계서](docs/step9/contest-news-api-design.md)
-- [사용자 아카이브 기능 설계서](docs/step13/user-archive-feature-design.md)
+- [사용자 북마크 기능 설계서](docs/step13/user-bookmark-feature-design.md)
 
 #### 기타 설계
 - [AI LLM 통합 분석 문서](docs/step11/ai-integration-analysis.md)

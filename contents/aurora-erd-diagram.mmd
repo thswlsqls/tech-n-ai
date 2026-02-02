@@ -1,0 +1,148 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#D6E4F0', 'primaryTextColor': '#1a1a1a', 'primaryBorderColor': '#2A6CB0', 'lineColor': '#2A6CB0', 'secondaryColor': '#EBF0F7', 'tertiaryColor': '#F5F8FC'}}}%%
+erDiagram
+    users {
+        BIGINT id PK "TSID"
+        VARCHAR(100) email UK
+        VARCHAR(50) username UK
+        VARCHAR(255) password
+        BIGINT provider_id FK
+        VARCHAR(255) provider_user_id
+        BOOLEAN is_email_verified
+        DATETIME last_login_at
+        BOOLEAN is_deleted
+        DATETIME deleted_at
+        BIGINT deleted_by
+        DATETIME created_at
+        BIGINT created_by
+        DATETIME updated_at
+        BIGINT updated_by
+    }
+
+    admins {
+        BIGINT id PK "TSID"
+        VARCHAR(100) email UK
+        VARCHAR(50) username UK
+        VARCHAR(255) password
+        VARCHAR(50) role
+        BOOLEAN is_active
+        DATETIME last_login_at
+        BOOLEAN is_deleted
+        DATETIME deleted_at
+        BIGINT deleted_by
+        DATETIME created_at
+        BIGINT created_by
+        DATETIME updated_at
+        BIGINT updated_by
+    }
+
+    providers {
+        BIGINT id PK "TSID"
+        VARCHAR(50) name UK
+        VARCHAR(100) display_name
+        VARCHAR(255) client_id
+        VARCHAR(500) client_secret
+        BOOLEAN is_enabled
+        BOOLEAN is_deleted
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    refresh_tokens {
+        BIGINT id PK "TSID"
+        BIGINT user_id FK
+        VARCHAR(500) token UK
+        DATETIME expires_at
+        BOOLEAN is_deleted
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    email_verifications {
+        BIGINT id PK "TSID"
+        VARCHAR(100) email
+        VARCHAR(255) token UK
+        VARCHAR(50) type
+        DATETIME expires_at
+        DATETIME verified_at
+        BOOLEAN is_deleted
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    bookmarks {
+        BIGINT id PK "TSID"
+        BIGINT user_id
+        VARCHAR(50) item_type
+        VARCHAR(255) item_id
+        VARCHAR(100) tag
+        TEXT memo
+        BOOLEAN is_deleted
+        DATETIME deleted_at
+        BIGINT deleted_by
+        DATETIME created_at
+        BIGINT created_by
+        DATETIME updated_at
+        BIGINT updated_by
+    }
+
+    user_history {
+        BIGINT history_id PK "TSID"
+        BIGINT user_id FK
+        VARCHAR(20) operation_type
+        JSON before_data
+        JSON after_data
+        BIGINT changed_by
+        DATETIME changed_at
+        VARCHAR(500) change_reason
+    }
+
+    admin_history {
+        BIGINT history_id PK "TSID"
+        BIGINT admin_id FK
+        VARCHAR(20) operation_type
+        JSON before_data
+        JSON after_data
+        BIGINT changed_by
+        DATETIME changed_at
+        VARCHAR(500) change_reason
+    }
+
+    bookmark_history {
+        BIGINT history_id PK "TSID"
+        BIGINT bookmark_id FK
+        VARCHAR(20) operation_type
+        JSON before_data
+        JSON after_data
+        BIGINT changed_by
+        DATETIME changed_at
+        VARCHAR(500) change_reason
+    }
+
+    conversation_sessions {
+        BIGINT session_id PK "TSID"
+        BIGINT user_id
+        VARCHAR(200) title
+        DATETIME last_message_at
+        BOOLEAN is_active
+        BOOLEAN is_deleted
+        DATETIME deleted_at
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    conversation_messages {
+        BIGINT message_id PK "TSID"
+        BIGINT session_id FK
+        VARCHAR(20) role "USER/ASSISTANT/SYSTEM"
+        TEXT content
+        INT token_count
+        INT sequence_number
+        DATETIME created_at
+    }
+
+    providers ||--o{ users : "provider_id"
+    users ||--o{ refresh_tokens : "user_id"
+    users ||--o{ user_history : "user_id"
+    admins ||--o{ admin_history : "admin_id"
+    bookmarks ||--o{ bookmark_history : "bookmark_id"
+    conversation_sessions ||--o{ conversation_messages : "session_id"
