@@ -23,12 +23,12 @@
 ./gradlew :api-auth:test --tests "com.tech.n.ai.api.auth.service.AuthServiceTest"
 
 # Run applications (local profile)
-./gradlew :api-gateway:bootRun    # Gateway: port 8081
-./gradlew :api-auth:bootRun       # Auth: port 8082
-./gradlew :api-archive:bootRun    # Archive: port 8083
-./gradlew :api-contest:bootRun    # Contest: port 8084
-./gradlew :api-news:bootRun       # News: port 8085
-./gradlew :api-chatbot:bootRun    # Chatbot: port 8086
+./gradlew :api-gateway:bootRun        # Gateway: port 8081
+./gradlew :api-auth:bootRun           # Auth: port 8082
+./gradlew :api-bookmark:bootRun       # Bookmark: port 8083
+./gradlew :api-chatbot:bootRun        # Chatbot: port 8086
+./gradlew :api-emerging-tech:bootRun  # Emerging Tech: port 8087
+./gradlew :api-agent:bootRun          # Agent: port 8087
 
 # Generate API documentation
 ./gradlew asciidoctor
@@ -45,7 +45,7 @@
 Modules are auto-discovered by `settings.gradle`. Module names: `{parentDir}-{moduleDir}` (e.g., `api/auth` → `api-auth`)
 
 ```
-api/          → REST API servers (auth, archive, contest, news, gateway, chatbot)
+api/          → REST API servers (agent, auth, bookmark, chatbot, emerging-tech, gateway)
 batch/        → Batch jobs (source)
 client/       → External integrations (feign, rss, scraper, slack)
 common/       → Shared libraries (core, exception, kafka, security)
