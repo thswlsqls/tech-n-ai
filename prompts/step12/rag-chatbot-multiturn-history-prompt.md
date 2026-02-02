@@ -251,7 +251,7 @@
 
 #### 9.2 동기화 서비스
 - **ConversationSyncService**: Command Side → Query Side 동기화
-- **구현 패턴**: 기존 `ArchiveSyncService` 패턴 참고
+- **구현 패턴**: 기존 `BookmarkSyncService` 패턴 참고
 
 ### 10. Provider별 상세 설계
 
@@ -420,7 +420,7 @@
 
 ### 2. 기존 설계와의 일관성
 - **CQRS 패턴 준수**: Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 분리
-- **Kafka 동기화**: 기존 `ArchiveSyncService` 패턴 참고
+- **Kafka 동기화**: 기존 `BookmarkSyncService` 패턴 참고
 - **API 패턴**: 기존 `api-contest`, `api-news` 모듈 패턴 준수
 - **코드 스타일**: 기존 프로젝트의 코드 스타일 및 명명 규칙 준수
 

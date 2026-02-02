@@ -297,7 +297,7 @@ redis-cli FLUSHALL
 |------|------|------|
 | api-gateway | 8081 | API Gateway |
 | api-auth | 8082 | 인증 서비스 |
-| api-archive | 8083 | 아카이브 서비스 |
+| api-bookmark | 8083 | 북마크 서비스 |
 | api-contest | 8084 | 콘테스트 서비스 |
 | api-news | 8085 | 뉴스 서비스 |
 | api-chatbot | 8086 | 챗봇 서비스 |

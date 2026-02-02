@@ -54,8 +54,8 @@
 - `rag-chatbot-design-prompt.md`: RAG 챗봇 설계서 작성 프롬프트
 - `rag-chatbot-multiturn-history-prompt.md`: 멀티턴 대화 히스토리 관리 설계 항목 추가 프롬프트
 
-### Step 13: 사용자 아카이브 기능 구현
-- `user-archive-feature-design-prompt.md`: 사용자 아카이브 기능 구현 설계서 작성 프롬프트
+### Step 13: 사용자 북마크 기능 구현
+- `user-bookmark-feature-design-prompt.md`: 사용자 북마크 기능 구현 설계서 작성 프롬프트
 
 ### Step 14: API Gateway 서버 구현
 - `gateway-design-prompt.md`: API Gateway 설계 프롬프트

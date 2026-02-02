@@ -33,7 +33,7 @@ Spring Cloud Gateway 기반 API Gateway 서버 구현. URI 기반 라우팅 규�
 - 2단계: API 설계 완료 필수
 - 6단계: OAuth 및 JWT 인증 구현 완료 필수
 - 9단계: Contest 및 News API 구현 완료 필수
-- 12단계: Archive API 구현 완료 필수
+- 12단계: Bookmark API 구현 완료 필수
 - 13단계: Chatbot API 구현 완료 필수
 
 ## 다음 단계

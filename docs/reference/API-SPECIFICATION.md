@@ -1,7 +1,8 @@
 # API 정의서
 
-**작성일**: 2026-01-21  
-**대상**: 웹/모바일 클라이언트 개발자  
+**작성일**: 2026-01-21
+**최종 업데이트**: 2026-01-29
+**대상**: 웹/모바일 클라이언트 개발자
 **버전**: v1
 
 ---
@@ -22,7 +23,7 @@
 - **Type**: Bearer Token (JWT)
 - **Header**: `Authorization: Bearer {access_token}`
 - **Access Token 만료**: 3600초 (1시간)
-- **Refresh Token 만료**: 604800초 (7일)
+- **Refresh Token 만료**: 1209600초 (14일)
 
 ### 공통 응답 형식
 
@@ -46,11 +47,33 @@
   "messageCode": {
     "code": "AUTH_FAILED",
     "text": "인증에 실패했습니다."
-  },
-  "message": "JWT token is missing or invalid",
-  "data": null
+  }
 }
 ```
+
+> `message`와 `data` 필드는 `@JsonInclude(NON_NULL)`로 null일 경우 응답에서 제외됩니다.
+
+### 공통 페이징 응답 형식
+
+페이징이 필요한 목록 API는 `PageData<T>` 형식을 사용합니다.
+
+```json
+{
+  "pageSize": 10,
+  "pageNumber": 1,
+  "totalPageNumber": 5,
+  "totalSize": 50,
+  "list": [...]
+}
+```
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `pageSize` | Integer | 페이지 크기 |
+| `pageNumber` | Integer | 현재 페이지 번호 (1부터 시작) |
+| `totalPageNumber` | Integer | 전체 페이지 수 |
+| `totalSize` | Integer | 전체 데이터 수 |
+| `list` | Array | 데이터 리스트 |
 
 ---
 
@@ -58,13 +81,11 @@
 
 ### 라우팅 규칙
 
-| 경로 패턴 | 대상 서버 | 인증 필요 |
-|----------|---------|---------|
-| `/api/v1/auth/**` | api-auth | ❌ |
-| `/api/v1/archive/**` | api-archive | ✅ |
-| `/api/v1/contest/**` | api-contest | ❌ |
-| `/api/v1/news/**` | api-news | ❌ |
-| `/api/v1/chatbot/**` | api-chatbot | ✅ |
+| 경로 패턴 | 대상 서버 | 포트 | 인증 필요 |
+|----------|---------|------|---------|
+| `/api/v1/auth/**` | api-auth | 8082 | 불필요 |
+| `/api/v1/bookmark/**` | api-bookmark | 8083 | **필요** |
+| `/api/v1/chatbot/**` | api-chatbot | 8086 | **필요** |
 
 ### CORS 정책
 
@@ -72,12 +93,7 @@
 - **Allowed Origins**: `http://localhost:*`, `http://127.0.0.1:*`
 - **Allowed Methods**: `GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD`
 - **Allowed Headers**: `*`
-- **Max Age**: `3600`
-
-#### Dev/Beta/Prod 환경
-- **Allowed Origins**: `https://dev.example.com`, `https://beta.example.com`, `https://example.com`
-- **Allowed Methods**: `GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD`
-- **Allowed Headers**: `*`
+- **Allow Credentials**: `true`
 - **Max Age**: `3600`
 
 ### 타임아웃 설정
@@ -93,11 +109,12 @@ Gateway는 JWT 검증 성공 시 다음 헤더를 추가하여 백엔드 서버�
 x-user-id: {userId}
 x-user-email: {email}
 x-user-role: {role}
+Authorization: Bearer {token}
 ```
 
 ---
 
-## 3. 인증 API
+## 3. 인증 API (`/api/v1/auth`)
 
 ### 3.1 회원가입
 
@@ -105,7 +122,14 @@ x-user-role: {role}
 
 **인증**: 불필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `email` | String | O | 이메일 형식 | 이메일 주소 |
+| `username` | String | O | 3~50자 | 사용자명 |
+| `password` | String | O | 8자 이상, 대소문자/숫자/특수문자 중 2가지 이상 | 비밀번호 |
+
 ```json
 {
   "email": "user@example.com",
@@ -114,17 +138,14 @@ x-user-role: {role}
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<AuthResponse>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "userId": "1234567890123456789",
+    "userId": 1234567890123456789,
     "email": "user@example.com",
     "username": "john_doe",
     "message": "회원가입이 완료되었습니다. 이메일 인증을 완료해주세요."
@@ -133,8 +154,8 @@ x-user-role: {role}
 ```
 
 **Errors**
-- `400` - 이메일 중복, 사용자명 중복, 비밀번호 정책 위반
-- `500` - 서버 오류
+- `409` - 이메일 중복, 사용자명 중복
+- `400` - 비밀번호 정책 위반, 유효성 검증 실패
 
 ---
 
@@ -144,7 +165,13 @@ x-user-role: {role}
 
 **인증**: 불필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `email` | String | O | 이메일 형식 | 이메일 주소 |
+| `password` | String | O | - | 비밀번호 |
+
 ```json
 {
   "email": "user@example.com",
@@ -152,28 +179,24 @@ x-user-role: {role}
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<TokenResponse>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
     "tokenType": "Bearer",
     "expiresIn": 3600,
-    "refreshTokenExpiresIn": 604800
+    "refreshTokenExpiresIn": 1209600
   }
 }
 ```
 
 **Errors**
 - `401` - 이메일 또는 비밀번호 불일치, 이메일 미인증
-- `500` - 서버 오류
 
 ---
 
@@ -183,29 +206,29 @@ x-user-role: {role}
 
 **인증**: 필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| `refreshToken` | String | O | Refresh Token |
+
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<Void>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
-  "message": "success",
-  "data": null
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
 }
 ```
 
 **Errors**
 - `401` - 인증 실패, Refresh Token 불일치
-- `500` - 서버 오류
 
 ---
 
@@ -215,33 +238,36 @@ x-user-role: {role}
 
 **인증**: 불필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| `refreshToken` | String | O | Refresh Token |
+
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<TokenResponse>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
     "tokenType": "Bearer",
-    "expiresIn": 3600
+    "expiresIn": 3600,
+    "refreshTokenExpiresIn": 1209600
   }
 }
 ```
 
 **Errors**
 - `401` - Refresh Token 만료 또는 무효
-- `500` - 서버 오류
 
 ---
 
@@ -252,31 +278,26 @@ x-user-role: {role}
 **인증**: 불필요
 
 **Query Parameters**
-- `token` (required): 이메일 인증 토큰
 
-**Request**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| `token` | String | O | 이메일 인증 토큰 |
+
 ```
 GET /api/v1/auth/verify-email?token=abc123xyz
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<Void>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
-  "message": "success",
-  "data": {
-    "message": "이메일 인증이 완료되었습니다."
-  }
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
 }
 ```
 
 **Errors**
 - `400` - 토큰 만료, 토큰 무효, 중복 인증
-- `500` - 서버 오류
 
 ---
 
@@ -286,32 +307,28 @@ GET /api/v1/auth/verify-email?token=abc123xyz
 
 **인증**: 불필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `email` | String | O | 이메일 형식 | 이메일 주소 |
+
 ```json
 {
   "email": "user@example.com"
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<Void>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
-  "message": "success",
-  "data": {
-    "message": "비밀번호 재설정 이메일이 발송되었습니다."
-  }
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
 }
 ```
 
-**Errors**
-- `500` - 서버 오류
-
-**Note**: 보안상 존재하지 않는 이메일도 성공 응답 반환
+> 보안상 존재하지 않는 이메일도 동일한 성공 응답을 반환합니다.
 
 ---
 
@@ -321,7 +338,13 @@ GET /api/v1/auth/verify-email?token=abc123xyz
 
 **인증**: 불필요
 
-**Request**
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `token` | String | O | - | 비밀번호 재설정 토큰 |
+| `newPassword` | String | O | 8자 이상, 대소문자/숫자/특수문자 중 2가지 이상 | 새 비밀번호 |
+
 ```json
 {
   "token": "reset-token-123",
@@ -329,24 +352,17 @@ GET /api/v1/auth/verify-email?token=abc123xyz
 }
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<Void>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
-  "message": "success",
-  "data": {
-    "message": "비밀번호가 성공적으로 변경되었습니다."
-  }
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
 }
 ```
 
 **Errors**
 - `400` - 토큰 만료, 토큰 무효, 비밀번호 정책 위반, 이전 비밀번호와 동일
-- `500` - 서버 오류
 
 ---
 
@@ -357,20 +373,21 @@ GET /api/v1/auth/verify-email?token=abc123xyz
 **인증**: 불필요
 
 **Path Parameters**
-- `provider`: OAuth 제공자 (`google`, `github`, `kakao`, `naver`)
 
-**Request**
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `provider` | String | OAuth 제공자 (`google`, `naver`, `kakao`) |
+
 ```
 GET /api/v1/auth/oauth2/google
 ```
 
 **Response** (302 Redirect)
 
-OAuth 제공자 인증 페이지로 리다이렉트
+OAuth 제공자 인증 페이지로 리다이렉트합니다.
 
 **Errors**
 - `400` - 지원하지 않는 OAuth 제공자
-- `500` - 서버 오류
 
 ---
 
@@ -381,43 +398,359 @@ OAuth 제공자 인증 페이지로 리다이렉트
 **인증**: 불필요
 
 **Path Parameters**
-- `provider`: OAuth 제공자 (`google`, `github`, `kakao`, `naver`)
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `provider` | String | OAuth 제공자 (`google`, `naver`, `kakao`) |
 
 **Query Parameters**
-- `code` (required): OAuth 인증 코드
-- `state` (optional): CSRF 방지 상태 토큰
 
-**Request**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| `code` | String | O | OAuth 인증 코드 |
+| `state` | String | X | CSRF 방지 상태 토큰 |
+
 ```
 GET /api/v1/auth/oauth2/google/callback?code=auth_code_123&state=state_token_456
 ```
 
-**Response** (200 OK)
+**Response** (200 OK) `ApiResponse<TokenResponse>`
 ```json
 {
   "code": "2000",
-  "messageCode": {
-    "code": "SUCCESS",
-    "text": "성공"
-  },
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
     "tokenType": "Bearer",
     "expiresIn": 3600,
-    "refreshTokenExpiresIn": 604800
+    "refreshTokenExpiresIn": 1209600
   }
 }
 ```
 
 **Errors**
 - `401` - State 토큰 불일치, OAuth 인증 실패
-- `500` - 서버 오류
 
 ---
 
-## 4. 토큰 갱신 플로우
+### 3.10 회원 탈퇴
+
+**DELETE** `/api/v1/auth/me`
+
+**인증**: 필요
+
+**Request Body** (선택)
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `password` | String | X | 8~100자 | 비밀번호 확인 (보안 강화용) |
+| `reason` | String | X | 500자 이하 | 탈퇴 사유 |
+
+```json
+{
+  "password": "securePassword123",
+  "reason": "서비스 불만족"
+}
+```
+
+> Request Body는 선택적입니다. 본문 없이 호출 가능합니다.
+
+**Response** (200 OK) `ApiResponse<Void>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
+}
+```
+
+**Errors**
+- `401` - 인증 실패
+- `404` - 사용자 없음
+- `409` - 이미 탈퇴한 사용자
+
+---
+
+> Contest/News 수집 기능 폐기로 Contest API (Section 4) 및 News API (Section 5) 삭제됨
+
+---
+
+## 4. Chatbot API (`/api/v1/chatbot`)
+
+> 모든 Chatbot API는 **JWT 인증이 필요**합니다. Gateway에서 JWT 검증 후 `x-user-id` 헤더를 주입합니다.
+
+### 4.1 채팅 메시지 전송
+
+**POST** `/api/v1/chatbot`
+
+**인증**: 필요
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `message` | String | O | NotBlank, 최대 500자 | 사용자 메시지 |
+| `conversationId` | String | X | - | 세션 ID (없으면 새 세션 생성) |
+
+```json
+{
+  "message": "최근 AI 관련 대회는 뭐가 있어?",
+  "conversationId": "507f1f77bcf86cd799439011"
+}
+```
+
+**Response** (200 OK) `ApiResponse<ChatResponse>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "response": "최근 AI 관련 대회로는 Kaggle Competition 2026...",
+    "conversationId": "507f1f77bcf86cd799439011",
+    "sources": [
+      {
+        "documentId": "507f1f77bcf86cd799439012",
+        "collectionType": "contests",
+        "score": 0.92,
+        "title": "Kaggle Competition 2026",
+        "url": "https://kaggle.com/c/competition-2026"
+      }
+    ]
+  }
+}
+```
+
+**ChatResponse 필드**
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `response` | String | 챗봇 응답 텍스트 |
+| `conversationId` | String | 대화 세션 ID |
+| `sources` | SourceResponse[] | 참조 소스 목록 |
+
+**SourceResponse 필드**
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `documentId` | String | 문서 ID |
+| `collectionType` | String | 컬렉션 타입 (contests, news 등) |
+| `score` | Double | 관련도 점수 |
+| `title` | String | 문서 제목 (웹 검색 결과용) |
+| `url` | String | 문서 URL (웹 검색 결과용) |
+
+---
+
+### 4.2 대화 세션 목록 조회
+
+**GET** `/api/v1/chatbot/sessions`
+
+**인증**: 필요
+
+**Query Parameters**
+
+| 파라미터 | 타입 | 필수 | 기본값 | 검증 | 설명 |
+|---------|------|------|-------|------|------|
+| `page` | Integer | X | 1 | min: 1 | 페이지 번호 |
+| `size` | Integer | X | 20 | min: 1, max: 100 | 페이지 크기 |
+
+```
+GET /api/v1/chatbot/sessions?page=1&size=20
+```
+
+**Response** (200 OK) `ApiResponse<Page<SessionResponse>>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "content": [
+      {
+        "sessionId": "507f1f77bcf86cd799439011",
+        "title": "AI 대회 관련 질문",
+        "createdAt": "2026-01-29T10:00:00",
+        "lastMessageAt": "2026-01-29T10:05:00",
+        "isActive": true
+      }
+    ],
+    "pageable": { ... },
+    "totalPages": 3,
+    "totalElements": 25,
+    "size": 20,
+    "number": 0,
+    "first": true,
+    "last": false,
+    "empty": false
+  }
+}
+```
+
+> 정렬: `lastMessageAt` 내림차순 (최근 활동 순)
+
+**SessionResponse 필드**
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `sessionId` | String | 세션 ID |
+| `title` | String | 대화 제목 |
+| `createdAt` | LocalDateTime | 생성일시 |
+| `lastMessageAt` | LocalDateTime | 마지막 메시지 일시 |
+| `isActive` | Boolean | 활성 여부 |
+
+---
+
+### 4.3 대화 세션 상세 조회
+
+**GET** `/api/v1/chatbot/sessions/{sessionId}`
+
+**인증**: 필요
+
+**Path Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `sessionId` | String | 세션 ID |
+
+```
+GET /api/v1/chatbot/sessions/507f1f77bcf86cd799439011
+```
+
+**Response** (200 OK) `ApiResponse<SessionResponse>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "sessionId": "507f1f77bcf86cd799439011",
+    "title": "AI 대회 관련 질문",
+    "createdAt": "2026-01-29T10:00:00",
+    "lastMessageAt": "2026-01-29T10:05:00",
+    "isActive": true
+  }
+}
+```
+
+**Errors**
+- `404` - 세션 없음
+
+---
+
+### 4.4 대화 메시지 목록 조회
+
+**GET** `/api/v1/chatbot/sessions/{sessionId}/messages`
+
+**인증**: 필요
+
+**Path Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `sessionId` | String | 세션 ID |
+
+**Query Parameters**
+
+| 파라미터 | 타입 | 필수 | 기본값 | 검증 | 설명 |
+|---------|------|------|-------|------|------|
+| `page` | Integer | X | 1 | min: 1 | 페이지 번호 |
+| `size` | Integer | X | 50 | min: 1, max: 100 | 페이지 크기 |
+
+```
+GET /api/v1/chatbot/sessions/507f1f77bcf86cd799439011/messages?page=1&size=50
+```
+
+**Response** (200 OK) `ApiResponse<Page<MessageResponse>>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "content": [
+      {
+        "messageId": "507f1f77bcf86cd799439013",
+        "sessionId": "507f1f77bcf86cd799439011",
+        "role": "USER",
+        "content": "최근 AI 관련 대회는 뭐가 있어?",
+        "tokenCount": 15,
+        "sequenceNumber": 1,
+        "createdAt": "2026-01-29T10:00:00"
+      },
+      {
+        "messageId": "507f1f77bcf86cd799439014",
+        "sessionId": "507f1f77bcf86cd799439011",
+        "role": "ASSISTANT",
+        "content": "최근 AI 관련 대회로는...",
+        "tokenCount": 120,
+        "sequenceNumber": 2,
+        "createdAt": "2026-01-29T10:00:05"
+      }
+    ],
+    "pageable": { ... },
+    "totalPages": 1,
+    "totalElements": 2,
+    "size": 50,
+    "number": 0,
+    "first": true,
+    "last": true,
+    "empty": false
+  }
+}
+```
+
+> 정렬: `sequenceNumber` 오름차순 (시간순)
+
+**MessageResponse 필드**
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `messageId` | String | 메시지 ID |
+| `sessionId` | String | 세션 ID |
+| `role` | String | 역할 (`USER`, `ASSISTANT`) |
+| `content` | String | 메시지 내용 |
+| `tokenCount` | Integer | 토큰 수 |
+| `sequenceNumber` | Integer | 메시지 순번 |
+| `createdAt` | LocalDateTime | 생성일시 |
+
+**Errors**
+- `404` - 세션 없음
+
+---
+
+### 4.5 대화 세션 삭제
+
+**DELETE** `/api/v1/chatbot/sessions/{sessionId}`
+
+**인증**: 필요
+
+**Path Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `sessionId` | String | 세션 ID |
+
+```
+DELETE /api/v1/chatbot/sessions/507f1f77bcf86cd799439011
+```
+
+**Response** (200 OK) `ApiResponse<Void>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
+}
+```
+
+**Errors**
+- `404` - 세션 없음
+
+---
+
+## 5. 토큰 갱신 플로우
 
 ### 시나리오 1: Access Token 만료
 
@@ -427,13 +760,13 @@ sequenceDiagram
     participant Gateway
     participant Auth
 
-    Client->>Gateway: GET /api/v1/archive<br/>Bearer {expired_token}
+    Client->>Gateway: GET /api/v1/bookmark<br/>Bearer {expired_token}
     Gateway->>Client: 401 Unauthorized
     Client->>Gateway: POST /api/v1/auth/refresh<br/>{refreshToken}
     Gateway->>Auth: Forward
     Auth->>Gateway: 200 OK {new tokens}
     Gateway->>Client: 200 OK {new tokens}
-    Client->>Gateway: GET /api/v1/archive<br/>Bearer {new_token}
+    Client->>Gateway: GET /api/v1/bookmark<br/>Bearer {new_token}
     Gateway->>Client: 200 OK
 ```
 
@@ -446,7 +779,7 @@ sequenceDiagram
     participant Gateway
     participant Auth
 
-    Client->>Gateway: GET /api/v1/archive<br/>Bearer {expired_token}
+    Client->>Gateway: GET /api/v1/bookmark<br/>Bearer {expired_token}
     Gateway->>Client: 401 Unauthorized
     Client->>Gateway: POST /api/v1/auth/refresh<br/>{expired_refresh_token}
     Gateway->>Auth: Forward
@@ -462,7 +795,7 @@ sequenceDiagram
 
 ---
 
-## 5. 에러 코드
+## 6. 에러 코드
 
 ### HTTP 상태 코드
 
@@ -472,6 +805,7 @@ sequenceDiagram
 | 401 | `4001` | 인증 실패 |
 | 403 | `4003` | 권한 없음 |
 | 404 | `4004` | 리소스 없음 |
+| 409 | `4009` | 리소스 충돌 |
 | 500 | `5000` | 서버 내부 오류 |
 | 502 | `5002` | 백엔드 서버 연결 실패 |
 | 504 | `5004` | 백엔드 서버 타임아웃 |
@@ -491,101 +825,34 @@ sequenceDiagram
 
 ---
 
-## 6. 개발 환경 설정
-
-### Local 환경
-
-1. **Gateway 서버**: `http://localhost:8081`
-2. **Auth 서버**: `http://localhost:8082`
-3. **Frontend 개발 서버**: `http://localhost:3000` (CORS 허용됨)
-
-### 테스트용 계정
-
-Local 환경에서 테스트용으로 사용 가능한 계정:
-
-```json
-{
-  "email": "test@example.com",
-  "password": "Test1234!"
-}
-```
-
-### 환경 변수
-
-Frontend 개발 시 다음 환경 변수 설정:
-
-```bash
-# .env.local
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
-NEXT_PUBLIC_API_VERSION=v1
-```
-
----
-
-## 부록 A. Request 예시
-
-### cURL 예시
-
-#### 로그인
-```bash
-curl -X POST http://localhost:8081/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "securePassword123"
-  }'
-```
-
-#### 인증 필요한 API 호출
-```bash
-curl -X GET http://localhost:8081/api/v1/archive \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### JavaScript/TypeScript 예시
-
-```typescript
-// 로그인
-const response = await fetch('http://localhost:8081/api/v1/auth/login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'securePassword123',
-  }),
-});
-
-const data = await response.json();
-const accessToken = data.data.accessToken;
-
-// 인증 필요한 API 호출
-const archiveResponse = await fetch('http://localhost:8081/api/v1/archive', {
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-  },
-});
-```
-
----
-
-## 부록 B. 비밀번호 정책
+## 부록 A. 비밀번호 정책
 
 - **최소 길이**: 8자
 - **필수 포함**: 대소문자/숫자/특수문자 중 2가지 이상
 
 ---
 
-## 부록 C. Rate Limiting
+## 부록 B. 전체 엔드포인트 요약
 
-| 엔드포인트 | 제한 |
-|-----------|-----|
-| `/api/v1/auth/login` | 5회/분 |
-| `/api/v1/auth/reset-password` | 3회/시간 |
-| `/api/v1/auth/oauth2/*` | 10회/분 |
+| Method | Endpoint | 인증 | 설명 |
+|--------|----------|------|------|
+| POST | `/api/v1/auth/signup` | X | 회원가입 |
+| POST | `/api/v1/auth/login` | X | 로그인 |
+| POST | `/api/v1/auth/logout` | O | 로그아웃 |
+| POST | `/api/v1/auth/refresh` | X | 토큰 갱신 |
+| GET | `/api/v1/auth/verify-email` | X | 이메일 인증 |
+| POST | `/api/v1/auth/reset-password` | X | 비밀번호 재설정 요청 |
+| POST | `/api/v1/auth/reset-password/confirm` | X | 비밀번호 재설정 확인 |
+| GET | `/api/v1/auth/oauth2/{provider}` | X | OAuth 로그인 시작 |
+| GET | `/api/v1/auth/oauth2/{provider}/callback` | X | OAuth 콜백 |
+| DELETE | `/api/v1/auth/me` | O | 회원 탈퇴 |
+| POST | `/api/v1/chatbot` | O | 채팅 메시지 전송 |
+| GET | `/api/v1/chatbot/sessions` | O | 세션 목록 |
+| GET | `/api/v1/chatbot/sessions/{sessionId}` | O | 세션 상세 |
+| GET | `/api/v1/chatbot/sessions/{sessionId}/messages` | O | 메시지 목록 |
+| DELETE | `/api/v1/chatbot/sessions/{sessionId}` | O | 세션 삭제 |
 
 ---
 
-**문서 버전**: 1.0  
-**최종 업데이트**: 2026-01-21
+**문서 버전**: 2.0
+**최종 업데이트**: 2026-01-29

@@ -12,7 +12,7 @@
 
 ```
 Client → ALB (AWS Application Load Balancer) → Gateway Server (@api/gateway) → API Servers
-                                                                                ├─ @api/archive
+                                                                                ├─ @api/bookmark
                                                                                 ├─ @api/news
                                                                                 ├─ @api/contest
                                                                                 ├─ @api/chatbot
@@ -30,7 +30,7 @@ Client → ALB (AWS Application Load Balancer) → Gateway Server (@api/gateway)
 ### 2. URI 기반 라우팅
 요청 URI 경로를 기준으로 적절한 API 서버로 라우팅해야 합니다:
 
-- `/api/v1/archive/**` → `@api/archive` 서버
+- `/api/v1/bookmark/**` → `@api/bookmark` 서버
 - `/api/v1/news/**` → `@api/news` 서버
 - `/api/v1/contest/**` → `@api/contest` 서버
 - `/api/v1/chatbot/**` → `@api/chatbot` 서버
@@ -38,7 +38,7 @@ Client → ALB (AWS Application Load Balancer) → Gateway Server (@api/gateway)
 
 **라우팅 규칙 설계 시 고려사항**:
 - Path 기반 라우팅 우선 적용
-- URL Rewrite 필요 시 고려 (예: `/api/v1/archive/**` → `/api/v1/archive/**` 그대로 전달)
+- URL Rewrite 필요 시 고려 (예: `/api/v1/bookmark/**` → `/api/v1/bookmark/**` 그대로 전달)
 - 환경별 백엔드 서비스 URL 설정 (Local, Dev, Beta, Prod)
 - 서비스 디스커버리 필요 여부 검토 (현재는 정적 라우팅 우선)
 
@@ -69,7 +69,7 @@ Client → ALB (AWS Application Load Balancer) → Gateway Server (@api/gateway)
 - JWT 토큰 검증 (서명, 만료 시간 확인)
 - 사용자 정보 추출 및 헤더 주입 (`x-user-id`, `x-user-email` 등)
 - 인증 불필요 경로: `/api/v1/auth/**`, `/api/v1/contest/**` (공개 API), `/api/v1/news/**` (공개 API)
-- 인증 필요 경로: `/api/v1/archive/**`, `/api/v1/chatbot/**`
+- 인증 필요 경로: `/api/v1/bookmark/**`, `/api/v1/chatbot/**`
 
 ### 4. 연결 풀 설정 (Connection reset by peer 방지)
 Connection reset by peer 에러가 발생하지 않도록 적절한 연결 풀 설정이 반영되어야 합니다.
@@ -120,8 +120,8 @@ Connection reset by peer 에러가 발생하지 않도록 적절한 연결 풀 �
 5. **`docs/step12/rag-chatbot-design.md`**: Chatbot API 설계
    - Chatbot API 엔드포인트 구조
 
-6. **`docs/step13/user-archive-feature-design.md`**: Archive API 설계
-   - Archive API 엔드포인트 구조
+6. **`docs/step13/user-bookmark-feature-design.md`**: Bookmark API 설계
+   - Bookmark API 엔드포인트 구조
 
 ### 기술 스택 참고
 - **Java**: 21
@@ -216,7 +216,7 @@ Connection reset by peer 에러가 발생하지 않도록 적절한 연결 풀 �
 
 1. **현재 프로젝트 구조 분석**
    - `api/gateway` 모듈의 현재 상태 확인
-   - `api/auth`, `api/archive`, `api/news`, `api/contest`, `api/chatbot` 모듈의 엔드포인트 구조 확인
+   - `api/auth`, `api/bookmark`, `api/news`, `api/contest`, `api/chatbot` 모듈의 엔드포인트 구조 확인
    - `common-security` 모듈의 JWT 검증 로직 확인
 
 2. **아키텍처 설계**

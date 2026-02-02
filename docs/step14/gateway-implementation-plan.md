@@ -20,7 +20,7 @@
 ### 작업 목표
 
 Spring Cloud Gateway 기반 API Gateway 서버 구현:
-- URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, archive, contest, news, chatbot)
+- URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, bookmark, contest, news, chatbot)
 - JWT 토큰 기반 인증 필터 구현
 - 연결 풀 설정 및 Connection reset by peer 방지
 - CORS 설정 (환경별 차별화)
@@ -31,8 +31,8 @@ Spring Cloud Gateway 기반 API Gateway 서버 구현:
 **인프라 아키텍처**: Client → ALB → Gateway Server → API Servers
 
 **라우팅 흐름**:
-- 인증이 필요한 요청 (예: `/api/v1/archive/**`, `/api/v1/chatbot/**`):
-  - Client → ALB → Gateway → [JWT 인증 필터 (Gateway 내부)] → Archive/Chatbot 서버
+- 인증이 필요한 요청 (예: `/api/v1/bookmark/**`, `/api/v1/chatbot/**`):
+  - Client → ALB → Gateway → [JWT 인증 필터 (Gateway 내부)] → Bookmark/Chatbot 서버
   - Gateway 내부의 JWT 인증 필터가 토큰을 검증하므로 인증 서버(@api/auth)를 거치지 않음
   - JWT는 stateless이므로 Gateway에서 직접 검증 가능 (common-security 모듈의 JwtTokenProvider 활용)
   - JWT 토큰 만료/무효 시: Gateway는 401 Unauthorized를 반환하고, 인증 서버를 자동으로 호출하지 않음
@@ -46,16 +46,16 @@ Spring Cloud Gateway 기반 API Gateway 서버 구현:
 ### 토큰 갱신 흐름 (사용자 응답 기준)
 
 **시나리오 1: Access Token 만료 (사용자 개입 없음, 클라이언트 자동 처리)**
-1. Archive 요청 (만료된 토큰) → Gateway: 401 Unauthorized
+1. Bookmark 요청 (만료된 토큰) → Gateway: 401 Unauthorized
 2. POST /api/v1/auth/refresh (유효한 Refresh Token, 자동 요청) → Gateway → Auth 서버: 200 OK (새 토큰 발급)
-3. Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: 200 OK
+3. Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: 200 OK
 
 **시나리오 2: Refresh Token도 만료/없음 (사용자 개입 필요)**
-1. Archive 요청 (만료된 토큰) → Gateway: 401 Unauthorized
+1. Bookmark 요청 (만료된 토큰) → Gateway: 401 Unauthorized
 2. POST /api/v1/auth/refresh (만료된/없는 Refresh Token, 자동 시도) → Gateway → Auth 서버: 401 Unauthorized
 3. 사용자 개입: 로그인 화면 표시, 이메일/비밀번호 입력
 4. POST /api/v1/auth/login (사용자 입력 후 요청) → Gateway → Auth 서버: 200 OK (새 토큰 발급)
-5. Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: 200 OK
+5. Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: 200 OK
 
 ### 작업 요구사항
 
@@ -105,7 +105,7 @@ api/gateway
 
 **docs/step17/gateway-design.md**:
 - 패키지 구조: `config/`, `filter/`, `common/exception/`, `util/`
-- 라우팅 설정: 5개 Route 정의 (auth, archive, contest, news, chatbot)
+- 라우팅 설정: 5개 Route 정의 (auth, bookmark, contest, news, chatbot)
 - 인증 필터: `JwtAuthenticationGatewayFilter` 구현 (GatewayFilter 인터페이스)
 - 연결 풀 설정: Reactor Netty 연결 풀 설정 값 명시
 - CORS 설정: Global CORS, 환경별 차별화, DedupeResponseHeader 필터
@@ -130,7 +130,7 @@ api/gateway
 ### 기존 API 모듈 엔드포인트 구조
 
 - **api/auth**: `/api/v1/auth/**`
-- **api/archive**: `/api/v1/archive/**`
+- **api/bookmark**: `/api/v1/bookmark/**`
 - **api/contest**: `/api/v1/contest/**`
 - **api/news**: `/api/v1/news/**`
 - **api/chatbot**: `/api/v1/chatbot/**`
@@ -261,7 +261,7 @@ api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
 ### 3. 라우팅 설정 설계
 
 **GatewayConfig.java**:
-- 5개 Route 정의 (auth, archive, contest, news, chatbot)
+- 5개 Route 정의 (auth, bookmark, contest, news, chatbot)
 - Path 기반 라우팅 (Path=/api/v1/{service}/**)
 - 환경별 백엔드 서비스 URL 설정 (Local: localhost, Dev/Beta/Prod: service-name)
 - JwtAuthenticationGatewayFilter Bean 등록
@@ -285,7 +285,7 @@ api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
 - Reactive 기반 (Mono<Void> 반환, ServerWebExchange 활용)
 - `isPublicPath(String path)`: 인증 필요/불필요 경로 구분
   - 인증 불필요: `/api/v1/auth/**`, `/api/v1/contest/**`, `/api/v1/news/**`, `/actuator/**`
-  - 인증 필요: `/api/v1/archive/**`, `/api/v1/chatbot/**`
+  - 인증 필요: `/api/v1/bookmark/**`, `/api/v1/chatbot/**`
 - `extractToken(ServerHttpRequest request)`: Authorization 헤더에서 Bearer 토큰 추출
 - `validateToken(String token)`: JwtTokenProvider.validateToken 활용
 - `handleUnauthorized(ServerWebExchange exchange)`: 401 Unauthorized 반환

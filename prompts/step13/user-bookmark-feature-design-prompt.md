@@ -1,8 +1,8 @@
-# 사용자 아카이브 기능 구현 설계서 작성 프롬프트
+# 사용자 북마크 기능 구현 설계서 작성 프롬프트
 
 ## 역할 정의
 
-당신은 **백엔드 아키텍트**이자 **Spring Boot 전문가**입니다. 현재 프로젝트의 구조와 설계 패턴을 완전히 이해하고 있으며, CQRS 패턴과 Kafka 기반 이벤트 동기화를 활용하여 운영 환경에서 유지 가능한 사용자 아카이브 시스템을 설계할 수 있는 전문가입니다.
+당신은 **백엔드 아키텍트**이자 **Spring Boot 전문가**입니다. 현재 프로젝트의 구조와 설계 패턴을 완전히 이해하고 있으며, CQRS 패턴과 Kafka 기반 이벤트 동기화를 활용하여 운영 환경에서 유지 가능한 사용자 북마크 시스템을 설계할 수 있는 전문가입니다.
 
 ## 프로젝트 컨텍스트
 
@@ -10,25 +10,25 @@
 - **프로젝트 타입**: Spring Boot 기반 멀티모듈 프로젝트
 - **아키텍처 패턴**: CQRS 패턴 적용 (Command Side: Aurora MySQL, Query Side: MongoDB Atlas)
 - **동기화 메커니즘**: Kafka 기반 이벤트 동기화
-- **API 모듈 구조**: `api/auth`, `api/contest`, `api/news`, `api/gateway`, `api/archive`
+- **API 모듈 구조**: `api/auth`, `api/contest`, `api/news`, `api/gateway`, `api/bookmark`
 
-### 현재 아카이브 관련 구조
-1. **Aurora MySQL (Command Side)**: `archive` 스키마의 `archives` 테이블
+### 현재 북마크 관련 구조
+1. **Aurora MySQL (Command Side)**: `bookmark` 스키마의 `bookmarks` 테이블
    - 주요 필드: `id` (TSID), `user_id`, `item_type`, `item_id`, `tag`, `memo`, `is_deleted`, `deleted_at`
    - Soft Delete 지원 (`is_deleted` 플래그)
    - 인덱스: `user_id + is_deleted`, `user_id + item_type + item_id` (UNIQUE)
-2. **MongoDB Atlas (Query Side)**: `ArchiveDocument` 컬렉션
-   - 주요 필드: `archiveTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `archivedAt`
+2. **MongoDB Atlas (Query Side)**: `BookmarkDocument` 컬렉션
+   - 주요 필드: `bookmarkTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `bookmarkedAt`
    - 비정규화된 필드: `itemTitle`, `itemSummary` (원본 아이템 정보 중복 저장)
    - 인덱스: `userId + createdAt`, `userId + itemType + createdAt`
-3. **Kafka 이벤트**: `ArchiveCreatedEvent`, `ArchiveUpdatedEvent`, `ArchiveDeletedEvent`, `ArchiveRestoredEvent`
-4. **동기화 서비스**: `ArchiveSyncService` (MongoDB Atlas 동기화)
+3. **Kafka 이벤트**: `BookmarkCreatedEvent`, `BookmarkUpdatedEvent`, `BookmarkDeletedEvent`, `BookmarkRestoredEvent`
+4. **동기화 서비스**: `BookmarkSyncService` (MongoDB Atlas 동기화)
 
 ### 기존 설계서 참고 경로
-- **MongoDB 스키마 설계**: `docs/step1/2. mongodb-schema-design.md` (ArchiveDocument 섹션)
-- **Aurora 스키마 설계**: `docs/step1/3. aurora-schema-design.md` (archives 테이블 섹션)
-- **API 엔드포인트 설계**: `docs/step2/1. api-endpoint-design.md` (사용자 아카이브 API 엔드포인트 섹션)
-- **데이터 모델 설계**: `docs/step2/2. data-model-design.md` (Archive 엔티티 및 ArchiveDocument 섹션)
+- **MongoDB 스키마 설계**: `docs/step1/2. mongodb-schema-design.md` (BookmarkDocument 섹션)
+- **Aurora 스키마 설계**: `docs/step1/3. aurora-schema-design.md` (bookmarks 테이블 섹션)
+- **API 엔드포인트 설계**: `docs/step2/1. api-endpoint-design.md` (사용자 북마크 API 엔드포인트 섹션)
+- **데이터 모델 설계**: `docs/step2/2. data-model-design.md` (Bookmark 엔티티 및 BookmarkDocument 섹션)
 - **CQRS Kafka 동기화 설계**: `docs/step11/cqrs-kafka-sync-design.md`
 - **Contest/News API 설계**: `docs/step9/contest-news-api-design.md` (API 패턴 참고)
 
@@ -43,25 +43,25 @@
 
 ### 필수 요구사항
 
-#### 1. 아카이브 저장 및 관리 기능
+#### 1. 북마크 저장 및 관리 기능
 - **저장 대상**: 로그인한 사용자가 조회할 수 있는 모든 `ContestDocument` 및 `NewsArticleDocument` 정보
 - **저장 기능**:
-  - 사용자가 원하는 contest/news 아이템을 개인 아카이브에 저장
+  - 사용자가 원하는 contest/news 아이템을 개인 북마크에 저장
   - 저장 시 태그(`tag`)와 메모(`memo`) 필드 설정 가능 (선택 사항)
 - **수정 기능**:
-  - 저장된 아카이브의 태그(`tag`)와 메모(`memo`) 필드 수정 가능
+  - 저장된 북마크의 태그(`tag`)와 메모(`memo`) 필드 수정 가능
   - 원본 아이템 정보(`itemTitle`, `itemSummary` 등)는 수정 불가 (원본 참조)
-  - **중요**: `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 ArchiveUpdatedEvent의 updatedFields에 포함할 수 없음
+  - **중요**: `itemTitle`, `itemSummary`는 BookmarkEntity에 없는 필드이므로 BookmarkUpdatedEvent의 updatedFields에 포함할 수 없음
 - **삭제 기능**:
   - Soft Delete 방식으로 삭제 (`is_deleted = true`, `deleted_at` 설정)
-  - 삭제된 아카이브는 기본 조회에서 제외
-- **삭제된 아카이브 조회 및 복구**:
-  - 일정 기간 동안 삭제한 아카이브 목록 조회 가능
-  - 삭제된 아카이브 복구 기능 (Soft Delete 해제)
+  - 삭제된 북마크는 기본 조회에서 제외
+- **삭제된 북마크 조회 및 복구**:
+  - 일정 기간 동안 삭제한 북마크 목록 조회 가능
+  - 삭제된 북마크 복구 기능 (Soft Delete 해제)
   - 복구 기간 제한 정책 설계 (예: 30일, 90일 등)
 
-#### 2. 아카이브 검색 기능
-- **검색 대상**: 로그인한 사용자의 개인 아카이브에 저장된 모든 contest, news 정보
+#### 2. 북마크 검색 기능
+- **검색 대상**: 로그인한 사용자의 개인 북마크에 저장된 모든 contest, news 정보
 - **검색 기준**:
   - **태그(`tag`) 기반 검색**: 태그 필드에서 키워드 검색
   - **메모(`memo`) 기반 검색**: 메모 필드에서 키워드 검색
@@ -71,15 +71,15 @@
   - 인덱스 최적화 전략
   - 검색 성능 고려
 
-#### 3. 아카이브 정렬 기능
-- **정렬 대상**: 로그인한 사용자의 개인 아카이브에 저장된 모든 contest, news 정보
+#### 3. 북마크 정렬 기능
+- **정렬 대상**: 로그인한 사용자의 개인 북마크에 저장된 모든 contest, news 정보
 - **정렬 기준**: 아이템 원본의 정보를 기준으로 정렬
   - **날짜 정보 우선**: 
     - Contest: `startDate`, `endDate`, `createdAt` (원본 ContestDocument의 필드)
     - News: `publishedAt`, `createdAt` (원본 NewsArticleDocument의 필드)
   - **기타 정렬 옵션**:
     - 제목(`itemTitle`) 기준 정렬
-    - 아카이브 일시(`archivedAt`) 기준 정렬
+    - 북마크 일시(`bookmarkedAt`) 기준 정렬
     - 생성 일시(`createdAt`) 기준 정렬
 - **정렬 방향**: 오름차순(ASC), 내림차순(DESC) 지원
 - **정렬 최적화**:
@@ -92,14 +92,14 @@
   - 패키지 구조 패턴 (`controller`, `facade`, `service`, `dto`, `config`, `common/exception`)
   - 기존 API 모듈 구조 (`api-contest`, `api-news`, `api-auth`) 참고
 - **기존 설계서 철저히 분석**:
-  - `docs/step1/2. mongodb-schema-design.md`: ArchiveDocument 스키마 구조
-  - `docs/step1/3. aurora-schema-design.md`: archives 테이블 DDL 및 제약조건
-  - `docs/step2/1. api-endpoint-design.md`: 아카이브 API 엔드포인트 설계
-  - `docs/step2/2. data-model-design.md`: Archive 엔티티 및 ArchiveDocument 상세 설계
+  - `docs/step1/2. mongodb-schema-design.md`: BookmarkDocument 스키마 구조
+  - `docs/step1/3. aurora-schema-design.md`: bookmarks 테이블 DDL 및 제약조건
+  - `docs/step2/1. api-endpoint-design.md`: 북마크 API 엔드포인트 설계
+  - `docs/step2/2. data-model-design.md`: Bookmark 엔티티 및 BookmarkDocument 상세 설계
   - `docs/step11/cqrs-kafka-sync-design.md`: CQRS 패턴 및 Kafka 동기화 전략
 - **기존 구현 코드 참고**:
-  - `ArchiveSyncServiceImpl`: Kafka 이벤트 동기화 로직
-  - `ArchiveRepository`: MongoDB 조회 메서드
+  - `BookmarkSyncServiceImpl`: Kafka 이벤트 동기화 로직
+  - `BookmarkRepository`: MongoDB 조회 메서드
   - `api-contest`, `api-news` 모듈의 Controller, Facade, Service 패턴
 
 #### 5. 외부 자료 참고 규칙
@@ -159,10 +159,10 @@
 ### 1단계: 프로젝트 분석
 1. 현재 프로젝트의 모든 코드와 설계서를 철저히 분석
    - `api-contest`, `api-news` 모듈의 구조 및 패턴 분석
-   - `ArchiveDocument`, `Archive` 엔티티 구조 완전히 이해
+   - `BookmarkDocument`, `Bookmark` 엔티티 구조 완전히 이해
    - Kafka 이벤트 동기화 구조 이해
    - CQRS 패턴 적용 방식 이해
-2. 기존 아카이브 관련 설계서 완전히 파악
+2. 기존 북마크 관련 설계서 완전히 파악
    - MongoDB 스키마 설계 (`docs/step1/2. mongodb-schema-design.md`)
    - Aurora 스키마 설계 (`docs/step1/3. aurora-schema-design.md`)
    - API 엔드포인트 설계 (`docs/step2/1. api-endpoint-design.md`)
@@ -175,7 +175,7 @@
 
 ### 2단계: 요구사항 분석
 1. 각 요구사항별 상세 분석
-   - 아카이브 저장/수정/삭제/복구 기능 요구사항
+   - 북마크 저장/수정/삭제/복구 기능 요구사항
    - 검색 기능 요구사항 (태그, 메모 기반)
    - 정렬 기능 요구사항 (원본 아이템 정보 기준)
 2. 요구사항 간 의존성 파악
@@ -196,14 +196,14 @@
    - CQRS 패턴 적용 구조
    - Kafka 이벤트 동기화 흐름
 2. 컴포넌트 간 상호작용 흐름도
-   - 아카이브 저장 흐름
-   - 아카이브 조회 흐름 (일반 조회, 검색, 정렬)
-   - 아카이브 수정/삭제/복구 흐름
+   - 북마크 저장 흐름
+   - 북마크 조회 흐름 (일반 조회, 검색, 정렬)
+   - 북마크 수정/삭제/복구 흐름
 3. 데이터 흐름도
    - Command Side (Aurora MySQL) → Kafka → Query Side (MongoDB Atlas)
    - 원본 아이템 정보 조회 (ContestDocument, NewsArticleDocument)
 4. 모듈 구조 및 패키지 구조
-   - `api-archive` 모듈 구조
+   - `api-bookmark` 모듈 구조
    - 패키지 구조 (`controller`, `facade`, `service`, `dto`, `config`, `common/exception`)
 
 ### 4단계: 상세 설계
@@ -211,58 +211,58 @@
 
 #### 4.1 API 엔드포인트 설계
 - **RESTful API 설계**: 현재 프로젝트의 API 패턴 준수
-  - 경로: `/api/v1/archive` 또는 `/api/v1/archives`
+  - 경로: `/api/v1/bookmark` 또는 `/api/v1/bookmarks`
   - HTTP 메서드: `GET`, `POST`, `PUT`, `DELETE` 등
 - **엔드포인트 목록**:
-  - `POST /api/v1/archive`: 아카이브 저장
-  - `GET /api/v1/archive`: 아카이브 목록 조회 (페이징, 필터링, 정렬)
-  - `GET /api/v1/archive/{id}`: 아카이브 상세 조회
-  - `PUT /api/v1/archive/{id}`: 아카이브 수정 (태그, 메모)
-  - `DELETE /api/v1/archive/{id}`: 아카이브 삭제 (Soft Delete)
-  - `GET /api/v1/archive/deleted`: 삭제된 아카이브 목록 조회
-  - `POST /api/v1/archive/{id}/restore`: 아카이브 복구
-  - `GET /api/v1/archive/search`: 아카이브 검색 (태그, 메모 기반)
-  - `GET /api/v1/archive/history/{entityId}`: 변경 이력 조회 (CQRS 패턴 예외, Aurora MySQL)
-  - `GET /api/v1/archive/history/{entityId}/at?timestamp={timestamp}`: 특정 시점 데이터 조회 (CQRS 패턴 예외, Aurora MySQL)
-  - `POST /api/v1/archive/history/{entityId}/restore?historyId={historyId}`: 특정 버전으로 복구 (관리자만)
+  - `POST /api/v1/bookmark`: 북마크 저장
+  - `GET /api/v1/bookmark`: 북마크 목록 조회 (페이징, 필터링, 정렬)
+  - `GET /api/v1/bookmark/{id}`: 북마크 상세 조회
+  - `PUT /api/v1/bookmark/{id}`: 북마크 수정 (태그, 메모)
+  - `DELETE /api/v1/bookmark/{id}`: 북마크 삭제 (Soft Delete)
+  - `GET /api/v1/bookmark/deleted`: 삭제된 북마크 목록 조회
+  - `POST /api/v1/bookmark/{id}/restore`: 북마크 복구
+  - `GET /api/v1/bookmark/search`: 북마크 검색 (태그, 메모 기반)
+  - `GET /api/v1/bookmark/history/{entityId}`: 변경 이력 조회 (CQRS 패턴 예외, Aurora MySQL)
+  - `GET /api/v1/bookmark/history/{entityId}/at?timestamp={timestamp}`: 특정 시점 데이터 조회 (CQRS 패턴 예외, Aurora MySQL)
+  - `POST /api/v1/bookmark/history/{entityId}/restore?historyId={historyId}`: 특정 버전으로 복구 (관리자만)
 - **요청 DTO 설계**: 각 엔드포인트별 Request DTO
 - **응답 DTO 설계**: 각 엔드포인트별 Response DTO
 - **에러 처리**: 현재 프로젝트의 예외 처리 패턴 준수
 - **인증/인가**: Spring Security 통합, JWT 토큰에서 userId 추출
 
-#### 4.2 아카이브 저장 기능 설계
+#### 4.2 북마크 저장 기능 설계
 - **저장 대상 확인**: ContestDocument, NewsArticleDocument 존재 여부 확인
 - **중복 검증**: `user_id + item_type + item_id` UNIQUE 제약조건 확인
 - **원본 아이템 정보 조회**: MongoDB Atlas에서 원본 아이템 정보 조회
   - `itemTitle`, `itemSummary` 필드 추출
   - Contest: `ContestDocument`에서 `title`, `description` 조회
   - News: `NewsArticleDocument`에서 `title`, `summary` 조회
-- **Aurora MySQL 저장**: `Archive` 엔티티 생성
-- **Kafka 이벤트 발행**: `ArchiveCreatedEvent` 발행
-- **MongoDB Atlas 동기화**: `ArchiveSyncService`를 통한 자동 동기화
+- **Aurora MySQL 저장**: `Bookmark` 엔티티 생성
+- **Kafka 이벤트 발행**: `BookmarkCreatedEvent` 발행
+- **MongoDB Atlas 동기화**: `BookmarkSyncService`를 통한 자동 동기화
 
-#### 4.3 아카이브 수정 기능 설계
+#### 4.3 북마크 수정 기능 설계
 - **수정 가능 필드**: `tag`, `memo`만 수정 가능
 - **원본 아이템 정보 동기화**: 원본 아이템 정보 변경 시 `itemTitle`, `itemSummary` 업데이트 전략
-  - **중요**: `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 ArchiveUpdatedEvent의 updatedFields에 포함할 수 없음
+  - **중요**: `itemTitle`, `itemSummary`는 BookmarkEntity에 없는 필드이므로 BookmarkUpdatedEvent의 updatedFields에 포함할 수 없음
   - 원본 아이템(ContestDocument/NewsArticleDocument) 변경 시 별도의 동기화 메커니즘 필요
-- **Aurora MySQL 업데이트**: `Archive` 엔티티 업데이트
-- **Kafka 이벤트 발행**: `ArchiveUpdatedEvent` 발행 (변경된 필드만 포함)
-- **MongoDB Atlas 동기화**: `ArchiveSyncService`를 통한 자동 동기화
+- **Aurora MySQL 업데이트**: `Bookmark` 엔티티 업데이트
+- **Kafka 이벤트 발행**: `BookmarkUpdatedEvent` 발행 (변경된 필드만 포함)
+- **MongoDB Atlas 동기화**: `BookmarkSyncService`를 통한 자동 동기화
 
-#### 4.4 아카이브 삭제 및 복구 기능 설계
+#### 4.4 북마크 삭제 및 복구 기능 설계
 - **Soft Delete 구현**: `is_deleted = true`, `deleted_at` 설정
-- **삭제된 아카이브 조회**: CQRS 패턴 예외로 Aurora MySQL에서 조회
-  - `GET /api/v1/archive/deleted` 엔드포인트
+- **삭제된 북마크 조회**: CQRS 패턴 예외로 Aurora MySQL에서 조회
+  - `GET /api/v1/bookmark/deleted` 엔드포인트
   - 복구 기간 제한 정책 (예: 30일, 90일)
-- **아카이브 복구**: `is_deleted = false`, `deleted_at = null` 설정
-- **Kafka 이벤트 발행**: `ArchiveDeletedEvent`, `ArchiveRestoredEvent` 발행
+- **북마크 복구**: `is_deleted = false`, `deleted_at = null` 설정
+- **Kafka 이벤트 발행**: `BookmarkDeletedEvent`, `BookmarkRestoredEvent` 발행
 - **MongoDB Atlas 동기화**: 
   - 삭제 시: Document 물리적 삭제
   - 복구 시: Document 새로 생성
 
-#### 4.5 아카이브 검색 기능 설계
-- **검색 대상**: 사용자별 아카이브 (`userId` 필터링)
+#### 4.5 북마크 검색 기능 설계
+- **검색 대상**: 사용자별 북마크 (`userId` 필터링)
 - **검색 필드**: `tag`, `memo` 필드
 - **검색 방식**:
   - MongoDB Atlas Full-text Search 또는 정규식 검색
@@ -272,8 +272,8 @@
 - **인덱스 최적화**: 검색 성능을 위한 인덱스 설계
 - **페이징**: 검색 결과 페이징 처리
 
-#### 4.6 아카이브 정렬 기능 설계
-- **정렬 대상**: 사용자별 아카이브 (`userId` 필터링)
+#### 4.6 북마크 정렬 기능 설계
+- **정렬 대상**: 사용자별 북마크 (`userId` 필터링)
 - **정렬 기준**: 원본 아이템 정보 기준 정렬
   - **Contest 정렬**:
     - `startDate` (ContestDocument의 `startDate`)
@@ -283,30 +283,30 @@
     - `publishedAt` (NewsArticleDocument의 `publishedAt`)
     - `createdAt` (NewsArticleDocument의 `createdAt`)
   - **공통 정렬**:
-    - `itemTitle` (ArchiveDocument의 `itemTitle`)
-    - `archivedAt` (ArchiveDocument의 `archivedAt`)
-    - `createdAt` (ArchiveDocument의 `createdAt`)
+    - `itemTitle` (BookmarkDocument의 `itemTitle`)
+    - `bookmarkedAt` (BookmarkDocument의 `bookmarkedAt`)
+    - `createdAt` (BookmarkDocument의 `createdAt`)
 - **정렬 방향**: ASC, DESC 지원
 - **복합 정렬**: 여러 필드 기준 정렬 지원
 - **인덱스 최적화**: ESR 규칙 준수한 인덱스 설계
 - **원본 아이템 정보 조회**: 정렬을 위한 원본 아이템 정보 조회 전략
-  - 옵션 1: ArchiveDocument에 원본 날짜 정보 비정규화 저장 (추가 필드 필요)
+  - 옵션 1: BookmarkDocument에 원본 날짜 정보 비정규화 저장 (추가 필드 필요)
   - 옵션 2: 정렬 시 원본 아이템 조회 후 정렬 (성능 고려)
   - 권장 방안 제시 및 근거
 
-#### 4.7 아카이브 조회 기능 설계
-- **기본 조회**: 사용자별 아카이브 목록 조회 (MongoDB Atlas)
+#### 4.7 북마크 조회 기능 설계
+- **기본 조회**: 사용자별 북마크 목록 조회 (MongoDB Atlas)
 - **필터링**: `itemType` 필터 (CONTEST, NEWS_ARTICLE)
 - **페이징**: 페이지 번호, 페이지 크기 설정
 - **정렬**: 위의 정렬 기능 활용
-- **상세 조회**: `archiveTsid` 또는 `ObjectId`로 상세 조회
+- **상세 조회**: `bookmarkTsid` 또는 `ObjectId`로 상세 조회
 
 #### 4.8 권한 관리 설계
 - **사용자별 데이터 격리**: JWT 토큰에서 `userId` 추출
 - **권한 검증**: 
   - `@PreAuthorize` 어노테이션 활용
-  - 사용자는 본인의 아카이브만 조회/수정/삭제 가능
-- **인증 필수**: 모든 아카이브 API는 인증 필수
+  - 사용자는 본인의 북마크만 조회/수정/삭제 가능
+- **인증 필수**: 모든 북마크 API는 인증 필수
 
 #### 4.9 히스토리 관리 기능 설계
 - **자동 히스토리 저장**: `HistoryEntityListener`를 통한 자동 히스토리 저장
@@ -314,25 +314,25 @@
   - `@PrePersist`: INSERT 작업 시 히스토리 저장 (operation_type: INSERT)
   - `@PreUpdate`: UPDATE/DELETE 작업 시 히스토리 저장 (operation_type: UPDATE/DELETE)
   - `before_data`, `after_data` JSON 필드에 전체 엔티티 데이터 저장
-- **변경 이력 조회**: `GET /api/v1/archive/history/{entityId}`
-  - CQRS 패턴 예외로 Aurora MySQL `ArchiveHistory` 테이블 조회
+- **변경 이력 조회**: `GET /api/v1/bookmark/history/{entityId}`
+  - CQRS 패턴 예외로 Aurora MySQL `BookmarkHistory` 테이블 조회
   - 페이징, 필터링 지원 (operationType, startDate, endDate)
   - 권한 검증: 관리자 또는 본인만 조회 가능
   - 인덱스 활용: `operation_type + changed_at` 복합 인덱스
-- **특정 시점 데이터 조회**: `GET /api/v1/archive/history/{entityId}/at?timestamp={timestamp}`
+- **특정 시점 데이터 조회**: `GET /api/v1/bookmark/history/{entityId}/at?timestamp={timestamp}`
   - CQRS 패턴 예외로 Aurora MySQL 히스토리 테이블 조회
   - 해당 시점 이전의 가장 최근 이력 조회
   - `after_data` JSON 필드에서 데이터 추출
   - 권한 검증: 관리자 또는 본인만 조회 가능
-- **특정 버전으로 복구**: `POST /api/v1/archive/history/{entityId}/restore?historyId={historyId}`
+- **특정 버전으로 복구**: `POST /api/v1/bookmark/history/{entityId}/restore?historyId={historyId}`
   - 히스토리 엔티티의 `after_data` JSON 필드를 기반으로 엔티티 복구
   - Aurora MySQL에서 엔티티 업데이트
   - 히스토리 엔티티 생성 (operation_type: UPDATE)
-  - Kafka 이벤트 발행: `ArchiveUpdatedEvent`
+  - Kafka 이벤트 발행: `BookmarkUpdatedEvent`
   - 권한 검증: 관리자만 복구 가능
-- **히스토리 테이블 구조**: `ArchiveHistory` 엔티티
+- **히스토리 테이블 구조**: `BookmarkHistory` 엔티티
   - `history_id` (TSID Primary Key)
-  - `archive_id` (Foreign Key, Archive 테이블 참조)
+  - `bookmark_id` (Foreign Key, Bookmark 테이블 참조)
   - `operation_type` (INSERT, UPDATE, DELETE)
   - `before_data` (JSON, 변경 전 데이터)
   - `after_data` (JSON, 변경 후 데이터)
@@ -341,20 +341,20 @@
   - `change_reason` (변경 사유, 선택 사항)
 
 #### 4.10 프로젝트 구조 통합
-- **모듈 구조**: `api-archive` 모듈 구조 설계
+- **모듈 구조**: `api-bookmark` 모듈 구조 설계
   - 기존 `api-contest`, `api-news` 모듈 구조 참고
 - **패키지 구조**: 
   - `controller`: REST API 엔드포인트
   - `facade`: Controller와 Service 사이의 중간 계층
   - `service`: 비즈니스 로직 처리
-    - `ArchiveCommandService`: Aurora MySQL 쓰기 작업
-    - `ArchiveQueryService`: MongoDB Atlas 읽기 작업
-    - `ArchiveHistoryService`: 히스토리 조회 및 복구 작업 (Aurora MySQL)
+    - `BookmarkCommandService`: Aurora MySQL 쓰기 작업
+    - `BookmarkQueryService`: MongoDB Atlas 읽기 작업
+    - `BookmarkHistoryService`: 히스토리 조회 및 복구 작업 (Aurora MySQL)
   - `dto`: Request/Response DTO
   - `config`: 설정 클래스
   - `common/exception`: 예외 처리
 - **의존성 관리**: `common`, `domain` 모듈 활용
-- **설정 파일**: `application-archive-api.yml` 패턴 준수
+- **설정 파일**: `application-bookmark-api.yml` 패턴 준수
 
 ### 5단계: 구현 가이드
 1. 단계별 구현 순서
@@ -369,7 +369,7 @@
    - 인터페이스 설계
    - 의존성 주입 설계
 3. 설정 파일 예제
-   - `application-archive-api.yml`
+   - `application-bookmark-api.yml`
    - `build.gradle` 의존성
 4. 테스트 전략
    - 단위 테스트
@@ -378,7 +378,7 @@
 
 ### 6단계: 검증 기준
 1. 기능 검증 기준
-   - 아카이브 저장/수정/삭제/복구 기능 검증
+   - 북마크 저장/수정/삭제/복구 기능 검증
    - 검색 기능 검증
    - 정렬 기능 검증
 2. 성능 검증 기준
@@ -396,11 +396,11 @@
 
 ### 문서 구조
 ```markdown
-# 사용자 아카이브 기능 구현 설계서
+# 사용자 북마크 기능 구현 설계서
 
 **작성 일시**: YYYY-MM-DD
-**대상 모듈**: `api-archive`
-**목적**: 사용자 아카이브 저장, 조회, 수정, 삭제, 복구, 검색, 정렬 기능 구현 설계
+**대상 모듈**: `api-bookmark`
+**목적**: 사용자 북마크 저장, 조회, 수정, 삭제, 복구, 검색, 정렬 기능 구현 설계
 
 ## 목차
 1. [개요](#개요)
@@ -409,12 +409,12 @@
 4. [아키텍처 설계](#아키텍처-설계)
 5. [상세 설계](#상세-설계)
    - [API 엔드포인트 설계](#api-엔드포인트-설계)
-   - [아카이브 저장 기능 설계](#아카이브-저장-기능-설계)
-   - [아카이브 수정 기능 설계](#아카이브-수정-기능-설계)
-   - [아카이브 삭제 및 복구 기능 설계](#아카이브-삭제-및-복구-기능-설계)
-   - [아카이브 검색 기능 설계](#아카이브-검색-기능-설계)
-   - [아카이브 정렬 기능 설계](#아카이브-정렬-기능-설계)
-   - [아카이브 조회 기능 설계](#아카이브-조회-기능-설계)
+   - [북마크 저장 기능 설계](#북마크-저장-기능-설계)
+   - [북마크 수정 기능 설계](#북마크-수정-기능-설계)
+   - [북마크 삭제 및 복구 기능 설계](#북마크-삭제-및-복구-기능-설계)
+   - [북마크 검색 기능 설계](#북마크-검색-기능-설계)
+   - [북마크 정렬 기능 설계](#북마크-정렬-기능-설계)
+   - [북마크 조회 기능 설계](#북마크-조회-기능-설계)
    - [권한 관리 설계](#권한-관리-설계)
    - [히스토리 관리 기능 설계](#히스토리-관리-기능-설계)
    - [프로젝트 구조 통합](#프로젝트-구조-통합)
@@ -459,9 +459,9 @@
 
 설계서 작성 완료 후 다음 사항을 확인:
 
-- [ ] 아카이브 저장/수정/삭제/복구 기능 설계가 포함되었는지 확인
-- [ ] 아카이브 검색 기능 설계가 포함되었는지 확인 (태그, 메모 기반)
-- [ ] 아카이브 정렬 기능 설계가 포함되었는지 확인 (원본 아이템 정보 기준)
+- [ ] 북마크 저장/수정/삭제/복구 기능 설계가 포함되었는지 확인
+- [ ] 북마크 검색 기능 설계가 포함되었는지 확인 (태그, 메모 기반)
+- [ ] 북마크 정렬 기능 설계가 포함되었는지 확인 (원본 아이템 정보 기준)
 - [ ] 히스토리 관리 기능 설계가 포함되었는지 확인 (변경 이력 조회, 특정 시점 데이터 조회, 특정 버전으로 복구)
 - [ ] 현재 프로젝트 구조와 통합 가능한지 확인
 - [ ] CQRS 패턴이 올바르게 적용되었는지 확인 (히스토리 조회는 CQRS 패턴 예외)
@@ -476,8 +476,8 @@
 
 ## 시작 지시
 
-위의 모든 요구사항과 지침을 준수하여 **사용자 아카이브 기능 구현 설계서**를 작성하세요.
+위의 모든 요구사항과 지침을 준수하여 **사용자 북마크 기능 구현 설계서**를 작성하세요.
 
-설계서는 `docs/step13/user-archive-feature-design.md` 경로에 저장될 예정입니다.
+설계서는 `docs/step13/user-bookmark-feature-design.md` 경로에 저장될 예정입니다.
 
 **중요**: 설계서는 실제 구현 가능해야 하며, 현재 프로젝트에 바로 통합 가능한 수준의 상세함을 가져야 합니다.

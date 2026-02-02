@@ -25,7 +25,7 @@
   - `document/` 패키지의 Document 클래스들
   - `repository/` 패키지의 Repository 인터페이스들
 - [ ] `domain/aurora` 모듈의 구조 파악 (Command Side)
-  - User, Archive 엔티티 구조
+  - User, Bookmark 엔티티 구조
   - TSID Primary Key 전략
 
 #### 이미 구현된 코드 분석
@@ -40,13 +40,13 @@
   - `BaseEvent` 인터페이스 구조
   - 각 이벤트 타입별 페이로드 구조
   - `UserCreatedEvent`, `UserUpdatedEvent`, `UserDeletedEvent`, `UserRestoredEvent`
-  - `ArchiveCreatedEvent`, `ArchiveUpdatedEvent`, `ArchiveDeletedEvent`, `ArchiveRestoredEvent`
+  - `BookmarkCreatedEvent`, `BookmarkUpdatedEvent`, `BookmarkDeletedEvent`, `BookmarkRestoredEvent`
 - [ ] MongoDB Repository 인터페이스 확인
   - `UserProfileRepository`의 메서드 시그니처
-  - `ArchiveRepository`의 메서드 시그니처
+  - `BookmarkRepository`의 메서드 시그니처
 
 #### 미구현 부분 식별
-- [ ] 동기화 서비스 (`UserSyncService`, `ArchiveSyncService`) 존재 여부 확인
+- [ ] 동기화 서비스 (`UserSyncService`, `BookmarkSyncService`) 존재 여부 확인
   - **주의**: `ContestSyncService`, `NewsArticleSyncService`는 배치 작업을 통해 직접 MongoDB에 저장되므로 Kafka 동기화 불필요 (제외)
 - [ ] `EventConsumer.processEvent` 메서드의 실제 구현 여부 확인
 - [ ] MongoDB Repository의 실제 구현 클래스 존재 여부 확인
@@ -64,18 +64,18 @@
    - `docs/step2/2. data-model-design.md`
    - 특히 "실시간 동기화 전략" 섹션 (620-808라인)
    - User 엔티티 → UserProfileDocument 동기화 흐름
-   - Archive 엔티티 → ArchiveDocument 동기화 흐름
+   - Bookmark 엔티티 → BookmarkDocument 동기화 흐름
 
 2. **MongoDB 스키마 설계서**
    - `docs/step1/2. mongodb-schema-design.md`
    - UserProfileDocument 필드 구조 및 인덱스
-   - ArchiveDocument 필드 구조 및 인덱스
+   - BookmarkDocument 필드 구조 및 인덱스
    - TSID 필드 기반 매핑 전략
 
 3. **Aurora 스키마 설계서**
    - `docs/step1/3. aurora-schema-design.md`
    - User 엔티티 구조
-   - Archive 엔티티 구조
+   - Bookmark 엔티티 구조
    - TSID Primary Key 전략
 
 4. **배치 잡 통합 설계서 (참고용)**
@@ -223,7 +223,7 @@
    - 멱등성 보장 로직
 
 2. **미구현 부분**
-   - 동기화 서비스 (`UserSyncService`, `ArchiveSyncService`)
+   - 동기화 서비스 (`UserSyncService`, `BookmarkSyncService`)
      - **주의**: `ContestSyncService`, `NewsArticleSyncService`는 제외 (배치 작업으로 직접 MongoDB 저장)
    - `EventConsumer.processEvent` 실제 구현
    - 이벤트 타입별 처리 로직
@@ -243,7 +243,7 @@
 [Command Side]                    [Kafka]                    [Query Side]
 Aurora MySQL ──이벤트 발행──> Kafka Topic ──이벤트 수신──> MongoDB Atlas
    User                              │                          UserProfileDocument
-   Archive                           │                          ArchiveDocument
+   Bookmark                           │                          BookmarkDocument
                                      │
                               EventConsumer
                               └─> SyncService
@@ -266,13 +266,13 @@ Aurora MySQL ──이벤트 발행──> Kafka Topic ──이벤트 수신─
    - `updatedFields` 처리 전략 (부분 업데이트 vs 전체 교체)
    - 에러 핸들링 전략
 
-2. **ArchiveSyncService**
+2. **BookmarkSyncService**
    - 인터페이스 정의
    - 메서드 시그니처:
-     - `syncArchiveCreated(ArchiveCreatedEvent)`
-     - `syncArchiveUpdated(ArchiveUpdatedEvent)` - `updatedFields` (Map<String, Object>) 처리 방법 설계 필요
-     - `syncArchiveDeleted(ArchiveDeletedEvent)`
-     - `syncArchiveRestored(ArchiveRestoredEvent)`
+     - `syncBookmarkCreated(BookmarkCreatedEvent)`
+     - `syncBookmarkUpdated(BookmarkUpdatedEvent)` - `updatedFields` (Map<String, Object>) 처리 방법 설계 필요
+     - `syncBookmarkDeleted(BookmarkDeletedEvent)`
+     - `syncBookmarkRestored(BookmarkRestoredEvent)`
    - 구현 클래스 설계
    - MongoDB Repository 의존성
    - Upsert 패턴 구현 (생성/수정 통합)
@@ -421,16 +421,16 @@ Aurora MySQL ──이벤트 발행──> Kafka Topic ──이벤트 수신─
 - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserUpdatedEvent.java` (updatedFields 구조 확인)
 - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserDeletedEvent.java`
 - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserRestoredEvent.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveCreatedEvent.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveUpdatedEvent.java` (updatedFields 구조 확인)
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveDeletedEvent.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveRestoredEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkCreatedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkUpdatedEvent.java` (updatedFields 구조 확인)
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkDeletedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkRestoredEvent.java`
 
 ### 7.2 MongoDB 모듈
 - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java`
-- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/ArchiveDocument.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java`
 - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java`
-- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/ArchiveRepository.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java`
 
 ---
 

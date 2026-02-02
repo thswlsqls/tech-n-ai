@@ -35,7 +35,7 @@ shrimp-tm-demo/
 ├── settings.gradle                 # 모듈 정의
 │
 ├── api/
-│   ├── archive/                    # bootJar=true
+│   ├── bookmark/                    # bootJar=true
 │   ├── auth/                       # bootJar=true
 │   ├── chatbot/                    # bootJar=true
 │   ├── contest/                    # jar=true (라이브러리)

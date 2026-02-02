@@ -6,8 +6,8 @@
 Phase 2에서 정의한 Tool들을 사용하는 AI Agent를 구축하여, 자연어 목표(Goal)만 주어지면 자율적으로 데이터 수집 및 포스팅을 수행하도록 한다.
 
 ### 1.2 전제 조건
-- Phase 1 완료: AiUpdate 엔티티, API 엔드포인트, Batch Job
-- Phase 2 완료: LangChain4j Tool 래퍼 (AiUpdateAgentTools)
+- Phase 1 완료: EmergingTech 엔티티, API 엔드포인트, Batch Job
+- Phase 2 완료: LangChain4j Tool 래퍼 (EmergingTechAgentTools)
 
 ---
 
@@ -16,12 +16,12 @@ Phase 2에서 정의한 Tool들을 사용하는 AI Agent를 구축하여, 자연
 ### 2.1 인터페이스 정의
 
 ```java
-package com.tech.n.ai.api.chatbot.agent;
+package com.tech.n.ai.api.agent.agent;
 
 /**
- * AI 업데이트 추적 Agent 인터페이스
+ * Emerging Tech 업데이트 추적 Agent 인터페이스
  */
-public interface AiUpdateAgent {
+public interface EmergingTechAgent {
 
     /**
      * 자연어 목표를 받아 자율적으로 실행
@@ -61,26 +61,26 @@ public record AgentExecutionResult(
 ### 3.1 디렉토리 구조
 
 ```
-api/chatbot/src/main/java/.../chatbot/
+api/agent/src/main/java/.../agent/
 ├── agent/
-│   ├── AiUpdateAgent.java           // 인터페이스
-│   ├── AiUpdateAgentImpl.java       // 구현체
-│   ├── AgentExecutionResult.java    // 결과 DTO
-│   └── AgentAssistant.java          // LangChain4j AiServices 인터페이스
+│   ├── EmergingTechAgent.java           // 인터페이스
+│   ├── EmergingTechAgentImpl.java       // 구현체
+│   ├── AgentExecutionResult.java        // 결과 DTO
+│   └── AgentAssistant.java             // LangChain4j AiServices 인터페이스
 ├── config/
-│   └── AiAgentConfig.java           // Agent 설정
+│   └── AgentConfig.java                // Agent 설정
 ├── scheduler/
-│   └── AiUpdateAgentScheduler.java  // 스케줄 트리거
+│   └── EmergingTechAgentScheduler.java  // 스케줄 트리거
 └── controller/
-    └── AgentController.java         // REST API 트리거
+    └── AgentController.java             // REST API 트리거
 ```
 
 ### 3.2 Agent 구현체
 
 ```java
-package com.tech.n.ai.api.chatbot.agent;
+package com.tech.n.ai.api.agent.agent;
 
-import com.tech.n.ai.api.chatbot.tool.AiUpdateAgentTools;
+import com.tech.n.ai.api.agent.tool.EmergingTechAgentTools;
 import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -94,11 +94,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiUpdateAgentImpl implements AiUpdateAgent {
+public class EmergingTechAgentImpl implements EmergingTechAgent {
 
     @Qualifier("agentChatModel")
     private final ChatLanguageModel chatModel;  // OpenAI GPT-4o-mini
-    private final AiUpdateAgentTools tools;
+    private final EmergingTechAgentTools tools;
     private final SlackContract slackApi;
 
     private static final int MAX_TOOL_CALLS = 20;  // 무한 루프 방지
@@ -108,6 +108,9 @@ public class AiUpdateAgentImpl implements AiUpdateAgent {
         long startTime = System.currentTimeMillis();
 
         try {
+            // 카운터 초기화
+            tools.resetCounters();
+
             // 세션별 독립 메모리 생성
             ChatMemory memory = MessageWindowChatMemory.builder()
                 .maxMessages(30)
@@ -124,12 +127,13 @@ public class AiUpdateAgentImpl implements AiUpdateAgent {
             String response = assistant.chat(buildPrompt(goal));
 
             long elapsed = System.currentTimeMillis() - startTime;
-            log.info("Agent 실행 완료: goal={}, elapsed={}ms", goal, elapsed);
+            log.info("Agent 실행 완료: goal={}, elapsed={}ms, toolCalls={}, postsCreated={}",
+                goal, elapsed, tools.getToolCallCount(), tools.getPostsCreatedCount());
 
             return AgentExecutionResult.success(
                 response,
-                0,  // Tool 호출 횟수는 LangChain4j 내부에서 추적 어려움
-                0,  // 생성된 포스트 수도 응답에서 파싱 필요
+                tools.getToolCallCount(),
+                tools.getPostsCreatedCount(),
                 elapsed
             );
 
@@ -145,28 +149,29 @@ public class AiUpdateAgentImpl implements AiUpdateAgent {
 
     private String buildPrompt(String goal) {
         return """
-            당신은 AI 업데이트 추적 전문가입니다.
+            당신은 Emerging Tech 업데이트 추적 전문가입니다.
 
             ## 역할
-            - 빅테크 AI 서비스(OpenAI, Anthropic, Google, Meta)의 최신 업데이트를 추적
+            - 빅테크 IT 기업(OpenAI, Anthropic, Google, Meta, xAI)의 최신 업데이트를 추적
             - 중요한 업데이트를 식별하고 포스팅
 
             ## 사용 가능한 도구
-            - fetchGitHubReleases: GitHub 저장소 릴리스 조회
-            - scrapeWebPage: 웹 페이지 크롤링
-            - searchAiUpdates: 기존 업데이트 검색 (중복 방지)
-            - createDraftPost: 초안 포스트 생성
-            - publishPost: 포스트 게시
-            - sendSlackNotification: Slack 알림
+            - fetch_github_releases: GitHub 저장소 릴리스 조회
+            - scrape_web_page: 웹 페이지 크롤링
+            - search_emerging_techs: 기존 Emerging Tech 업데이트 검색 (중복 방지)
+            - create_draft_post: 초안 포스트 생성
+            - publish_post: 포스트 게시
+            - send_slack_notification: Slack 알림
 
             ## 주요 저장소 정보
             - OpenAI: openai/openai-python
             - Anthropic: anthropics/anthropic-sdk-python
             - Google: google/generative-ai-python
             - Meta: facebookresearch/llama
+            - xAI: xai-org/grok-1
 
             ## 규칙
-            1. 작업 전 항상 searchAiUpdates로 중복 확인
+            1. 작업 전 항상 search_emerging_techs로 중복 확인
             2. 중요도가 높은 업데이트만 포스팅 (모델 출시, 주요 API 변경, 메이저 버전 릴리스)
             3. 마이너 버그 수정이나 문서 업데이트는 건너뛰기
             4. 확신이 낮으면 Slack으로 관리자에게 확인 요청
@@ -193,7 +198,7 @@ public class AiUpdateAgentImpl implements AiUpdateAgent {
 ### 3.3 AgentAssistant 인터페이스
 
 ```java
-package com.tech.n.ai.api.chatbot.agent;
+package com.tech.n.ai.api.agent.agent;
 
 /**
  * LangChain4j AiServices용 Assistant 인터페이스
@@ -217,33 +222,44 @@ public interface AgentAssistant {
 ### 4.1 REST API 트리거
 
 ```java
-package com.tech.n.ai.api.chatbot.controller;
+package com.tech.n.ai.api.agent.controller;
 
-import com.tech.n.ai.api.chatbot.agent.AiUpdateAgent;
-import com.tech.n.ai.api.chatbot.agent.AgentExecutionResult;
+import com.tech.n.ai.api.agent.agent.EmergingTechAgent;
+import com.tech.n.ai.api.agent.agent.EmergingTechAgentImpl;
+import com.tech.n.ai.api.agent.agent.AgentExecutionResult;
+import com.tech.n.ai.api.agent.config.AgentConfig;
 import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.MessageDigest;
+import java.util.UUID;
+
+/**
+ * Emerging Tech Agent REST API 컨트롤러
+ * 내부 API Key 인증을 통한 수동 실행 트리거
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/agent")
 @RequiredArgsConstructor
 public class AgentController {
 
-    private final AiUpdateAgent agent;
-
-    @Value("${internal-api.agent.api-key}")
-    private String apiKey;
+    private final EmergingTechAgent agent;
+    private final AgentConfig agentConfig;
 
     /**
      * Agent 수동 실행
+     *
+     * POST /api/v1/agent/run
+     * Header: X-Internal-Api-Key
+     *
+     * @param request goal (필수), sessionId (선택)
      */
     @PostMapping("/run")
     public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
@@ -251,21 +267,51 @@ public class AgentController {
             @RequestHeader("X-Internal-Api-Key") String requestApiKey
     ) {
         validateApiKey(requestApiKey);
-        log.info("Agent 수동 실행 요청: goal={}", request.goal());
 
-        AgentExecutionResult result = agent.execute(request.goal());
+        // sessionId 지정되지 않으면 자동 생성
+        String sessionId = (request.sessionId() != null && !request.sessionId().isBlank())
+                ? request.sessionId()
+                : "manual-" + UUID.randomUUID().toString().substring(0, 8);
+
+        log.info("Agent 수동 실행 요청: goal={}, sessionId={}", request.goal(), sessionId);
+
+        // sessionId가 지정된 경우 오버로드된 execute 메서드 호출
+        AgentExecutionResult result;
+        if (agent instanceof EmergingTechAgentImpl agentImpl) {
+            result = agentImpl.execute(request.goal(), sessionId);
+        } else {
+            result = agent.execute(request.goal());
+        }
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     private void validateApiKey(String requestApiKey) {
-        if (requestApiKey == null || !apiKey.equals(requestApiKey)) {
-            throw new UnauthorizedException("유효하지 않은 API 키입니다.");
+        if (requestApiKey == null || requestApiKey.isBlank()) {
+            throw new UnauthorizedException("내부 API 키가 제공되지 않았습니다.");
+        }
+
+        String configuredApiKey = agentConfig.getApiKey();
+        if (configuredApiKey == null || configuredApiKey.isBlank()) {
+            log.warn("내부 API 키가 설정되지 않았습니다. 설정 파일을 확인하세요.");
+            throw new UnauthorizedException("내부 API 키가 설정되지 않았습니다.");
+        }
+
+        if (!MessageDigest.isEqual(configuredApiKey.getBytes(), requestApiKey.getBytes())) {
+            throw new UnauthorizedException("유효하지 않은 내부 API 키입니다.");
         }
     }
 
+    /**
+     * Agent 실행 요청 DTO
+     *
+     * @param goal 실행 목표 (필수)
+     * @param sessionId 세션 식별자 (선택, 미지정 시 자동 생성)
+     */
     public record AgentRunRequest(
-        @NotBlank(message = "goal은 필수입니다.")
-        String goal
+            @NotBlank(message = "goal은 필수입니다.")
+            String goal,
+            String sessionId
     ) {}
 }
 ```
@@ -273,31 +319,33 @@ public class AgentController {
 ### 4.2 스케줄 트리거
 
 ```java
-package com.tech.n.ai.api.chatbot.scheduler;
+package com.tech.n.ai.api.agent.scheduler;
 
-import com.tech.n.ai.api.chatbot.agent.AiUpdateAgent;
-import com.tech.n.ai.api.chatbot.agent.AgentExecutionResult;
+import com.tech.n.ai.api.agent.agent.EmergingTechAgent;
+import com.tech.n.ai.api.agent.agent.AgentExecutionResult;
 import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Emerging Tech Agent 스케줄러
+ * 6시간마다 자동으로 Emerging Tech 업데이트 추적 및 포스팅 수행
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AiUpdateAgentScheduler {
+@ConditionalOnProperty(name = "agent.scheduler.enabled", havingValue = "true", matchIfMissing = false)
+public class EmergingTechAgentScheduler {
 
-    private final AiUpdateAgent agent;
-    private final SlackContract slackApi;
-
-    @Value("${agent.scheduler.enabled:false}")
-    private boolean schedulerEnabled;
+    private final EmergingTechAgent agent;
+    private final SlackContract slackContract;
 
     private static final String DEFAULT_GOAL = """
-        OpenAI, Anthropic, Google, Meta의 최신 업데이트를 확인하고 중요한 것만 포스팅해줘.
-        이미 포스팅된 것은 제외해.
+        OpenAI, Anthropic, Google, Meta, xAI의 최신 업데이트를 확인하고 중요한 것만 초안으로 생성해줘.
+        이미 포스팅된 것은 제외하고, 생성 후 Slack으로 알려줘.
         """;
 
     /**
@@ -305,11 +353,6 @@ public class AiUpdateAgentScheduler {
      */
     @Scheduled(cron = "${agent.scheduler.cron:0 0 */6 * * *}")
     public void scheduledRun() {
-        if (!schedulerEnabled) {
-            log.debug("Agent 스케줄러 비활성화됨");
-            return;
-        }
-
         log.info("Agent 스케줄 실행 시작");
 
         try {
@@ -324,15 +367,19 @@ public class AiUpdateAgentScheduler {
             }
         } catch (Exception e) {
             log.error("Agent 스케줄 실행 중 예외 발생", e);
-            slackApi.sendErrorNotification("Agent 스케줄 실행 실패", e);
+            slackContract.sendErrorNotification("Agent 스케줄 실행 실패", e);
         }
     }
 
     private void notifyFailure(AgentExecutionResult result) {
-        slackApi.sendErrorNotification(
-            "Agent 스케줄 실행 실패: " + String.join(", ", result.errors()),
-            null
-        );
+        try {
+            slackContract.sendErrorNotification(
+                "Agent 스케줄 실행 실패: " + String.join(", ", result.errors()),
+                null
+            );
+        } catch (Exception e) {
+            log.error("Slack 알림 전송 실패", e);
+        }
     }
 }
 ```
@@ -344,78 +391,55 @@ public class AiUpdateAgentScheduler {
 ### 5.1 Agent 설정 클래스
 
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.tech.n.ai.api.agent.config;
 
-import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-
-@Slf4j
-@Configuration
-public class AiAgentConfig {
-
-    @Value("${langchain4j.open-ai.chat-model.api-key}")
-    private String openAiApiKey;
-
-    @Value("${langchain4j.open-ai.agent-model.model-name:gpt-4o-mini}")
-    private String agentModelName;
+/**
+ * Agent 관련 설정 프로퍼티
+ */
+@Data
+@Component
+@ConfigurationProperties(prefix = "internal-api.emerging-tech")
+public class AgentConfig {
 
     /**
-     * Agent용 ChatLanguageModel (OpenAI GPT-4o-mini)
-     * Tool 호출을 지원하는 모델 - 기존 OpenAI 인프라 활용
+     * 내부 API 키 (Agent 엔드포인트 인증용)
      */
-    @Bean("agentChatModel")
-    public ChatLanguageModel agentChatLanguageModel() {
-        log.info("Agent ChatLanguageModel 초기화: model={}", agentModelName);
-
-        return OpenAiChatModel.builder()
-            .apiKey(openAiApiKey)  // 기존 OpenAI API 키 재사용
-            .modelName(agentModelName)
-            .temperature(0.3)  // Tool 호출에는 낮은 temperature
-            .maxTokens(4096)
-            .timeout(Duration.ofSeconds(120))
-            .logRequests(true)
-            .logResponses(true)
-            .build();
-    }
+    private String apiKey;
 }
 ```
 
-### 5.2 application.yml 설정
+### 5.2 application-agent-api.yml 설정
 
 ```yaml
-# Agent 설정 - 기존 OpenAI 설정과 통합
+# Agent용 OpenAI 설정
 langchain4j:
   open-ai:
     chat-model:
-      api-key: ${OPENAI_API_KEY}
-      model-name: gpt-4o-mini        # 챗봇용 (기존)
-    agent-model:
-      model-name: gpt-4o-mini        # Agent용 (동일 모델 사용)
-    embedding-model:
-      api-key: ${OPENAI_API_KEY}
-      model-name: text-embedding-3-small  # 기존 유지
+      api-key: ${OPENAI_API_KEY:}
+      model-name: gpt-4o-mini
+      temperature: 0.3
+      max-tokens: 4096
+      timeout: 120s
 
-# 내부 API
+# Emerging Tech 내부 API 설정
 internal-api:
-  agent:
-    api-key: ${AGENT_INTERNAL_API_KEY:default-agent-key}
+  emerging-tech:
+    api-key: ${EMERGING_TECH_INTERNAL_API_KEY:}
 
-# 스케줄러 설정
+# Emerging Tech Agent 스케줄러 설정
 agent:
   scheduler:
     enabled: ${AGENT_SCHEDULER_ENABLED:false}
-    cron: "0 0 */6 * * *"  # 6시간마다
+    cron: "0 0 */6 * * *"
 
 # Slack 알림
 slack:
-  ai-update:
-    channel: "#ai-updates"
+  emerging-tech:
+    channel: "#emerging-tech"
   alerts:
     channel: "#alerts"
 ```
@@ -487,19 +511,19 @@ public AgentExecutionResult execute(String goal) {
 
 ```java
 @ExtendWith(MockitoExtension.class)
-class AiUpdateAgentImplTest {
+class EmergingTechAgentImplTest {
 
     @Mock
     private ChatLanguageModel chatModel;
 
     @Mock
-    private AiUpdateAgentTools tools;
+    private EmergingTechAgentTools tools;
 
     @Mock
     private SlackContract slackApi;
 
     @InjectMocks
-    private AiUpdateAgentImpl agent;
+    private EmergingTechAgentImpl agent;
 
     @Test
     void execute_shouldReturnSuccessResult() {
@@ -533,18 +557,18 @@ class AiUpdateAgentImplTest {
 ```java
 @SpringBootTest
 @ActiveProfiles("test")
-class AiUpdateAgentIntegrationTest {
+class EmergingTechAgentIntegrationTest {
 
     @Autowired
-    private AiUpdateAgent agent;
+    private EmergingTechAgent agent;
 
     @MockBean
-    private AiUpdateAgentTools tools;
+    private EmergingTechAgentTools tools;
 
     @Test
     void execute_shouldCallToolsInOrder() {
         // Given
-        when(tools.searchAiUpdates(anyString(), anyString()))
+        when(tools.searchEmergingTechs(anyString(), anyString()))
             .thenReturn(List.of());
         when(tools.fetchGitHubReleases(anyString(), anyString()))
             .thenReturn(List.of(new GitHubReleaseDto("v1.0.0", "Release", "notes", "url", "2024-01-01")));
@@ -553,7 +577,7 @@ class AiUpdateAgentIntegrationTest {
         AgentExecutionResult result = agent.execute("OpenAI SDK 업데이트 확인");
 
         // Then
-        verify(tools, atLeastOnce()).searchAiUpdates(anyString(), anyString());
+        verify(tools, atLeastOnce()).searchEmergingTechs(anyString(), anyString());
         verify(tools, atLeastOnce()).fetchGitHubReleases(eq("openai"), eq("openai-python"));
     }
 }
@@ -568,15 +592,15 @@ User Goal: "OpenAI와 Anthropic 최신 업데이트 확인하고 포스팅해줘
 
 Agent 추론:
 1. "먼저 OpenAI GitHub 릴리스를 확인해볼게"
-   → Tool: fetchGitHubReleases("openai", "openai-python")
+   → Tool: fetch_github_releases("openai", "openai-python")
    → 결과: v1.50.0 릴리스 발견
 
 2. "이미 포스팅했는지 확인해볼게"
-   → Tool: searchAiUpdates("openai-python v1.50.0", "OPENAI")
+   → Tool: search_emerging_techs("openai-python v1.50.0", "OPENAI")
    → 결과: 없음 (중복 아님)
 
 3. "새로운 SDK 릴리스니까 초안 만들자"
-   → Tool: createDraftPost(
+   → Tool: create_draft_post(
        title="OpenAI Python SDK v1.50.0 릴리스",
        summary="...",
        provider="OPENAI",
@@ -586,13 +610,13 @@ Agent 추론:
    → 결과: Post ID "12345" 생성됨
 
 4. "Slack으로 알려줄게"
-   → Tool: sendSlackNotification(
+   → Tool: send_slack_notification(
        message="새 업데이트 초안 생성: OpenAI Python SDK v1.50.0"
      )
    → 결과: 성공
 
 5. "이제 Anthropic 확인해볼게"
-   → Tool: fetchGitHubReleases("anthropics", "anthropic-sdk-python")
+   → Tool: fetch_github_releases("anthropics", "anthropic-sdk-python")
    → 결과: 새 릴리스 없음
 
 Agent 응답:

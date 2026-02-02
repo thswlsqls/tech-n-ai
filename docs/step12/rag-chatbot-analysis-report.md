@@ -218,7 +218,7 @@ new Document("$match", new Document("score", new Document("$gte", minScore)))
 **확인된 정상 구현:**
 - OpenAI text-embedding-3-small 사용 (1536 dimensions)
 - document/query 구분 없이 동일 모델 사용 (OpenAI 특성 반영)
-- pre-filter로 archives의 userId 필터링 적용
+- pre-filter로 bookmarks의 userId 필터링 적용
 - `$meta: "vectorSearchScore"`로 유사도 점수 추출
 - numCandidates: 100 (limit 5의 20배, 권장 범위 내)
 

@@ -1,14 +1,14 @@
-# Step 12: 사용자 아카이브 기능 구현
+# Step 12: 사용자 북마크 기능 구현
 
 ## Plan Task
 
 ```
-plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
+plan task: 사용자 북마크 기능 구현 (CQRS 패턴 적용)
 ```
 
 ## 개요
 
-`api-archive` 모듈의 사용자 아카이브 기능을 구현합니다. 로그인한 사용자가 조회할 수 있는 모든 contest, news 정보를 개인 아카이브에 저장하고, 태그와 메모를 수정하며, 삭제 및 복구할 수 있는 기능을 제공합니다.
+`api-bookmark` 모듈의 사용자 북마크 기능을 구현합니다. 로그인한 사용자가 조회할 수 있는 모든 contest, news 정보를 개인 북마크에 저장하고, 태그와 메모를 수정하며, 삭제 및 복구할 수 있는 기능을 제공합니다.
 
 ## 관련 파일
 
@@ -22,9 +22,9 @@ plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
 
 ## 주요 작업 내용
 
-- `api-archive` 모듈의 11개 API 엔드포인트 구현
-- ArchiveCommandService, ArchiveQueryService, ArchiveHistoryService 구현
-- ArchiveFacade 및 ArchiveController 구현
+- `api-bookmark` 모듈의 11개 API 엔드포인트 구현
+- BookmarkCommandService, BookmarkQueryService, BookmarkHistoryService 구현
+- BookmarkFacade 및 BookmarkController 구현
 - Domain 모듈 확장
 
 ## 의존성

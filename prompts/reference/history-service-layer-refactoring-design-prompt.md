@@ -64,11 +64,11 @@
 
 ### 엔티티 구조
 - `BaseEntity`: 모든 엔티티의 기본 클래스 (id, isDeleted, deletedAt, createdAt, updatedAt 등)
-- `UserEntity`, `AdminEntity`, `ArchiveEntity`: History 저장 대상 엔티티
-- `UserHistoryEntity`, `AdminHistoryEntity`, `ArchiveHistoryEntity`: History 엔티티
+- `UserEntity`, `AdminEntity`, `BookmarkEntity`: History 저장 대상 엔티티
+- `UserHistoryEntity`, `AdminHistoryEntity`, `BookmarkHistoryEntity`: History 엔티티
 
 ### WriterRepository 구조
-- `UserWriterRepository`, `AdminWriterRepository`, `ArchiveWriterRepository`: 각각 `save()`, `saveAndFlush()`, `delete()`, `deleteById()` 메서드 제공
+- `UserWriterRepository`, `AdminWriterRepository`, `BookmarkWriterRepository`: 각각 `save()`, `saveAndFlush()`, `delete()`, `deleteById()` 메서드 제공
 - 모든 WriterRepository는 `@Service`로 등록되어 있음
 
 ### 현재 HistoryEntityListener 기능
@@ -161,7 +161,7 @@
 - 직렬화 실패 시 처리
 
 #### 3.3 엔티티 타입별 처리
-- UserEntity, AdminEntity, ArchiveEntity 각각에 대한 History 엔티티 생성 로직
+- UserEntity, AdminEntity, BookmarkEntity 각각에 대한 History 엔티티 생성 로직
 - 타입별 분기 처리 방법 (instanceof vs 다형성)
 
 #### 3.4 에러 처리

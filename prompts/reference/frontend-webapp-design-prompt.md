@@ -68,7 +68,7 @@
 5. **@docs/step2/1. api-endpoint-design.md**
    - CQRS 패턴 기반 API 설계
    - 공개 API vs 인증 필요 API 구분
-   - Archive/Contest/News/Chatbot API 명세 (향후 연동 대상)
+   - Bookmark/Contest/News/Chatbot API 명세 (향후 연동 대상)
 
 ---
 
@@ -347,7 +347,7 @@
 
 3. **인터페이스 분리 원칙 (ISP)**
    - 각 API 서비스는 독립적인 인터페이스 제공
-   - `AuthService`, `ArchiveService`, `ContestService` 등
+   - `AuthService`, `BookmarkService`, `ContestService` 등
 
 **프론트엔드 베스트프랙티스**:
 1. **컴포넌트 설계**

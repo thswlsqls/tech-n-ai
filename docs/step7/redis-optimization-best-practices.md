@@ -913,7 +913,7 @@ public class EventConsumer {
     private final RedisTemplate<String, String> redisTemplate;
     
     @KafkaListener(
-        topics = "${spring.kafka.consumer.topics:user-events,archive-events,contest-events,news-events}",
+        topics = "${spring.kafka.consumer.topics:user-events,bookmark-events,contest-events,news-events}",
         groupId = "${spring.kafka.consumer.group-id:shrimp-task-manager-group}",
         containerFactory = "kafkaListenerContainerFactory"
     )

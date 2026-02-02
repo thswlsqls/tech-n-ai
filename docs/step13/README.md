@@ -8,7 +8,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
 
 ## 개요
 
-`api-chatbot` 모듈의 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템을 구현합니다. langchain4j 오픈소스를 활용하여 MongoDB Atlas Vector Search 기반의 지식 검색 챗봇을 구축하며, ContestDocument, NewsArticleDocument, ArchiveDocument를 임베딩하여 벡터 검색 기반의 자연어 질의응답 시스템을 제공합니다.
+`api-chatbot` 모듈의 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템을 구현합니다. langchain4j 오픈소스를 활용하여 MongoDB Atlas Vector Search 기반의 지식 검색 챗봇을 구축하며, ContestDocument, NewsArticleDocument, BookmarkDocument를 임베딩하여 벡터 검색 기반의 자연어 질의응답 시스템을 제공합니다.
 
 ## 작업 목표
 
@@ -27,7 +27,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
 
 - 11단계: CQRS 패턴 구현 완료 필수
 - 9단계: Contest 및 News API 모듈 구현 완료 필수
-- 12단계: 사용자 아카이브 기능 구현 완료 권장
+- 12단계: 사용자 북마크 기능 구현 완료 권장
 
 ## 다음 단계
 

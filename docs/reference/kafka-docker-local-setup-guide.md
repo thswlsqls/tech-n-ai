@@ -250,7 +250,7 @@ dependencies {
 - `api-contest` ✅ 추가됨
 - `api-news` ✅ 추가됨
 - `api-auth` (필요시 추가)
-- `api-archive` (필요시 추가)
+- `api-bookmark` (필요시 추가)
 
 ## 4. Spring Boot 연동
 
@@ -891,8 +891,8 @@ docker compose logs kafka | grep "Kafka Server started"
 # Gateway API
 ./gradlew :api-gateway:bootRun --args='--spring.profiles.active=local'
 
-# Archive API (다른 터미널)
-./gradlew :api-archive:bootRun --args='--spring.profiles.active=local'
+# Bookmark API (다른 터미널)
+./gradlew :api-bookmark:bootRun --args='--spring.profiles.active=local'
 ```
 
 ### 6.2 동작 확인

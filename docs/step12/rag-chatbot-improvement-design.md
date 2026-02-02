@@ -657,8 +657,8 @@ chatbot:
       - 뉴스
       - news
       - 기사
-      - 아카이브
-      - archive
+      - 북마크
+      - bookmark
       - 검색
       - 찾아
       - 알려

@@ -125,7 +125,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
    - 현재 Gradle 멀티모듈 프로젝트 구조 검증
      역할: 기존 멀티모듈 프로젝트 구조 검증
      책임: 현재 모듈 구조 확인 및 검증, 요구사항과의 일치 여부 확인
-     검증 대상 모듈 구조: domain/ (domain-aurora, domain-mongodb), common/ (common-core, common-security, common-kafka, common-exception), client/ (client-feign, client-rss, client-scraper, client-slack), batch/ (batch-source), api/ (api-contest, api-news, api-auth, api-archive)
+     검증 대상 모듈 구조: domain/ (domain-aurora, domain-mongodb), common/ (common-core, common-security, common-kafka, common-exception), client/ (client-feign, client-rss, client-scraper, client-slack), batch/ (batch-source), api/ (api-contest, api-news, api-auth, api-bookmark)
      검증 기준: 모든 필수 모듈이 존재하는지 확인, 모듈 구조가 요구사항과 일치하는지 확인
    
    - build.gradle 루트 설정 검증
@@ -311,7 +311,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
       - 출처별 조회
      - 프로젝션 최적화: 목록 조회 시 제목, 요약, 메타데이터만 프로젝션
    
-   - **ArchiveDocument**: 사용자 아카이브 (읽기 최적화, 사용자별 인덱스)
+   - **BookmarkDocument**: 사용자 북마크 (읽기 최적화, 사용자별 인덱스)
      - 설계 원칙: 사용자별 조회 패턴에 최적화, Embedded 패턴으로 관련 정보 포함
      - 필드 구조:
        - _id (ObjectId, PK, 자동 생성)
@@ -322,7 +322,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
        - itemSummary (String, nullable) - 아이템 요약 (비정규화)
        - tag (String, nullable) - 태그
        - memo (String, nullable) - 메모
-       - archivedAt (Date) - 아카이브 시점
+       - bookmarkedAt (Date) - 북마크 시점
        - createdAt (Date) - 생성 시점
        - updatedAt (Date) - 수정 시점
      - 인덱스 전략 (ESR 규칙 준수): userId + createdAt (복합 인덱스, ESR 규칙 준수) 
@@ -342,12 +342,12 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
        - email (String, UNIQUE) - 이메일
        - profileImageUrl (String, nullable) - 프로필 이미지 URL
        - statistics (Object) - 통계 정보 (비정규화)
-         - archiveCount (Integer) - 아카이브 수
+         - bookmarkCount (Integer) - 북마크 수
          - lastActivityAt (Date, nullable) - 최근 활동 시점
        - createdAt (Date) - 생성 시점
        - updatedAt (Date) - 수정 시점
      - 인덱스 전략: userId (단일 필드 인덱스, UNIQUE) - 사용자 ID로 조회, username (단일 필드 인덱스, UNIQUE) - 사용자명으로 조회, email (단일 필드 인덱스, UNIQUE) - 이메일로 조회
-     - 비정규화: 통계 정보(아카이브 수, 최근 활동 등)를 도큐먼트에 포함하여 조인 회피
+     - 비정규화: 통계 정보(북마크 수, 최근 활동 등)를 도큐먼트에 포함하여 조인 회피
    
    - **ExceptionLogDocument**: 예외 로깅 (CQRS 패턴의 예외 로깅 정책 구현)
      - 역할: 모든 예외 로그 저장 (읽기/쓰기 예외 구분)
@@ -537,7 +537,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
      - 인덱스 전략 (Command Side 최소화): email (UNIQUE 인덱스) - 필수, username (UNIQUE 인덱스) - 필수, role (단일 인덱스) - 역할별 조회용, is_active (단일 인덱스) - 활성화 상태별 조회용, is_deleted (단일 인덱스) - Soft Delete 필터링용
      - Aurora 최적화: 빠른 입력 기능 활용, 트랜잭션 경계 최소화
    
-  - **Archive 테이블**: 아카이브 정보 (쓰기 전용, Soft Delete 지원)
+  - **Bookmark 테이블**: 북마크 정보 (쓰기 전용, Soft Delete 지원)
     - Primary Key: id (TSID, BIGINT UNSIGNED, @Tsid 어노테이션 사용)
     - 컬럼 타입:
       - id (BIGINT UNSIGNED NOT NULL PRIMARY KEY)
@@ -550,7 +550,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
       - deleted_at (TIMESTAMP(6) NULL, Soft Delete 시점)
       - created_at (TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6))
       - updated_at (TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6))
-     - 설명: item_id는 MongoDB Atlas 클러스터의 Query Side 데이터(ContestDocument, NewsArticleDocument)의 _id 값을 저장합니다. CQRS 패턴에 따라 Command Side(Aurora MySQL)에서는 Query Side(MongoDB Atlas)의 문서 ID를 참조하여 아카이브 정보를 관리합니다.
+     - 설명: item_id는 MongoDB Atlas 클러스터의 Query Side 데이터(ContestDocument, NewsArticleDocument)의 _id 값을 저장합니다. CQRS 패턴에 따라 Command Side(Aurora MySQL)에서는 Query Side(MongoDB Atlas)의 문서 ID를 참조하여 북마크 정보를 관리합니다.
      - 제약사항: userId + itemType + itemId는 UNIQUE (삭제되지 않은 항목만, 부분 인덱스 고려)
      - 인덱스 전략 (Command Side 최소화): user_id (외래 키 인덱스) - 필수, user_id + delete_yn (복합 인덱스) - Soft Delete 필터링용
      - Aurora 최적화: 배치 INSERT 최적화, 트랜잭션 경계 최소화
@@ -598,7 +598,7 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
      - 인덱스 전략 (Command Side 최소화): user_id (외래 키 인덱스) - 필수, changed_at (단일 인덱스) - 시간순 조회용, operation_type + changed_at (복합 인덱스) - 작업 타입별 조회용
      - JSON 인덱스: before_data, after_data의 특정 필드에 대해 생성된 컬럼 인덱스 고려
    
-   - **ArchiveHistory 테이블**: Archive 엔티티 변경 이력
+   - **BookmarkHistory 테이블**: Bookmark 엔티티 변경 이력
      - Primary Key: history_id (TSID, BIGINT UNSIGNED, @Tsid 어노테이션 사용)
      - 컬럼 타입: UserHistory와 유사한 구조
      - 인덱스 전략: user_id, changed_at, operation_type + changed_at
@@ -624,11 +624,11 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
    - **참고**: Spring Batch 공식 문서의 메타데이터 테이블 스키마
    
    **Foreign Key 관계, 인덱스 전략, 제약조건**:
-   - 모든 외래 키 관계를 명확히 정의하고, 외래 키 인덱스를 생성합니다. User.provider_id → Provider.id (OAuth 제공자 참조), Archive.user_id → User.id, RefreshToken.user_id → User.id
+   - 모든 외래 키 관계를 명확히 정의하고, 외래 키 인덱스를 생성합니다. User.provider_id → Provider.id (OAuth 제공자 참조), Bookmark.user_id → User.id, RefreshToken.user_id → User.id
    - Command Side 인덱스 전략: 필수적인 인덱스만 생성하여 쓰기 성능을 최적화합니다.
    - NOT NULL 제약조건을 적극 활용하여 데이터 무결성을 보장합니다.
    - UNIQUE 제약조건은 비즈니스 규칙에 따라 적용합니다. Soft Delete를 고려하여 삭제되지 않은 항목만 UNIQUE 제약조건이 적용되도록 부분 인덱스를 활용합니다.
-   - Soft Delete 전략: 모든 메인 테이블(User, Admin, Provider, Archive, RefreshToken, EmailVerification)은 delete_yn과 deleted_at 컬럼을 포함하여 Soft Delete를 지원합니다. 히스토리 테이블은 변경 이력 추적용이므로 Soft Delete를 적용하지 않습니다.
+   - Soft Delete 전략: 모든 메인 테이블(User, Admin, Provider, Bookmark, RefreshToken, EmailVerification)은 delete_yn과 deleted_at 컬럼을 포함하여 Soft Delete를 지원합니다. 히스토리 테이블은 변경 이력 추적용이므로 Soft Delete를 적용하지 않습니다.
    - 참고: docs/aurora-mysql-schema-design-best-practices.md의 "2. 인덱스 설계 전략" 섹션
 
 4. 설계서 검증
@@ -636,12 +636,12 @@ plan task: MSA 멀티모듈 프로젝트 구조 검증 및 데이터베이스 �
    **베스트 프랙티스 준수 검증**:
    - 참고 문서 확인: docs/aurora-mysql-schema-design-best-practices.md의 모든 섹션을 참고하여 설계가 베스트 프랙티스를 준수하는지 확인
    - CQRS 패턴 준수 확인: Command Side는 높은 정규화 수준(최소 3NF)을 유지하는지 확인, Command Side 인덱스가 최소화되어 쓰기 성능이 최적화되었는지 확인, 트랜잭션 경계가 최소화되어 락 경합이 줄어들었는지 확인
-   - Soft Delete 구현 확인: 모든 메인 테이블(User, Admin, Provider, Archive, RefreshToken, EmailVerification)에 delete_yn (BOOLEAN)과 deleted_at (TIMESTAMP) 필드가 포함되었는지 확인, Soft Delete 필터링을 위한 인덱스가 적절히 설계되었는지 확인 (delete_yn 단일 인덱스 또는 복합 인덱스), UNIQUE 제약조건이 Soft Delete를 고려하여 부분 인덱스로 구현되었는지 확인
-   - 히스토리 테이블 설계 확인: 모든 주요 엔티티에 대한 히스토리 테이블이 설계되었는지 확인 (User, Admin, Archive), JSON 컬럼(before_data, after_data)에 대한 인덱스 전략이 포함되었는지 확인
+   - Soft Delete 구현 확인: 모든 메인 테이블(User, Admin, Provider, Bookmark, RefreshToken, EmailVerification)에 delete_yn (BOOLEAN)과 deleted_at (TIMESTAMP) 필드가 포함되었는지 확인, Soft Delete 필터링을 위한 인덱스가 적절히 설계되었는지 확인 (delete_yn 단일 인덱스 또는 복합 인덱스), UNIQUE 제약조건이 Soft Delete를 고려하여 부분 인덱스로 구현되었는지 확인
+   - 히스토리 테이블 설계 확인: 모든 주요 엔티티에 대한 히스토리 테이블이 설계되었는지 확인 (User, Admin, Bookmark), JSON 컬럼(before_data, after_data)에 대한 인덱스 전략이 포함되었는지 확인
    - 인덱스 최적화 확인: Command Side 인덱스가 최소화되어 있는지 확인 (필수 인덱스만), 외래 키 인덱스가 모든 FK에 대해 생성되었는지 확인, 복합 인덱스의 컬럼 순서가 쿼리 패턴에 최적화되었는지 확인 (등호 조건 → 범위 조건), 인덱스 선택도가 고려되었는지 확인, 사용되지 않는 인덱스가 없는지 확인
-   - 관계 무결성 확인: 모든 외래 키 관계가 명확히 정의되었는지 확인 (User.provider_id → Provider.id (OAuth 제공자 참조), Archive.user_id → User.id, RefreshToken.user_id → User.id), 외래 키 제약조건이 적절히 설정되었는지 확인
+   - 관계 무결성 확인: 모든 외래 키 관계가 명확히 정의되었는지 확인 (User.provider_id → Provider.id (OAuth 제공자 참조), Bookmark.user_id → User.id, RefreshToken.user_id → User.id), 외래 키 제약조건이 적절히 설정되었는지 확인
    - OAuth Provider 설계 확인: Provider 테이블이 추가되었는지 확인, User 테이블에서 provider_id를 통해 Provider를 참조하도록 설계되었는지 확인, provider_id + provider_user_id 복합 인덱스가 OAuth 로그인에 최적화되었는지 확인
-   - Archive 테이블 item_id 설계 확인: Archive 테이블의 item_id가 MongoDB Atlas의 ContestDocument 또는 NewsArticleDocument의 _id 값을 저장한다는 설명이 포함되었는지 확인, CQRS 패턴에 따라 Command Side(Aurora MySQL)에서 Query Side(MongoDB Atlas)의 문서 ID를 참조하는 구조임을 명시했는지 확인
+   - Bookmark 테이블 item_id 설계 확인: Bookmark 테이블의 item_id가 MongoDB Atlas의 ContestDocument 또는 NewsArticleDocument의 _id 값을 저장한다는 설명이 포함되었는지 확인, CQRS 패턴에 따라 Command Side(Aurora MySQL)에서 Query Side(MongoDB Atlas)의 문서 ID를 참조하는 구조임을 명시했는지 확인
    - 멀티모듈 구조 검증: 모듈 간 의존성이 올바른지 확인
    
    **TSID Primary Key 전략 검증**:
@@ -719,8 +719,8 @@ plan task: API Server 아키텍처 설계 및 데이터 모델 정의
 Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베이스 설계서(`docs/phase1/`)를 기반으로, API Server의 아키텍처를 설계하고 데이터 모델을 정의합니다. 
 
 주요 작업 내용:
-1. RESTful API 엔드포인트 설계: 공개 API(대회, 뉴스, 출처), 인증 API, 사용자 아카이브 API(JWT 토큰 기반 사용자별 타게팅), 변경 이력 조회 API(CQRS 패턴 예외로 Aurora MySQL 조회)를 CQRS 패턴에 맞춰 읽기/쓰기로 분리하여 설계
-2. CQRS 패턴 기반 데이터 모델 설계: Command Side(Amazon Aurora MySQL)와 Query Side(MongoDB Atlas)의 데이터 모델을 분리 설계하고 실시간 동기화 전략 수립 (User → UserProfileDocument, Archive → ArchiveDocument, TSID 필드 기반 동기화)
+1. RESTful API 엔드포인트 설계: 공개 API(대회, 뉴스, 출처), 인증 API, 사용자 북마크 API(JWT 토큰 기반 사용자별 타게팅), 변경 이력 조회 API(CQRS 패턴 예외로 Aurora MySQL 조회)를 CQRS 패턴에 맞춰 읽기/쓰기로 분리하여 설계
+2. CQRS 패턴 기반 데이터 모델 설계: Command Side(Amazon Aurora MySQL)와 Query Side(MongoDB Atlas)의 데이터 모델을 분리 설계하고 실시간 동기화 전략 수립 (User → UserProfileDocument, Bookmark → BookmarkDocument, TSID 필드 기반 동기화)
 3. API 응답 형식 표준화: 성공/에러 응답 구조를 일관되게 정의하여 API 인터페이스 표준화
 4. 에러 핸들링 전략 수립: HTTP 상태 코드와 비즈니스 에러 코드를 분리하여 상세한 에러 정보 제공
 
@@ -731,9 +731,9 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    - Phase 1의 MongoDB Atlas 및 Aurora MySQL 스키마 설계서 참고
    - 공개 API(인증 불필요): 대회 목록/상세/검색, 뉴스 목록/상세/검색, 출처 목록 조회
    - 인증 API: 회원가입, 로그인, 로그아웃, 토큰 갱신, 이메일 인증, 비밀번호 재설정, OAuth 2.0
-   - 사용자 아카이브 API(인증 필요): JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 타게팅, 생성, 조회, 수정, 삭제(Soft Delete), 복원
+   - 사용자 북마크 API(인증 필요): JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 타게팅, 생성, 조회, 수정, 삭제(Soft Delete), 복원
    - 변경 이력 조회 API(인증 필요): 히스토리 조회, 특정 시점 데이터 조회, 복구 (모두 Aurora MySQL에서 조회, CQRS 패턴 예외)
-   - CQRS 패턴 적용: 읽기 작업은 MongoDB Atlas, 쓰기 작업은 Aurora MySQL (변경 이력 조회 및 삭제된 아카이브 조회는 예외적으로 Aurora MySQL에서 조회)
+   - CQRS 패턴 적용: 읽기 작업은 MongoDB Atlas, 쓰기 작업은 Aurora MySQL (변경 이력 조회 및 삭제된 북마크 조회는 예외적으로 Aurora MySQL에서 조회)
    - 설계서 저장: `docs/phase2/1. api-endpoint-design.md`
 
 2. CQRS 패턴 기반 데이터 모델 분리 설계
@@ -742,8 +742,8 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    - Query Side(MongoDB Atlas): ObjectId Primary Key, 읽기 최적화, 비정규화, ESR 규칙 준수 인덱스 설계
    - Kafka 이벤트 기반 실시간 동기화 전략 수립
      * User 엔티티 변경 시 즉시 UserProfileDocument로 동기화 (Kafka 이벤트: UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, UserRestoredEvent)
-     * Archive 엔티티 변경 시 즉시 ArchiveDocument로 동기화 (Kafka 이벤트: ArchiveCreatedEvent, ArchiveUpdatedEvent, ArchiveDeletedEvent, ArchiveRestoredEvent)
-     * TSID 필드 기반 동기화: User.id(TSID) → UserProfileDocument.userTsid, Archive.id(TSID) → ArchiveDocument.archiveTsid
+     * Bookmark 엔티티 변경 시 즉시 BookmarkDocument로 동기화 (Kafka 이벤트: BookmarkCreatedEvent, BookmarkUpdatedEvent, BookmarkDeletedEvent, BookmarkRestoredEvent)
+     * TSID 필드 기반 동기화: User.id(TSID) → UserProfileDocument.userTsid, Bookmark.id(TSID) → BookmarkDocument.bookmarkTsid
      * MongoDB Document는 Soft Delete 미지원: Soft Delete 시 Document 물리적 삭제, 복원 시 Document 새로 생성
      * 동기화 지연 시간: 실시간 동기화 목표 (1초 이내)
    - 설계서 저장: `docs/phase2/2. data-model-design.md`
@@ -773,9 +773,9 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
 2. **Phase 1 설계서 준수**: `docs/phase1/2. mongodb-schema-design.md`와 `docs/phase1/3. aurora-schema-design.md`의 스키마 설계를 기반으로 API 설계 수행
 3. **CQRS 패턴 준수**: 모든 쓰기는 Aurora MySQL(Command Side), 모든 읽기는 MongoDB Atlas(Query Side)에서 수행. 읽기/쓰기 엔드포인트 명확히 분리
 4. **Kafka 이벤트 발행 필수**: 모든 쓰기 작업 후 Kafka 이벤트 발행 필수. 이벤트 기반 동기화로 Command Side와 Query Side 데이터 일관성 보장
-5. **실시간 동기화 필수**: Aurora MySQL의 User, Archive 테이블 데이터 변경은 변경 즉시 MongoDB Atlas의 UserProfileDocument, ArchiveDocument로 반영되어야 함. Kafka 이벤트를 통한 실시간 동기화 구현 (목표: 1초 이내)
+5. **실시간 동기화 필수**: Aurora MySQL의 User, Bookmark 테이블 데이터 변경은 변경 즉시 MongoDB Atlas의 UserProfileDocument, BookmarkDocument로 반영되어야 함. Kafka 이벤트를 통한 실시간 동기화 구현 (목표: 1초 이내)
    - User 엔티티 변경 시: User.id(TSID) → UserProfileDocument.userTsid 필드를 통해 동기화
-   - Archive 엔티티 변경 시: Archive.id(TSID) → ArchiveDocument.archiveTsid 필드를 통해 동기화
+   - Bookmark 엔티티 변경 시: Bookmark.id(TSID) → BookmarkDocument.bookmarkTsid 필드를 통해 동기화
    - TSID 필드 기반 1:1 매핑으로 동기화 정확성 보장
    - **MongoDB Document는 Soft Delete 미지원**: Aurora MySQL에서 Soft Delete 발생 시 MongoDB Document는 물리적 삭제, 복원 시 Document 새로 생성
 6. **TSID Primary Key 사용**: Command Side의 모든 엔티티는 TSID(Time-Sorted Unique Identifier)를 Primary Key로 사용
@@ -788,10 +788,10 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
 **전체 작업 검증 기준**: 
 - **API 엔드포인트 설계 검증**:
   - 모든 API 엔드포인트가 RESTful 원칙을 준수해야 함
-  - 읽기 작업은 MongoDB Atlas에서, 쓰기 작업은 Aurora MySQL에서 수행되어야 함 (변경 이력 조회 및 삭제된 아카이브 조회는 예외적으로 Aurora MySQL에서 조회)
+  - 읽기 작업은 MongoDB Atlas에서, 쓰기 작업은 Aurora MySQL에서 수행되어야 함 (변경 이력 조회 및 삭제된 북마크 조회는 예외적으로 Aurora MySQL에서 조회)
   - 모든 쓰기 작업 후 Kafka 이벤트 발행이 명시되어야 함
-  - 사용자 아카이브 API는 JWT 토큰에서 userId를 추출하여 해당 사용자의 아카이브만 타게팅되도록 설계되어야 함
-  - 삭제된 아카이브 조회는 Aurora MySQL에서 수행되어야 함 (MongoDB는 Soft Delete 미지원)
+  - 사용자 북마크 API는 JWT 토큰에서 userId를 추출하여 해당 사용자의 북마크만 타게팅되도록 설계되어야 함
+  - 삭제된 북마크 조회는 Aurora MySQL에서 수행되어야 함 (MongoDB는 Soft Delete 미지원)
   - 각 엔드포인트의 HTTP 메서드, 경로, 파라미터, 응답 형식이 명확히 정의되어야 함
 - **데이터 모델 설계 검증**:
   - CQRS 패턴에 맞춰 Command Side와 Query Side가 명확히 분리되어야 함
@@ -800,8 +800,8 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
   - 쓰기와 읽기 간 데이터 일관성이 보장되어야 함 (Kafka 이벤트 기반 동기화)
   - User 엔티티 변경 시 즉시 UserProfileDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, userTsid 필드 활용)
   - User 엔티티 Soft Delete 시 UserProfileDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
-  - Archive 엔티티 변경 시 즉시 ArchiveDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, archiveTsid 필드 활용)
-  - Archive 엔티티 Soft Delete 시 ArchiveDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
+  - Bookmark 엔티티 변경 시 즉시 BookmarkDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, bookmarkTsid 필드 활용)
+  - Bookmark 엔티티 Soft Delete 시 BookmarkDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
   - Phase 1 설계서의 스키마와 일관성을 유지해야 함
 - **API 응답 형식 검증**:
   - 모든 API 응답이 일관된 형식을 따라야 함
@@ -821,7 +821,7 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
 
 **기존 코드 및 구조 확인 필수 사항** (작업 수행 전 반드시 확인):
 1. **Phase 1 설계서 상세 검토**:
-   - `docs/phase1/2. mongodb-schema-design.md`: MongoDB Document 구조, 인덱스 전략, TSID 필드(userTsid, archiveTsid) 활용 방법, 쿼리 패턴 확인
+   - `docs/phase1/2. mongodb-schema-design.md`: MongoDB Document 구조, 인덱스 전략, TSID 필드(userTsid, bookmarkTsid) 활용 방법, 쿼리 패턴 확인
    - `docs/phase1/3. aurora-schema-design.md`: Aurora MySQL 엔티티 구조, TSID Primary Key 전략, Soft Delete 패턴, 히스토리 엔티티 구조 확인
    - `docs/phase1/4. schema-design-verification-report.md`: 설계 검증 결과 및 일관성 확인
    - `docs/phase1/1. multimodule-structure-verification.md`: 멀티모듈 프로젝트 구조 및 모듈 간 의존성 확인
@@ -852,16 +852,16 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    
    **역할**: RESTful API 설계자
    **책임**: 
-   - 공개 API, 인증 API, 사용자 아카이브 API, 변경 이력 조회 API 엔드포인트 설계
+   - 공개 API, 인증 API, 사용자 북마크 API, 변경 이력 조회 API 엔드포인트 설계
    - 각 엔드포인트의 HTTP 메서드, 경로, 파라미터, 응답 형식 정의
    - CQRS 패턴에 맞춰 읽기/쓰기 엔드포인트 분리
    
    **검증 기준**:
    - 모든 엔드포인트가 RESTful 원칙을 준수해야 함
-   - 읽기 작업은 MongoDB Atlas에서, 쓰기 작업은 Aurora MySQL에서 수행되어야 함 (변경 이력 조회 및 삭제된 아카이브 조회는 예외적으로 Aurora MySQL에서 조회)
+   - 읽기 작업은 MongoDB Atlas에서, 쓰기 작업은 Aurora MySQL에서 수행되어야 함 (변경 이력 조회 및 삭제된 북마크 조회는 예외적으로 Aurora MySQL에서 조회)
    - 모든 쓰기 작업 후 Kafka 이벤트 발행이 명시되어야 함
-   - 사용자 아카이브 API는 JWT 토큰에서 userId를 추출하여 해당 사용자의 아카이브만 타게팅되도록 설계되어야 함
-   - 삭제된 아카이브 조회는 Aurora MySQL에서 수행되어야 함 (MongoDB는 Soft Delete 미지원)
+   - 사용자 북마크 API는 JWT 토큰에서 userId를 추출하여 해당 사용자의 북마크만 타게팅되도록 설계되어야 함
+   - 삭제된 북마크 조회는 Aurora MySQL에서 수행되어야 함 (MongoDB는 Soft Delete 미지원)
    - 설계서가 `docs/phase2/1. api-endpoint-design.md`에 저장되어야 함
    
    **하위 작업 1.1: 공개 API 엔드포인트 설계**
@@ -919,50 +919,50 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    - GET /api/v1/auth/oauth2/{provider}/callback - SNS 로그인 콜백
      * Provider 엔티티 조회, User 엔티티 조회/생성, RefreshToken 엔티티 생성
 
-   **하위 작업 1.3: 사용자 아카이브 API 엔드포인트 설계**
-   - **역할**: 사용자 아카이브 API 설계자
+   **하위 작업 1.3: 사용자 북마크 API 엔드포인트 설계**
+   - **역할**: 사용자 북마크 API 설계자
    - **책임**: 
-     * 사용자 아카이브 CRUD 엔드포인트 설계
+     * 사용자 북마크 CRUD 엔드포인트 설계
      * Soft Delete 및 복원 엔드포인트 설계
      * JWT 토큰에서 로그인 사용자 정보(userId) 추출 및 권한 검증 로직 설계
-     * 로그인 사용자의 아카이브만 타게팅되도록 설계
+     * 로그인 사용자의 북마크만 타게팅되도록 설계
      * Aurora MySQL 쓰기 및 MongoDB Atlas 읽기 분리 설계
      * Kafka 이벤트 발행 설계
 
-   사용자 아카이브 API (인증 필요):
-   - POST /api/v1/archives - 아카이브 추가 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
-     * **역할**: 사용자 아카이브 생성
-     * **책임**: JWT 토큰에서 userId 추출, 데이터 검증, Aurora Archive 엔티티 저장(userId 자동 설정), ArchiveHistory 엔티티 생성, Kafka 이벤트 발행
-     * **검증 기준**: 아카이브가 정상적으로 저장되고 이벤트가 발행되어야 함
+   사용자 북마크 API (인증 필요):
+   - POST /api/v1/bookmarks - 북마크 추가 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
+     * **역할**: 사용자 북마크 생성
+     * **책임**: JWT 토큰에서 userId 추출, 데이터 검증, Aurora Bookmark 엔티티 저장(userId 자동 설정), BookmarkHistory 엔티티 생성, Kafka 이벤트 발행
+     * **검증 기준**: 북마크가 정상적으로 저장되고 이벤트가 발행되어야 함
      * **제약사항**: userId + itemType + itemId UNIQUE 제약조건 (중복 방지)
      * **주의사항**: 요청 body의 userId는 무시하고, JWT 토큰에서 추출한 userId를 사용
-   - GET /api/v1/archives - 아카이브 목록 조회 (MongoDB Atlas에서 조회)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 조회
+   - GET /api/v1/bookmarks - 북마크 목록 조회 (MongoDB Atlas에서 조회)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 조회
      * 파라미터: page, size, sort, itemType (CONTEST|NEWS_ARTICLE)
-     * ArchiveDocument 조회 (userId + createdAt 인덱스 활용, userId는 JWT 토큰에서 추출)
-     * **검증 기준**: 페이징이 정상적으로 동작하고 필터링이 적용되어야 함, 로그인 사용자의 아카이브만 조회되어야 함
-   - GET /api/v1/archives/{id} - 아카이브 상세 조회 (MongoDB Atlas에서 조회)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 조회
-     * ArchiveDocument 조회 (userId와 id로 조회하여 권한 검증)
+     * BookmarkDocument 조회 (userId + createdAt 인덱스 활용, userId는 JWT 토큰에서 추출)
+     * **검증 기준**: 페이징이 정상적으로 동작하고 필터링이 적용되어야 함, 로그인 사용자의 북마크만 조회되어야 함
+   - GET /api/v1/bookmarks/{id} - 북마크 상세 조회 (MongoDB Atlas에서 조회)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 조회
+     * BookmarkDocument 조회 (userId와 id로 조회하여 권한 검증)
      * **검증 기준**: 권한이 있는 사용자(본인)만 조회 가능해야 함
-   - PUT /api/v1/archives/{id} - 아카이브 수정 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 수정 가능
-     * Archive 엔티티 업데이트(userId 검증), ArchiveHistory 엔티티 생성, Kafka 이벤트 발행
-     * **검증 기준**: 수정된 데이터가 정상적으로 저장되고 이벤트가 발행되어야 함, 본인의 아카이브만 수정 가능해야 함
-   - DELETE /api/v1/archives/{id} - 아카이브 삭제 (Soft Delete, Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 삭제 가능
-     * Archive 엔티티 Soft Delete (delete_yn='Y', deleted_at 설정, userId 검증), ArchiveHistory 엔티티 생성, Kafka 이벤트 발행
-     * **검증 기준**: delete_yn 플래그가 'Y'로 설정되고 deleted_at이 기록되어야 함, 본인의 아카이브만 삭제 가능해야 함
-   - POST /api/v1/archives/{id}/restore - 아카이브 복원 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 아카이브만 복원 가능
-     * Archive 엔티티 복원 (delete_yn='N', deleted_at=null, userId 검증), ArchiveHistory 엔티티 생성, ArchiveRestoredEvent 발행
-     * ArchiveRestoredEvent 수신 시 MongoDB Atlas의 ArchiveDocument 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 재생성 필요)
-     * **검증 기준**: delete_yn 플래그가 'N'으로 변경되고 deleted_at이 null로 설정되어야 함, 본인의 아카이브만 복원 가능해야 함, ArchiveDocument가 새로 생성되어야 함
-   - GET /api/v1/archives/deleted - 삭제된 아카이브 목록 (Amazon Aurora MySQL에서 조회, CQRS 패턴 예외)
-     * JWT 토큰에서 userId 추출하여 해당 사용자의 삭제된 아카이브만 조회
-     * Archive 엔티티 조회 (Aurora MySQL, userId + delete_yn='Y' 필터링, userId는 JWT 토큰에서 추출)
-     * **주의사항**: MongoDB Atlas는 Soft Delete를 구현하지 않으므로, 삭제된 아카이브는 Aurora MySQL에서만 조회 가능 (CQRS 패턴 예외)
-     * **검증 기준**: 로그인 사용자의 삭제된 아카이브만 조회되어야 함
+   - PUT /api/v1/bookmarks/{id} - 북마크 수정 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 수정 가능
+     * Bookmark 엔티티 업데이트(userId 검증), BookmarkHistory 엔티티 생성, Kafka 이벤트 발행
+     * **검증 기준**: 수정된 데이터가 정상적으로 저장되고 이벤트가 발행되어야 함, 본인의 북마크만 수정 가능해야 함
+   - DELETE /api/v1/bookmarks/{id} - 북마크 삭제 (Soft Delete, Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 삭제 가능
+     * Bookmark 엔티티 Soft Delete (delete_yn='Y', deleted_at 설정, userId 검증), BookmarkHistory 엔티티 생성, Kafka 이벤트 발행
+     * **검증 기준**: delete_yn 플래그가 'Y'로 설정되고 deleted_at이 기록되어야 함, 본인의 북마크만 삭제 가능해야 함
+   - POST /api/v1/bookmarks/{id}/restore - 북마크 복원 (Amazon Aurora MySQL에 쓰기, Kafka 이벤트 발행)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 북마크만 복원 가능
+     * Bookmark 엔티티 복원 (delete_yn='N', deleted_at=null, userId 검증), BookmarkHistory 엔티티 생성, BookmarkRestoredEvent 발행
+     * BookmarkRestoredEvent 수신 시 MongoDB Atlas의 BookmarkDocument 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 재생성 필요)
+     * **검증 기준**: delete_yn 플래그가 'N'으로 변경되고 deleted_at이 null로 설정되어야 함, 본인의 북마크만 복원 가능해야 함, BookmarkDocument가 새로 생성되어야 함
+   - GET /api/v1/bookmarks/deleted - 삭제된 북마크 목록 (Amazon Aurora MySQL에서 조회, CQRS 패턴 예외)
+     * JWT 토큰에서 userId 추출하여 해당 사용자의 삭제된 북마크만 조회
+     * Bookmark 엔티티 조회 (Aurora MySQL, userId + delete_yn='Y' 필터링, userId는 JWT 토큰에서 추출)
+     * **주의사항**: MongoDB Atlas는 Soft Delete를 구현하지 않으므로, 삭제된 북마크는 Aurora MySQL에서만 조회 가능 (CQRS 패턴 예외)
+     * **검증 기준**: 로그인 사용자의 삭제된 북마크만 조회되어야 함
 
    **하위 작업 1.4: 변경 이력 조회 API 엔드포인트 설계**
    - **역할**: 변경 이력 API 설계자
@@ -975,9 +975,9 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
 
    변경 이력 조회 API (인증 필요, 관리자 또는 본인):
    - GET /api/v1/history/{entityType}/{entityId} - 특정 엔티티의 변경 이력 조회 (Amazon Aurora MySQL에서 조회)
-     * entityType: user, admin, archive
+     * entityType: user, admin, bookmark
      * 파라미터: page, size, operationType (INSERT|UPDATE|DELETE), startDate, endDate
-     * UserHistory, AdminHistory, ArchiveHistory 엔티티 조회 (Aurora MySQL, operation_type + changed_at 인덱스 활용)
+     * UserHistory, AdminHistory, BookmarkHistory 엔티티 조회 (Aurora MySQL, operation_type + changed_at 인덱스 활용)
      * **주의사항**: CQRS 패턴 예외 - Aurora MySQL은 쓰기 전용이지만, 이력 조회만 예외적으로 허용
    - GET /api/v1/history/{entityType}/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (Amazon Aurora MySQL에서 조회)
      * 히스토리 테이블의 before_data/after_data JSON 필드 활용 (Aurora MySQL)
@@ -993,7 +993,7 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    **역할**: Command/Query 분리 아키텍처 설계
    **책임**: 
    - 쓰기와 읽기 데이터 모델 분리
-   - 데이터 동기화 전략 수립 (User → UserProfileDocument, Archive → ArchiveDocument 실시간 동기화)
+   - 데이터 동기화 전략 수립 (User → UserProfileDocument, Bookmark → BookmarkDocument 실시간 동기화)
    - 성능 최적화 전략 수립
    
    **검증 기준**:
@@ -1002,8 +1002,8 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    - 쓰기와 읽기 간 데이터 일관성이 보장되어야 함 (Kafka 이벤트 기반 동기화)
    - User 엔티티 변경 시 즉시 UserProfileDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, userTsid 필드 활용)
    - User 엔티티 Soft Delete 시 UserProfileDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
-   - Archive 엔티티 변경 시 즉시 ArchiveDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, archiveTsid 필드 활용)
-   - Archive 엔티티 Soft Delete 시 ArchiveDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
+   - Bookmark 엔티티 변경 시 즉시 BookmarkDocument로 동기화되어야 함 (실시간 동기화, 목표: 1초 이내, bookmarkTsid 필드 활용)
+   - Bookmark 엔티티 Soft Delete 시 BookmarkDocument 물리적 삭제, 복원 시 재생성되어야 함 (MongoDB는 Soft Delete 미지원)
    - 설계서가 `docs/phase2/2. data-model-design.md`에 저장되어야 함
    - **빌드 검증**: 관련 모듈들이 정상적으로 빌드 가능해야 함 (`./gradlew clean build` 명령이 성공해야 함)
    - **빌드 검증**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
@@ -1045,18 +1045,18 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
      * **필드**: id (TSID), email (VARCHAR(100), UNIQUE), username (VARCHAR(50), UNIQUE), password (암호화), role, is_active, last_login_at
      * **제약사항**: email UNIQUE, username UNIQUE, role 인덱스, is_active 인덱스, is_deleted 인덱스
    
-   - Archive 엔티티: 사용자 아카이브 정보 (Soft Delete 지원)
+   - Bookmark 엔티티: 사용자 북마크 정보 (Soft Delete 지원)
      * **필드**: id (TSID), user_id (FK), item_type (VARCHAR(50)), item_id (VARCHAR(255), MongoDB ObjectId 문자열), tag, memo
      * **제약사항**: user_id + item_type + item_id UNIQUE (중복 방지), user_id + delete_yn 복합 인덱스
      * **관계**: User와 Many-to-One 관계
      * **Soft Delete**: delete_yn 기본값 'N', deleted_at nullable
-     * **동기화 전략**: Archive 엔티티 변경 시 즉시 MongoDB Atlas의 ArchiveDocument로 동기화 (Kafka 이벤트: ArchiveCreatedEvent, ArchiveUpdatedEvent, ArchiveDeletedEvent, ArchiveRestoredEvent)
-     * **동기화 매핑**: Archive.id(TSID) → ArchiveDocument.archiveTsid (1:1 매핑)
+     * **동기화 전략**: Bookmark 엔티티 변경 시 즉시 MongoDB Atlas의 BookmarkDocument로 동기화 (Kafka 이벤트: BookmarkCreatedEvent, BookmarkUpdatedEvent, BookmarkDeletedEvent, BookmarkRestoredEvent)
+     * **동기화 매핑**: Bookmark.id(TSID) → BookmarkDocument.bookmarkTsid (1:1 매핑)
      * **동기화 동작**: 
-       - 생성: ArchiveCreatedEvent → ArchiveDocument 생성
-       - 수정: ArchiveUpdatedEvent → ArchiveDocument 업데이트
-       - Soft Delete: ArchiveDeletedEvent → ArchiveDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
-       - 복원: ArchiveRestoredEvent → ArchiveDocument 새로 생성
+       - 생성: BookmarkCreatedEvent → BookmarkDocument 생성
+       - 수정: BookmarkUpdatedEvent → BookmarkDocument 업데이트
+       - Soft Delete: BookmarkDeletedEvent → BookmarkDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
+       - 복원: BookmarkRestoredEvent → BookmarkDocument 새로 생성
      * **동기화 지연 시간**: 실시간 동기화 목표 (1초 이내)
    
    - RefreshToken 엔티티: JWT Refresh Token
@@ -1075,9 +1075,9 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
      * **AdminHistory**: Admin 엔티티 변경 이력
        - history_id (TSID), admin_id (FK), operation_type, before_data (JSON), after_data (JSON), changed_by, changed_at, change_reason
        - admin_id 인덱스, operation_type + changed_at 복합 인덱스
-     * **ArchiveHistory**: Archive 엔티티 변경 이력
-       - history_id (TSID), archive_id (FK), operation_type, before_data (JSON), after_data (JSON), changed_by, changed_at, change_reason
-       - archive_id 인덱스, operation_type + changed_at 복합 인덱스
+     * **BookmarkHistory**: Bookmark 엔티티 변경 이력
+       - history_id (TSID), bookmark_id (FK), operation_type, before_data (JSON), after_data (JSON), changed_by, changed_at, change_reason
+       - bookmark_id 인덱스, operation_type + changed_at 복합 인덱스
      * **주의**: operation_type='DELETE'는 실제 SQL DELETE가 아닌 Soft Delete를 의미
 
    **하위 작업 2.2: Query Side 데이터 모델 설계**
@@ -1112,18 +1112,18 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
      * **쿼리 패턴**: sourceId별 발행일시 역순 조회, 최근 7일간 뉴스 조회
      * **비정규화**: metadata.sourceName (출처 이름 중복 저장)
    
-   - ArchiveDocument: 사용자 아카이브 (읽기 최적화, 사용자별 인덱스)
-     * **필드**: _id, archiveTsid (Aurora MySQL Archive.id(TSID)와 1:1 매핑, UNIQUE), userId, itemType, itemId, itemTitle, itemSummary, tag, memo, archivedAt
-     * **인덱스**: archiveTsid (UNIQUE, Aurora MySQL 동기화용), userId + createdAt (복합), userId + itemType + createdAt (복합), userId + itemType + itemId (UNIQUE)
-     * **쿼리 패턴**: userId별 생성일시 역순 조회, userId + itemType별 조회, archiveTsid로 동기화 확인
+   - BookmarkDocument: 사용자 북마크 (읽기 최적화, 사용자별 인덱스)
+     * **필드**: _id, bookmarkTsid (Aurora MySQL Bookmark.id(TSID)와 1:1 매핑, UNIQUE), userId, itemType, itemId, itemTitle, itemSummary, tag, memo, bookmarkedAt
+     * **인덱스**: bookmarkTsid (UNIQUE, Aurora MySQL 동기화용), userId + createdAt (복합), userId + itemType + createdAt (복합), userId + itemType + itemId (UNIQUE)
+     * **쿼리 패턴**: userId별 생성일시 역순 조회, userId + itemType별 조회, bookmarkTsid로 동기화 확인
      * **비정규화**: itemTitle, itemSummary (항목 제목/요약 중복 저장)
-     * **동기화 전략**: Aurora MySQL의 Archive 엔티티 변경 시 즉시 ArchiveDocument로 동기화 (Kafka 이벤트: ArchiveCreatedEvent, ArchiveUpdatedEvent, ArchiveDeletedEvent, ArchiveRestoredEvent)
-     * **동기화 매핑**: Archive.id(TSID) → ArchiveDocument.archiveTsid (1:1 매핑)
+     * **동기화 전략**: Aurora MySQL의 Bookmark 엔티티 변경 시 즉시 BookmarkDocument로 동기화 (Kafka 이벤트: BookmarkCreatedEvent, BookmarkUpdatedEvent, BookmarkDeletedEvent, BookmarkRestoredEvent)
+     * **동기화 매핑**: Bookmark.id(TSID) → BookmarkDocument.bookmarkTsid (1:1 매핑)
      * **동기화 동작**: 
-       - 생성: ArchiveCreatedEvent → ArchiveDocument 생성
-       - 수정: ArchiveUpdatedEvent → ArchiveDocument 업데이트
-       - Soft Delete: ArchiveDeletedEvent → ArchiveDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
-       - 복원: ArchiveRestoredEvent → ArchiveDocument 새로 생성
+       - 생성: BookmarkCreatedEvent → BookmarkDocument 생성
+       - 수정: BookmarkUpdatedEvent → BookmarkDocument 업데이트
+       - Soft Delete: BookmarkDeletedEvent → BookmarkDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
+       - 복원: BookmarkRestoredEvent → BookmarkDocument 새로 생성
      * **동기화 지연 시간**: 실시간 동기화 목표 (1초 이내)
    
    - UserProfileDocument: 사용자 프로필 (읽기 최적화)
@@ -1164,12 +1164,12 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
      * 동기화 실패 시 재시도 로직 실행 (최대 3회)
      * 재시도 실패 시 Dead Letter Queue 처리
    
-   - **Archive 엔티티 → ArchiveDocument 동기화**:
-     * Aurora MySQL의 Archive 엔티티 생성 시: ArchiveCreatedEvent 발행 → ArchiveDocument 생성
-     * Aurora MySQL의 Archive 엔티티 수정 시: ArchiveUpdatedEvent 발행 → ArchiveDocument 업데이트
-     * Aurora MySQL의 Archive 엔티티 Soft Delete 시: ArchiveDeletedEvent 발행 → ArchiveDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
-     * Aurora MySQL의 Archive 엔티티 복원 시: ArchiveRestoredEvent 발행 → ArchiveDocument 새로 생성
-     * 동기화 매핑: Archive.id(TSID) → ArchiveDocument.archiveTsid (1:1 매핑)
+   - **Bookmark 엔티티 → BookmarkDocument 동기화**:
+     * Aurora MySQL의 Bookmark 엔티티 생성 시: BookmarkCreatedEvent 발행 → BookmarkDocument 생성
+     * Aurora MySQL의 Bookmark 엔티티 수정 시: BookmarkUpdatedEvent 발행 → BookmarkDocument 업데이트
+     * Aurora MySQL의 Bookmark 엔티티 Soft Delete 시: BookmarkDeletedEvent 발행 → BookmarkDocument 물리적 삭제 (MongoDB는 Soft Delete 미지원)
+     * Aurora MySQL의 Bookmark 엔티티 복원 시: BookmarkRestoredEvent 발행 → BookmarkDocument 새로 생성
+     * 동기화 매핑: Bookmark.id(TSID) → BookmarkDocument.bookmarkTsid (1:1 매핑)
      * 동기화 지연 시간: 실시간 동기화 목표 (1초 이내)
      * 동기화 실패 시 재시도 로직 실행 (최대 3회)
      * 재시도 실패 시 Dead Letter Queue 처리
@@ -1179,16 +1179,16 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
      * UserUpdatedEvent: User 엔티티 수정 시 발행 (userTsid: User.id(TSID), 변경된 필드 정보 포함) → UserProfileDocument 업데이트
      * UserDeletedEvent: User 엔티티 Soft Delete 시 발행 (userTsid: User.id(TSID), userId, deletedAt 등) → UserProfileDocument 물리적 삭제
      * UserRestoredEvent: User 엔티티 복원 시 발행 (userTsid: User.id(TSID), userId, username, email, profileImageUrl 등) → UserProfileDocument 새로 생성
-     * ArchiveCreatedEvent: Archive 엔티티 생성 시 발행 (archiveTsid: Archive.id(TSID), userId, itemType, itemId, tag, memo 등) → ArchiveDocument 생성
-     * ArchiveUpdatedEvent: Archive 엔티티 수정 시 발행 (archiveTsid: Archive.id(TSID), 변경된 필드 정보 포함) → ArchiveDocument 업데이트
-     * ArchiveDeletedEvent: Archive 엔티티 Soft Delete 시 발행 (archiveTsid: Archive.id(TSID), userId, deletedAt 등) → ArchiveDocument 물리적 삭제
-     * ArchiveRestoredEvent: Archive 엔티티 복원 시 발행 (archiveTsid: Archive.id(TSID), userId, itemType, itemId, tag, memo 등) → ArchiveDocument 새로 생성
+     * BookmarkCreatedEvent: Bookmark 엔티티 생성 시 발행 (bookmarkTsid: Bookmark.id(TSID), userId, itemType, itemId, tag, memo 등) → BookmarkDocument 생성
+     * BookmarkUpdatedEvent: Bookmark 엔티티 수정 시 발행 (bookmarkTsid: Bookmark.id(TSID), 변경된 필드 정보 포함) → BookmarkDocument 업데이트
+     * BookmarkDeletedEvent: Bookmark 엔티티 Soft Delete 시 발행 (bookmarkTsid: Bookmark.id(TSID), userId, deletedAt 등) → BookmarkDocument 물리적 삭제
+     * BookmarkRestoredEvent: Bookmark 엔티티 복원 시 발행 (bookmarkTsid: Bookmark.id(TSID), userId, itemType, itemId, tag, memo 등) → BookmarkDocument 새로 생성
    
    - **동기화 보장 전략**:
      * 멱등성 보장: 이벤트 ID 기반 중복 처리 방지
-     * 순서 보장: Partition Key를 userId 또는 archiveTsid로 설정하여 사용자별/아카이브별 순서 보장
+     * 순서 보장: Partition Key를 userId 또는 bookmarkTsid로 설정하여 사용자별/북마크별 순서 보장
      * 트랜잭션 관리: DB 커밋 후 Kafka 이벤트 발행 (트랜잭션 아웃박스 패턴 고려)
-     * TSID 필드 기반 매핑: userTsid, archiveTsid 필드를 통해 정확한 1:1 매핑 보장
+     * TSID 필드 기반 매핑: userTsid, bookmarkTsid 필드를 통해 정확한 1:1 매핑 보장
      * 동기화 상태 모니터링: 동기화 지연 시간, 실패율 모니터링
 
 3. API 응답 형식 정의
@@ -1356,10 +1356,10 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
    **검증 항목**:
    1. API 엔드포인트 설계 검증
       - 모든 엔드포인트가 RESTful 원칙을 준수하는지 확인
-      - 읽기/쓰기 엔드포인트가 CQRS 패턴에 맞게 분리되었는지 확인 (변경 이력 조회 및 삭제된 아카이브 조회는 예외적으로 Aurora MySQL에서 조회)
+      - 읽기/쓰기 엔드포인트가 CQRS 패턴에 맞게 분리되었는지 확인 (변경 이력 조회 및 삭제된 북마크 조회는 예외적으로 Aurora MySQL에서 조회)
       - 모든 쓰기 작업에 Kafka 이벤트 발행이 명시되었는지 확인
-      - 사용자 아카이브 API가 JWT 토큰에서 userId를 추출하여 해당 사용자의 아카이브만 타게팅되도록 설계되었는지 확인
-      - 삭제된 아카이브 조회가 Aurora MySQL에서 수행되도록 설계되었는지 확인 (MongoDB는 Soft Delete 미지원)
+      - 사용자 북마크 API가 JWT 토큰에서 userId를 추출하여 해당 사용자의 북마크만 타게팅되도록 설계되었는지 확인
+      - 삭제된 북마크 조회가 Aurora MySQL에서 수행되도록 설계되었는지 확인 (MongoDB는 Soft Delete 미지원)
       - 각 엔드포인트의 파라미터, 응답 형식이 명확히 정의되었는지 확인
    
    2. 데이터 모델 설계 검증
@@ -1369,9 +1369,9 @@ Phase 1에서 완료된 멀티모듈 프로젝트 구조 검증 및 데이터베
       - 인덱스 전략이 ESR 규칙을 준수하는지 확인
       - User 엔티티 변경 시 즉시 UserProfileDocument로 동기화되는 전략이 수립되었는지 확인 (userTsid 필드 활용)
       - User 엔티티 Soft Delete 시 UserProfileDocument 물리적 삭제, 복원 시 재생성 전략이 수립되었는지 확인 (MongoDB는 Soft Delete 미지원)
-      - Archive 엔티티 변경 시 즉시 ArchiveDocument로 동기화되는 전략이 수립되었는지 확인 (archiveTsid 필드 활용)
-      - Archive 엔티티 Soft Delete 시 ArchiveDocument 물리적 삭제, 복원 시 재생성 전략이 수립되었는지 확인 (MongoDB는 Soft Delete 미지원)
-      - Kafka 이벤트 기반 실시간 동기화 전략이 명확히 정의되었는지 확인 (UserDeletedEvent, UserRestoredEvent, ArchiveDeletedEvent, ArchiveRestoredEvent 포함)
+      - Bookmark 엔티티 변경 시 즉시 BookmarkDocument로 동기화되는 전략이 수립되었는지 확인 (bookmarkTsid 필드 활용)
+      - Bookmark 엔티티 Soft Delete 시 BookmarkDocument 물리적 삭제, 복원 시 재생성 전략이 수립되었는지 확인 (MongoDB는 Soft Delete 미지원)
+      - Kafka 이벤트 기반 실시간 동기화 전략이 명확히 정의되었는지 확인 (UserDeletedEvent, UserRestoredEvent, BookmarkDeletedEvent, BookmarkRestoredEvent 포함)
       - Phase 1 설계서의 스키마와 일관성이 유지되는지 확인
    
    3. API 응답 형식 검증
@@ -1422,7 +1422,7 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
 2. common-core: 유틸리티 클래스(DateUtils, StringUtils, ValidationUtils), 상수 클래스(ApiConstants, ErrorCodeConstants), 공통 DTO(ApiResponse, MessageCode, PageData), 기본 예외 클래스(BaseException, BusinessException) 구현 
 3. common-exception: 전역 예외 처리(GlobalExceptionHandler), 커스텀 예외 클래스, MongoDB Atlas 예외 로깅 시스템(ExceptionLoggingService, ExceptionContext) 구현
 4. common-security: JWT 토큰 관리(JwtTokenProvider), PasswordEncoder 설정(BCrypt), Spring Security 설정(SecurityConfig, JwtAuthenticationFilter) 구현
-5. common-kafka: Kafka Producer/Consumer 설정(EventPublisher, EventConsumer), 이벤트 모델 정의(UserCreatedEvent, ArchiveCreatedEvent 등) 구현
+5. common-kafka: Kafka Producer/Consumer 설정(EventPublisher, EventConsumer), 이벤트 모델 정의(UserCreatedEvent, BookmarkCreatedEvent 등) 구현
 6. 각 모듈별 빌드 검증 및 통합 테스트
 
 **프로젝트 아키텍처 파악**:
@@ -1684,7 +1684,7 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
      * 모든 Command 작업 후 이벤트 발행 (KafkaTemplate 사용)
      * 트랜잭션 관리: DB 커밋 후 이벤트 발행
      * **주의**: Outbox 패턴은 실제 트랜잭션 문제가 발생한 경우에만 고려 (YAGNI 원칙)
-     * 이벤트 순서 보장: Partition Key 사용 (userId, archiveId 등)
+     * 이벤트 순서 보장: Partition Key 사용 (userId, bookmarkId 등)
      * 에러 핸들링: 발행 실패 시 재시도 로직 (Spring Kafka의 기본 재시도 메커니즘 사용)
    
    Kafka Consumer 설정:
@@ -1702,13 +1702,13 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
    - UserUpdatedEvent: 사용자 업데이트 이벤트
    - UserDeletedEvent: 사용자 삭제 이벤트 (Soft Delete)
    - UserRestoredEvent: 사용자 복원 이벤트
-   - ArchiveCreatedEvent: 아카이브 생성 이벤트
-   - ArchiveUpdatedEvent: 아카이브 수정 이벤트
-   - ArchiveDeletedEvent: 아카이브 삭제 이벤트 (Soft Delete)
-   - ArchiveRestoredEvent: 아카이브 복원 이벤트
+   - BookmarkCreatedEvent: 북마크 생성 이벤트
+   - BookmarkUpdatedEvent: 북마크 수정 이벤트
+   - BookmarkDeletedEvent: 북마크 삭제 이벤트 (Soft Delete)
+   - BookmarkRestoredEvent: 북마크 복원 이벤트
    - 모든 이벤트는 다음 공통 필드를 포함해야 함:
      * eventId: String (UUID 형식, 고유 식별자)
-     * eventType: String (이벤트 타입, 예: "USER_CREATED", "ARCHIVE_CREATED")
+     * eventType: String (이벤트 타입, 예: "USER_CREATED", "BOOKMARK_CREATED")
      * timestamp: Instant (이벤트 발생 시각)
      * payload: Object (이벤트별 페이로드 데이터, 제네릭 타입)
        - userId는 payload 내부에 포함 (nullable)
@@ -1816,7 +1816,7 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
      * 히스토리 자동 저장이 정상적으로 동작해야 함
      * **API 모듈별 스키마 매핑 검증**:
        - `api-auth` 모듈이 `auth` 스키마에 정상적으로 연결되어야 함
-       - `api-archive` 모듈이 `archive` 스키마에 정상적으로 연결되어야 함
+       - `api-bookmark` 모듈이 `bookmark` 스키마에 정상적으로 연결되어야 함
        - 각 모듈의 `module.aurora.schema` 설정이 `application-api-domain.yml`의 `${module.aurora.schema}`에 정상적으로 반영되어야 함
        - 환경변수(`AURORA_WRITER_ENDPOINT`, `AURORA_READER_ENDPOINT`, `AURORA_USERNAME`, `AURORA_PASSWORD`, `AURORA_OPTIONS`)가 정상적으로 로드되어야 함
        - 로컬 환경에서 `.env` 파일을 통한 환경변수 로드가 정상적으로 동작해야 함
@@ -1835,11 +1835,11 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
        - EmailVerification 엔티티: 이메일 인증 정보 (id, email, token, expires_at, verified_at 등)
        - UserHistory 엔티티: 사용자 변경 이력 (history_id, user_id, operation_type, before_data, after_data, changed_by, changed_at, change_reason)
        - AdminHistory 엔티티: 관리자 변경 이력 (history_id, admin_id, operation_type, before_data, after_data, changed_by, changed_at, change_reason)
-     * **archive 스키마** (api-archive 모듈):
-       - Archive 엔티티: 사용자 아카이브 정보 (id, user_id, item_type, item_id, tag, memo 등)
+     * **bookmark 스키마** (api-bookmark 모듈):
+       - Bookmark 엔티티: 사용자 북마크 정보 (id, user_id, item_type, item_id, tag, memo 등)
          - **중요**: `user_id` 필드는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key를 지원하지 않으므로 애플리케이션 레벨에서 참조 무결성을 보장해야 함
-         - `user_id + item_type + item_id` UNIQUE 제약조건 (중복 아카이브 방지, Soft Delete 제외 시)
-       - ArchiveHistory 엔티티: 아카이브 변경 이력 (history_id, archive_id, operation_type, before_data, after_data, changed_by, changed_at, change_reason)
+         - `user_id + item_type + item_id` UNIQUE 제약조건 (중복 북마크 방지, Soft Delete 제외 시)
+       - BookmarkHistory 엔티티: 북마크 변경 이력 (history_id, bookmark_id, operation_type, before_data, after_data, changed_by, changed_at, change_reason)
      * **주의사항**: 
        - `api-contest`, `api-news` 모듈은 Aurora DB를 사용하지 않으므로 해당 스키마의 엔티티는 존재하지 않음
        - Contest와 NewsArticle 데이터는 MongoDB Atlas에만 저장됨 (읽기 전용 데이터)
@@ -1884,7 +1884,7 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
          2. `domain/aurora/src/main/resources/application-api-domain.yml`에서 `${module.aurora.schema}` 환경변수를 사용하여 동적으로 스키마 참조
        - **스키마 매핑 설정**:
          - `api-auth` 모듈: `api-auth-application.yml`에서 `module.aurora.schema=auth` 설정 → `auth` 스키마 사용
-         - `api-archive` 모듈: `api-archive-application.yml`에서 `module.aurora.schema=archive` 설정 → `archive` 스키마 사용
+         - `api-bookmark` 모듈: `api-bookmark-application.yml`에서 `module.aurora.schema=bookmark` 설정 → `bookmark` 스키마 사용
          - `api-contest`, `api-news` 모듈: Aurora DB 미사용 (MongoDB Atlas 사용)
        - **동적 스키마 참조**:
          - `application-api-domain.yml`에서 `${module.aurora.schema}` 환경변수를 사용하여 동적으로 스키마 참조
@@ -1897,12 +1897,12 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
          4. 각 모듈은 자신이 설정한 스키마에 연결됨
      * **스키마별 관리 테이블**:
        - `auth` 스키마 (api-auth 모듈): providers, users, admins, refresh_tokens, email_verifications, user_history, admin_history
-       - `archive` 스키마 (api-archive 모듈): archives, archive_history
+       - `bookmark` 스키마 (api-bookmark 모듈): bookmarks, bookmark_history
        - **스키마 간 Foreign Key 제약조건 미지원**:
-         - `archives` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key 제약조건을 지원하지 않음
+         - `bookmarks` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key 제약조건을 지원하지 않음
          - **애플리케이션 레벨 처리**:
            - `user_id` 값의 유효성 검증은 애플리케이션 레벨에서 수행해야 함
-           - `users` 테이블의 레코드 삭제 시 관련 `archives` 레코드 처리도 애플리케이션 레벨에서 관리해야 함
+           - `users` 테이블의 레코드 삭제 시 관련 `bookmarks` 레코드 처리도 애플리케이션 레벨에서 관리해야 함
            - Repository 또는 Service 레이어에서 참조 무결성 검증 로직 구현 필요
      * 참고: docs/reference/shrimp-task-prompts-final-goal.md, docs/phase1/3. aurora-schema-design.md
    
@@ -1954,8 +1954,8 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
      * SourcesDocument: 정보 출처 정보 (name, type, category, url, apiEndpoint, rssFeedUrl, priority 등)
      * ContestDocument: 개발자 대회 정보 (sourceId, title, startDate, endDate, status, description, url, metadata 등)
      * NewsArticleDocument: IT 테크 뉴스 기사 (sourceId, title, content, summary, publishedAt, url, author, metadata 등)
-     * ArchiveDocument: 사용자 아카이브 정보 (archiveTsid, userId, itemType, itemId, itemTitle, itemSummary, tag, memo, archivedAt 등)
-       - **중요**: `archiveTsid` 필드는 Aurora MySQL Archive.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
+     * BookmarkDocument: 사용자 북마크 정보 (bookmarkTsid, userId, itemType, itemId, itemTitle, itemSummary, tag, memo, bookmarkedAt 등)
+       - **중요**: `bookmarkTsid` 필드는 Aurora MySQL Bookmark.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
      * UserProfileDocument: 사용자 프로필 정보 (userTsid, userId, username, email, profileImageUrl 등)
        - **중요**: `userTsid` 필드는 Aurora MySQL User.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
      * ExceptionLogDocument: 예외 로그 (source, exceptionType, exceptionMessage, stackTrace, context, occurredAt, severity 등)
@@ -1967,8 +1967,8 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
      * 참고: docs/phase1/2. mongodb-schema-design.md
    
    - **CQRS 동기화 전략**:
-     * **ArchiveDocument.archiveTsid**: Aurora MySQL Archive.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
-       - Archive 엔티티 생성/수정/삭제 시 Kafka 이벤트 발행 → ArchiveDocument 동기화
+     * **BookmarkDocument.bookmarkTsid**: Aurora MySQL Bookmark.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
+       - Bookmark 엔티티 생성/수정/삭제 시 Kafka 이벤트 발행 → BookmarkDocument 동기화
        - 동기화 지연 시간: 1초 이내 목표
      * **UserProfileDocument.userTsid**: Aurora MySQL User.id(TSID)와 1:1 매핑 (UNIQUE 인덱스)
        - User 엔티티 생성/수정/삭제 시 Kafka 이벤트 발행 → UserProfileDocument 동기화
@@ -1976,8 +1976,8 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
      * **MongoDB Soft Delete 미지원**:
        - MongoDB Atlas는 Soft Delete를 지원하지 않으므로, Soft Delete 시 Document는 물리적으로 삭제됨
        - 복원 시 Document를 새로 생성해야 함
-       - ArchiveDeletedEvent, UserDeletedEvent 발행 시 MongoDB Atlas에서 Document 물리적 삭제
-       - ArchiveRestoredEvent, UserRestoredEvent 발행 시 MongoDB Atlas에서 Document 새로 생성
+       - BookmarkDeletedEvent, UserDeletedEvent 발행 시 MongoDB Atlas에서 Document 물리적 삭제
+       - BookmarkRestoredEvent, UserRestoredEvent 발행 시 MongoDB Atlas에서 Document 새로 생성
      * 참고: docs/phase2/2. data-model-design.md
 
 3. 변경 이력 추적 시스템 구현 (히스토리 테이블)
@@ -2001,15 +2001,15 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
      * **auth 스키마** (api-auth 모듈):
        - UserHistory: 사용자 변경 이력 (users 테이블 참조)
        - AdminHistory: 관리자 변경 이력 (admins 테이블 참조)
-     * **archive 스키마** (api-archive 모듈):
-       - ArchiveHistory: 아카이브 변경 이력 (archives 테이블 참조)
+     * **bookmark 스키마** (api-bookmark 모듈):
+       - BookmarkHistory: 북마크 변경 이력 (bookmarks 테이블 참조)
      * **주의**: ContestHistory, NewsArticleHistory, SourceHistory는 불필요함
        - Contest와 NewsArticle은 읽기 전용 데이터 (Query Side: MongoDB Atlas)
        - Command Side(Aurora MySQL)에는 Contest와 NewsArticle 엔티티가 존재하지 않음
        - Source는 json/sources.json 파일 기반으로 관리되며 Aurora MySQL에 Source 엔티티가 없음
      * **히스토리 테이블 공통 필드 구조**:
        - `history_id` (BIGINT UNSIGNED, TSID Primary Key): 히스토리 레코드 ID
-       - `entity_id` 또는 `{entity}_id` (BIGINT UNSIGNED, FOREIGN KEY): 대상 엔티티 ID (예: user_id, admin_id, archive_id)
+       - `entity_id` 또는 `{entity}_id` (BIGINT UNSIGNED, FOREIGN KEY): 대상 엔티티 ID (예: user_id, admin_id, bookmark_id)
        - `operation_type` (VARCHAR(20), NOT NULL): 작업 타입 (`INSERT`, `UPDATE`, `DELETE`)
        - `before_data` (JSON, NULL): 변경 전 데이터 (전체 엔티티 데이터를 JSON으로 저장)
        - `after_data` (JSON, NULL): 변경 후 데이터 (전체 엔티티 데이터를 JSON으로 저장)
@@ -2036,7 +2036,7 @@ CQRS 패턴 기반 아키텍처에서 Command Side와 Query Side 데이터 접�
 - 히스토리 자동 저장이 정상적으로 동작해야 함
 - API 모듈별 스키마 매핑 검증:
   * `api-auth` 모듈이 `auth` 스키마에 정상적으로 연결되어야 함
-  * `api-archive` 모듈이 `archive` 스키마에 정상적으로 연결되어야 함
+  * `api-bookmark` 모듈이 `bookmark` 스키마에 정상적으로 연결되어야 함
   * 각 모듈의 `module.aurora.schema` 설정이 `application-api-domain.yml`의 `${module.aurora.schema}`에 정상적으로 반영되어야 함
   * 환경변수(`AURORA_WRITER_ENDPOINT`, `AURORA_READER_ENDPOINT`, `AURORA_USERNAME`, `AURORA_PASSWORD`, `AURORA_OPTIONS`)가 정상적으로 로드되어야 함
   * 로컬 환경에서 `.env` 파일을 통한 환경변수 로드가 정상적으로 동작해야 함
@@ -4992,28 +4992,28 @@ plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 �
 
 **단계 번호**: 11단계
 **의존성**: 4단계 (Domain 모듈 구현 완료 필수), 8단계 (Client 모듈 구현 완료 권장)
-**다음 단계**: 12단계 (사용자 아카이브 기능) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (API 컨트롤러 구현)
+**다음 단계**: 12단계 (사용자 북마크 기능) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (API 컨트롤러 구현)
 
 ```
-plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archive 엔티티 MongoDB Atlas 동기화
+plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookmark 엔티티 MongoDB Atlas 동기화
 
 **단계 번호**: 11단계
 **의존성**: 2단계 (API 설계 완료 필수), 4단계 (Domain 모듈 구현 완료 필수), 8단계 (Client 모듈 구현 완료 필수), 10단계 (Batch 모듈 구현 완료 필수)
-**다음 단계**: 12단계 (사용자 아카이브 기능 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (REST API 컨트롤러 및 비즈니스 로직 구현)
+**다음 단계**: 12단계 (사용자 북마크 기능 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (REST API 컨트롤러 및 비즈니스 로직 구현)
 
 **역할**: 백엔드 개발자 (Kafka Consumer 및 동기화 서비스 구현)
 **책임**: 
-- `UserSyncService` 및 `ArchiveSyncService` 동기화 서비스 인터페이스 및 구현 클래스 생성
+- `UserSyncService` 및 `BookmarkSyncService` 동기화 서비스 인터페이스 및 구현 클래스 생성
 - `EventConsumer.processEvent` 메서드 구현
 - Kafka 이벤트를 통한 Aurora MySQL → MongoDB Atlas 동기화 로직 구현
 - `updatedFields` (Map<String, Object>) 처리 로직 구현 (부분 업데이트 지원)
 
 **description** (작업 설명):
 - **작업 요약**:
-  CQRS 패턴의 Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 간 실시간 동기화를 위한 Kafka 기반 이벤트 동기화 시스템을 구현합니다. 이미 완료된 Kafka Producer (`EventPublisher`) 및 Consumer 기본 구조 (`EventConsumer`, 멱등성 보장 로직 포함)를 기반으로, User 및 Archive 엔티티의 MongoDB Atlas 동기화 서비스를 구현하고 `EventConsumer.processEvent` 메서드를 완성합니다. 설계서(`docs/step11/cqrs-kafka-sync-design.md`)의 "구현 가이드" 섹션을 엄격히 준수하여 구현합니다.
+  CQRS 패턴의 Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 간 실시간 동기화를 위한 Kafka 기반 이벤트 동기화 시스템을 구현합니다. 이미 완료된 Kafka Producer (`EventPublisher`) 및 Consumer 기본 구조 (`EventConsumer`, 멱등성 보장 로직 포함)를 기반으로, User 및 Bookmark 엔티티의 MongoDB Atlas 동기화 서비스를 구현하고 `EventConsumer.processEvent` 메서드를 완성합니다. 설계서(`docs/step11/cqrs-kafka-sync-design.md`)의 "구현 가이드" 섹션을 엄격히 준수하여 구현합니다.
 - **작업 목표**:
   - `common-kafka` 모듈의 `EventConsumer.processEvent` 메서드 구현
-  - `UserSyncService` 및 `ArchiveSyncService` 동기화 서비스 구현
+  - `UserSyncService` 및 `BookmarkSyncService` 동기화 서비스 구현
   - Kafka 이벤트를 통한 Aurora MySQL → MongoDB Atlas 실시간 동기화 완성
   - `docs/step11/cqrs-kafka-sync-design.md` 설계서를 엄격히 준수
 
@@ -5021,12 +5021,12 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - CQRS 패턴 적용: Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 분리
   - Kafka Producer (`EventPublisher`) 및 Consumer 기본 구조 (`EventConsumer`)는 이미 구현 완료
   - MongoDB Atlas 연결 설정 및 인덱스 설정 완료
-  - 이벤트 모델 (UserCreatedEvent, UserUpdatedEvent, ArchiveCreatedEvent 등) 정의 완료
+  - 이벤트 모델 (UserCreatedEvent, UserUpdatedEvent, BookmarkCreatedEvent 등) 정의 완료
   - 현재 `EventConsumer.processEvent` 메서드가 빈 구현 상태이며, 동기화 서비스 미구현
 
 - **예상 결과**:
   - `UserSyncService` 인터페이스 및 구현 클래스 완성 (User 이벤트 → UserProfileDocument 동기화)
-  - `ArchiveSyncService` 인터페이스 및 구현 클래스 완성 (Archive 이벤트 → ArchiveDocument 동기화)
+  - `BookmarkSyncService` 인터페이스 및 구현 클래스 완성 (Bookmark 이벤트 → BookmarkDocument 동기화)
   - `EventConsumer.processEvent` 메서드 구현 완성 (이벤트 타입별 분기 처리)
   - `updatedFields` (Map<String, Object>) 처리 로직 구현 (부분 업데이트 지원)
 
@@ -5040,8 +5040,8 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
    - 이미 완료된 항목은 구현하지 않음:
      * Kafka Producer (`EventPublisher`)
      * Kafka Consumer 기본 구조 (`EventConsumer`, 멱등성 보장 로직 포함)
-     * 이벤트 모델 (모든 이벤트 타입 정의 완료: `UserCreatedEvent`, `UserUpdatedEvent`, `UserDeletedEvent`, `UserRestoredEvent`, `ArchiveCreatedEvent`, `ArchiveUpdatedEvent`, `ArchiveDeletedEvent`, `ArchiveRestoredEvent`)
-     * MongoDB Document 및 Repository (`UserProfileDocument`, `ArchiveDocument`, `UserProfileRepository`, `ArchiveRepository`)
+     * 이벤트 모델 (모든 이벤트 타입 정의 완료: `UserCreatedEvent`, `UserUpdatedEvent`, `UserDeletedEvent`, `UserRestoredEvent`, `BookmarkCreatedEvent`, `BookmarkUpdatedEvent`, `BookmarkDeletedEvent`, `BookmarkRestoredEvent`)
+     * MongoDB Document 및 Repository (`UserProfileDocument`, `BookmarkDocument`, `UserProfileRepository`, `BookmarkRepository`)
      * MongoDB 인덱스 설정 (`MongoIndexConfig`)
      * MongoDB Atlas 연결 설정 (`application-mongodb-domain.yml`, `MongoClientConfig`) ← 이미 완료 (설계서 "구현 가이드" 섹션 5번 항목은 참고용)
    - 미구현 항목만 구현: 동기화 서비스 및 `processEvent` 메서드
@@ -5063,7 +5063,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
 - **Task Description 이해** (위의 `description` 섹션 참고):
   - 작업 목표: `EventConsumer.processEvent` 및 동기화 서비스 구현
   - 배경: Kafka Producer/Consumer 기본 구조는 완료, 동기화 로직만 구현 필요
-  - 예상 결과: User 및 Archive 엔티티의 MongoDB Atlas 동기화 완성
+  - 예상 결과: User 및 Bookmark 엔티티의 MongoDB Atlas 동기화 완성
 - **Task Requirements 이해** (위의 `requirements` 섹션 참고):
   - 설계서 엄격 준수 (`docs/step11/cqrs-kafka-sync-design.md`)
   - 오버엔지니어링 금지 (Contest/News 동기화 서비스 제외)
@@ -5073,11 +5073,11 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
 - **작업 분해 및 우선순위** (참고 정보, splitTasksRaw 단계에서 작업 1, 2, 3으로 분해됨):
   - **작업 1 (Phase 1): 동기화 서비스 인터페이스 생성** (우선순위: 높음)
     * 의존성: 11단계 (설계서 완료 필수)
-    * 작업: `UserSyncService`, `ArchiveSyncService` 인터페이스 정의
-    * 참고: `docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션 (UserSyncService, ArchiveSyncService 인터페이스)
+    * 작업: `UserSyncService`, `BookmarkSyncService` 인터페이스 정의
+    * 참고: `docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션 (UserSyncService, BookmarkSyncService 인터페이스)
   - **작업 2 (Phase 2): 동기화 서비스 구현 클래스 생성** (우선순위: 높음)
     * 의존성: 작업 1 (Phase 1) 완료
-    * 작업: `UserSyncServiceImpl`, `ArchiveSyncServiceImpl` 구현
+    * 작업: `UserSyncServiceImpl`, `BookmarkSyncServiceImpl` 구현
     * 참고: Upsert 패턴, updatedFields 처리 로직 (설계서 "동기화 서비스 설계" 섹션의 구현 클래스 및 "updatedFields 처리 전략" 섹션)
   - **작업 3 (Phase 3): EventConsumer.processEvent 구현** (우선순위: 높음)
     * 의존성: 작업 1, 2 (Phase 1, 2) 완료
@@ -5103,7 +5103,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - `shrimp-rules.md` 파일 확인 (프로젝트 규칙, 존재 시 상세히 읽고 참고)
 - **핵심 설정 파일 및 구조 확인**:
   - `common/kafka` 모듈의 구조 확인 (`EventPublisher`, `EventConsumer` 클래스 위치)
-  - `domain/mongodb` 모듈의 Repository 인터페이스 확인 (`UserProfileRepository`, `ArchiveRepository`)
+  - `domain/mongodb` 모듈의 Repository 인터페이스 확인 (`UserProfileRepository`, `BookmarkRepository`)
   - `common/kafka` 모듈의 이벤트 모델 확인 (`UserCreatedEvent`, `UserUpdatedEvent` 등)
   - `docs/step11/cqrs-kafka-sync-design.md` 설계서 전체 읽기
   - Spring Kafka 재시도 설정 확인 (`codebase_search`로 `application*.yml` 파일에서 `spring.kafka.consumer` 설정 확인)
@@ -5127,17 +5127,17 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - `read_file`로 `docs/step11/cqrs-kafka-sync-design.md` 설계서 전체 읽기 (특히 "구현 가이드" 섹션 참고)
   - `codebase_search`로 `EventConsumer`, `EventPublisher` 클래스 확인
   - `read_file`로 `domain/mongodb` 모듈의 Repository 인터페이스 확인
-  - `read_file`로 이벤트 모델 클래스 확인 (`UserCreatedEvent`, `UserUpdatedEvent`, `ArchiveCreatedEvent`, `ArchiveUpdatedEvent` 등)
+  - `read_file`로 이벤트 모델 클래스 확인 (`UserCreatedEvent`, `UserUpdatedEvent`, `BookmarkCreatedEvent`, `BookmarkUpdatedEvent` 등)
   - `web_search`로 기술 문서 검색 (MongoDB, Spring Kafka 공식 문서 등, 불熟悉한 개념이나 기술의 경우)
   - 이벤트 페이로드 구조 확인:
     * `UserCreatedEvent.payload()`: `userTsid`, `userId`, `username`, `email`, `profileImageUrl` 필드 확인
     * `UserUpdatedEvent.payload().updatedFields()`: `Map<String, Object>` 구조 확인 (필드명: `username`, `email`, `profileImageUrl` 등)
     * `UserDeletedEvent.payload()`: `userTsid`, `userId`, `deletedAt` 필드 확인
     * `UserRestoredEvent.payload()`: `userTsid`, `userId`, `username`, `email`, `profileImageUrl` 필드 확인
-    * `ArchiveCreatedEvent.payload()`: `archiveTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `archivedAt` 필드 확인
-    * `ArchiveUpdatedEvent.payload().updatedFields()`: `Map<String, Object>` 구조 확인 (필드명: `tag`, `memo`만 가능, `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 제외)
-    * `ArchiveDeletedEvent.payload()`: `archiveTsid`, `userId`, `deletedAt` 필드 확인
-    * `ArchiveRestoredEvent.payload()`: `archiveTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `archivedAt` 필드 확인
+    * `BookmarkCreatedEvent.payload()`: `bookmarkTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `bookmarkedAt` 필드 확인
+    * `BookmarkUpdatedEvent.payload().updatedFields()`: `Map<String, Object>` 구조 확인 (필드명: `tag`, `memo`만 가능, `itemTitle`, `itemSummary`는 BookmarkEntity에 없는 필드이므로 제외)
+    * `BookmarkDeletedEvent.payload()`: `bookmarkTsid`, `userId`, `deletedAt` 필드 확인
+    * `BookmarkRestoredEvent.payload()`: `bookmarkTsid`, `userId`, `itemType`, `itemId`, `itemTitle`, `itemSummary`, `tag`, `memo`, `bookmarkedAt` 필드 확인
 - **추측 금지**: 설계서에 명시되지 않은 기능은 구현하지 않음
 - **설계서 예제 코드 참고 시 주의사항**:
   * 설계서의 `UserSyncServiceImpl` 예제 코드(978라인)는 `MongoTemplate`을 주입하지만, 실제 구현에서는 Repository 인터페이스만 사용
@@ -5149,12 +5149,12 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java` 구현 확인
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserCreatedEvent.java` 이벤트 모델 구조
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
-  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveCreatedEvent.java` 이벤트 모델 구조
-  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/ArchiveUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkCreatedEvent.java` 이벤트 모델 구조
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java` 인터페이스
-  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/ArchiveRepository.java` 인터페이스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java` 인터페이스
   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java` Document 구조
-  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/ArchiveDocument.java` Document 구조
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java` Document 구조
 
 **4단계: Check Existing Programs and Structures (기존 프로그램 및 구조 확인)**
 - **중요 원칙: "check first, then design"**:
@@ -5175,11 +5175,11 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
     * 이벤트 발행 메서드 시그니처 확인
     * 파티션 키 사용 방식 확인
   - MongoDB Repository 인터페이스 메서드 확인
-    * `findByUserTsid`, `findByArchiveTsid` 메서드 확인
+    * `findByUserTsid`, `findByBookmarkTsid` 메서드 확인
     * `save` 메서드 확인
     * **삭제 메서드 확인 및 필요 시 선언**:
       - `UserProfileRepository`에 `void deleteByUserTsid(String userTsid)` 메서드가 있는지 확인
-      - `ArchiveRepository`에 `void deleteByArchiveTsid(String archiveTsid)` 메서드가 있는지 확인
+      - `BookmarkRepository`에 `void deleteByBookmarkTsid(String bookmarkTsid)` 메서드가 있는지 확인
       - 메서드가 없으면 Repository 인터페이스에 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
   - Document 클래스 구조 확인
     * 필드 타입 및 구조 확인
@@ -5215,18 +5215,18 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - **서비스 인터페이스 설계 원칙**:
     * 인터페이스는 `public` 접근 제어자 사용
     * 각 메서드는 `void` 반환 타입 (비동기 처리)
-    * 메서드 파라미터는 구체적인 이벤트 타입 사용 (예: `UserCreatedEvent`, `ArchiveUpdatedEvent`)
+    * 메서드 파라미터는 구체적인 이벤트 타입 사용 (예: `UserCreatedEvent`, `BookmarkUpdatedEvent`)
     * 패키지 위치: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/`
   - **의존성 주입 패턴 분석**:
     * `@Service` 어노테이션 사용
     * `@RequiredArgsConstructor` 사용 (Lombok)
-    * Repository 인터페이스 주입 방식 확인 (`UserProfileRepository`, `ArchiveRepository`)
+    * Repository 인터페이스 주입 방식 확인 (`UserProfileRepository`, `BookmarkRepository`)
       - **중요**: Repository 인터페이스만 주입 (설계서 예제 코드의 `MongoTemplate`은 사용하지 않음)
       - Repository 인터페이스에 삭제 메서드가 없으면 선언 필요:
         * `UserProfileRepository`에 `void deleteByUserTsid(String userTsid)` 선언
-        * `ArchiveRepository`에 `void deleteByArchiveTsid(String archiveTsid)` 선언
+        * `BookmarkRepository`에 `void deleteByBookmarkTsid(String bookmarkTsid)` 선언
         * Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨
-    * `EventConsumer`에 동기화 서비스 주입 추가 (`UserSyncService`, `ArchiveSyncService`)
+    * `EventConsumer`에 동기화 서비스 주입 추가 (`UserSyncService`, `BookmarkSyncService`)
   - **에러 처리 및 로깅 패턴**:
     * 동기화 실패 시 예외 전파 전략:
       - `RuntimeException`으로 래핑하여 전파
@@ -5238,7 +5238,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
       - 알 수 없는 필드: `log.warn("Unknown field in updatedFields: {}", fieldName)`
   - **Upsert 패턴 구현**:
     * `findByUserTsid().orElse(new UserProfileDocument())` 패턴 사용 (User 동기화)
-    * `findByArchiveTsid().orElse(new ArchiveDocument())` 패턴 사용 (Archive 동기화)
+    * `findByBookmarkTsid().orElse(new BookmarkDocument())` 패턴 사용 (Bookmark 동기화)
     * `createdAt`, `updatedAt` 필드 자동 관리:
       - 생성 시: `setCreatedAt(LocalDateTime.now())`, `setUpdatedAt(LocalDateTime.now())`
       - 수정 시: `setUpdatedAt(LocalDateTime.now())`만 업데이트
@@ -5246,28 +5246,28 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
     * `Map<String, Object>` 타입의 `updatedFields`를 Document 필드에 매핑
     * `switch` 문을 통한 필드별 매핑:
       - User: `username`, `email`, `profileImageUrl` 등
-      - Archive: `tag`, `memo`만 가능 (itemTitle, itemSummary는 ArchiveEntity에 없는 필드이므로 제외)
+      - Bookmark: `tag`, `memo`만 가능 (itemTitle, itemSummary는 BookmarkEntity에 없는 필드이므로 제외)
     * 타입 변환 로직:
       - String → String: 그대로 사용 (대부분의 필드)
-      - Instant → LocalDateTime: `LocalDateTime.ofInstant(instant, ZoneId.systemDefault())` 사용 (설계서 예제 코드의 `convertToLocalDateTime` 메서드 참고, `archivedAt` 필드 등)
+      - Instant → LocalDateTime: `LocalDateTime.ofInstant(instant, ZoneId.systemDefault())` 사용 (설계서 예제 코드의 `convertToLocalDateTime` 메서드 참고, `bookmarkedAt` 필드 등)
       - String → LocalDateTime: `updatedFields`에서 값이 `String` 타입인 경우에만 `Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDateTime()` 사용 (ISO-8601 형식)
-      - String → ObjectId: `new ObjectId(value)` (Archive의 `itemId` 필드)
+      - String → ObjectId: `new ObjectId(value)` (Bookmark의 `itemId` 필드)
       - null 값 처리: Document 필드에 `null` 설정 (nullable 필드인 경우), null이 아닌 경우에만 업데이트 (설계서 "updatedFields 처리 전략" 섹션 참고)
       - 타입 불일치 시: `ClassCastException` 발생 가능, 적절한 예외 처리 필요 (try-catch로 래핑하여 경고 로그 출력)
   - **이벤트 타입별 처리 방법**:
     * **이벤트 타입 상수 값** (설계서 "이벤트 처리 로직 설계" 섹션의 "EventConsumer.processEvent 구현" 참고):
       - User: `"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`
-      - Archive: `"ARCHIVE_CREATED"`, `"ARCHIVE_UPDATED"`, `"ARCHIVE_DELETED"`, `"ARCHIVE_RESTORED"`
+      - Bookmark: `"BOOKMARK_CREATED"`, `"BOOKMARK_UPDATED"`, `"BOOKMARK_DELETED"`, `"BOOKMARK_RESTORED"`
     * **User 이벤트**:
       - `"USER_CREATED"`: `UserSyncService.syncUserCreated()` 호출 → `UserProfileDocument` 생성 (Upsert 패턴: `findByUserTsid().orElse(new UserProfileDocument())`)
       - `"USER_UPDATED"`: `UserSyncService.syncUserUpdated()` 호출 → `updatedFields`를 Document 필드에 매핑하여 부분 업데이트 (Document가 존재하지 않으면 예외 발생)
       - `"USER_DELETED"`: `UserSyncService.syncUserDeleted()` 호출 → `UserProfileDocument` 물리적 삭제 (MongoDB는 Soft Delete 미지원, `deleteByUserTsid()` 사용)
       - `"USER_RESTORED"`: `UserSyncService.syncUserRestored()` 호출 → `UserProfileDocument` 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 새로 생성)
-    * **Archive 이벤트**:
-      - `"ARCHIVE_CREATED"`: `ArchiveSyncService.syncArchiveCreated()` 호출 → `ArchiveDocument` 생성 (Upsert 패턴: `findByArchiveTsid().orElse(new ArchiveDocument())`)
-      - `"ARCHIVE_UPDATED"`: `ArchiveSyncService.syncArchiveUpdated()` 호출 → `updatedFields`를 Document 필드에 매핑하여 부분 업데이트 (Document가 존재하지 않으면 예외 발생)
-      - `"ARCHIVE_DELETED"`: `ArchiveSyncService.syncArchiveDeleted()` 호출 → `ArchiveDocument` 물리적 삭제 (MongoDB는 Soft Delete 미지원, `deleteByArchiveTsid()` 사용)
-      - `"ARCHIVE_RESTORED"`: `ArchiveSyncService.syncArchiveRestored()` 호출 → `ArchiveDocument` 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 새로 생성)
+    * **Bookmark 이벤트**:
+      - `"BOOKMARK_CREATED"`: `BookmarkSyncService.syncBookmarkCreated()` 호출 → `BookmarkDocument` 생성 (Upsert 패턴: `findByBookmarkTsid().orElse(new BookmarkDocument())`)
+      - `"BOOKMARK_UPDATED"`: `BookmarkSyncService.syncBookmarkUpdated()` 호출 → `updatedFields`를 Document 필드에 매핑하여 부분 업데이트 (Document가 존재하지 않으면 예외 발생)
+      - `"BOOKMARK_DELETED"`: `BookmarkSyncService.syncBookmarkDeleted()` 호출 → `BookmarkDocument` 물리적 삭제 (MongoDB는 Soft Delete 미지원, `deleteByBookmarkTsid()` 사용)
+      - `"BOOKMARK_RESTORED"`: `BookmarkSyncService.syncBookmarkRestored()` 호출 → `BookmarkDocument` 새로 생성 (MongoDB는 Soft Delete 미지원이므로 복원 시 새로 생성)
 
 **6단계: Preliminary Solution Output (초기 설계 솔루션 출력)**
 - **초기 설계 솔루션 작성**:
@@ -5287,7 +5287,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - **기존 컴포넌트 재사용 및 패턴 준수**:
     * `EventConsumer`의 기존 멱등성 보장 로직 재사용 (`isEventProcessed`, `markEventAsProcessed` 메서드 활용)
     * `EventPublisher`의 이벤트 발행 패턴 참고 (Partition Key 사용 방식, 비동기 처리 방식)
-    * MongoDB Repository 인터페이스의 기존 메서드 재사용 (`findByUserTsid`, `findByArchiveTsid`, `save` 메서드)
+    * MongoDB Repository 인터페이스의 기존 메서드 재사용 (`findByUserTsid`, `findByBookmarkTsid`, `save` 메서드)
     * 기존 코드 스타일 및 명명 규칙 준수 (camelCase, Lombok 사용 패턴 등)
     * 기존 에러 처리 및 로깅 패턴 준수
 - **설계 솔루션 작성 원칙**:
@@ -5300,9 +5300,9 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
       - 인터페이스 전체 메서드 시그니처 설계 (파라미터 타입, 반환 타입, 예외 선언)
       - 메서드: `void syncUserCreated(UserCreatedEvent event)`, `void syncUserUpdated(UserUpdatedEvent event)`, `void syncUserDeleted(UserDeletedEvent event)`, `void syncUserRestored(UserRestoredEvent event)`
       - JavaDoc 주석 포함 설계 (각 메서드의 역할 및 파라미터 설명)
-    * `ArchiveSyncService` 인터페이스 전체 설계:
+    * `BookmarkSyncService` 인터페이스 전체 설계:
       - 인터페이스 전체 메서드 시그니처 설계 (파라미터 타입, 반환 타입, 예외 선언)
-      - 메서드: `void syncArchiveCreated(ArchiveCreatedEvent event)`, `void syncArchiveUpdated(ArchiveUpdatedEvent event)`, `void syncArchiveDeleted(ArchiveDeletedEvent event)`, `void syncArchiveRestored(ArchiveRestoredEvent event)`
+      - 메서드: `void syncBookmarkCreated(BookmarkCreatedEvent event)`, `void syncBookmarkUpdated(BookmarkUpdatedEvent event)`, `void syncBookmarkDeleted(BookmarkDeletedEvent event)`, `void syncBookmarkRestored(BookmarkRestoredEvent event)`
       - JavaDoc 주석 포함 설계 (각 메서드의 역할 및 파라미터 설명)
   - **동기화 서비스 구현 클래스 설계**: 
     * `UserSyncServiceImpl` 클래스 전체 구조 설계:
@@ -5313,24 +5313,24 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
       - `syncUserDeleted`: 물리적 삭제 로직 (pseudocode)
       - `syncUserRestored`: Document 새로 생성 로직 (pseudocode)
       - `updateDocumentFields`: switch 문 케이스 전체 설계 (`username`, `email`, `profileImageUrl` 등)
-    * `ArchiveSyncServiceImpl` 클래스 전체 구조 설계:
+    * `BookmarkSyncServiceImpl` 클래스 전체 구조 설계:
       - 클래스 전체 구조 설계 (필드, 생성자, 메서드)
       - 각 메서드의 구현 로직을 pseudocode로 설계
-      - `syncArchiveCreated`: Upsert 패턴 구현 로직 (pseudocode)
-      - `syncArchiveUpdated`: `updatedFields` 처리 로직 (pseudocode)
-      - `syncArchiveDeleted`: 물리적 삭제 로직 (pseudocode)
-      - `syncArchiveRestored`: Document 새로 생성 로직 (pseudocode)
-      - `updateDocumentFields`: switch 문 케이스 전체 설계 (`tag`, `memo`만 가능, `itemTitle`, `itemSummary`는 ArchiveEntity에 없는 필드이므로 제외)
+      - `syncBookmarkCreated`: Upsert 패턴 구현 로직 (pseudocode)
+      - `syncBookmarkUpdated`: `updatedFields` 처리 로직 (pseudocode)
+      - `syncBookmarkDeleted`: 물리적 삭제 로직 (pseudocode)
+      - `syncBookmarkRestored`: Document 새로 생성 로직 (pseudocode)
+      - `updateDocumentFields`: switch 문 케이스 전체 설계 (`tag`, `memo`만 가능, `itemTitle`, `itemSummary`는 BookmarkEntity에 없는 필드이므로 제외)
   - **EventConsumer.processEvent 구현 설계**: 
     * 이벤트 타입별 분기 처리 로직 (`switch` 문) 전체 설계:
-      - switch 문 케이스 전체 설계 (`"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`, `"ARCHIVE_CREATED"`, `"ARCHIVE_UPDATED"`, `"ARCHIVE_DELETED"`, `"ARCHIVE_RESTORED"`, `default`)
+      - switch 문 케이스 전체 설계 (`"USER_CREATED"`, `"USER_UPDATED"`, `"USER_DELETED"`, `"USER_RESTORED"`, `"BOOKMARK_CREATED"`, `"BOOKMARK_UPDATED"`, `"BOOKMARK_DELETED"`, `"BOOKMARK_RESTORED"`, `default`)
       - 각 케이스별 처리 로직 설계 (pseudocode)
     * Pattern Matching for `instanceof` 사용 (Java 16+)
     * 예외 처리 전략 (예외 전파하여 재시도 메커니즘 활용): try-catch로 예외를 catch하되, `throw e`로 전파
   - **패키지 구조 설계**: 
     * `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/` 패키지 구조
-    * 인터페이스: `UserSyncService.java`, `ArchiveSyncService.java`
-    * 구현 클래스: `UserSyncServiceImpl.java`, `ArchiveSyncServiceImpl.java`
+    * 인터페이스: `UserSyncService.java`, `BookmarkSyncService.java`
+    * 구현 클래스: `UserSyncServiceImpl.java`, `BookmarkSyncServiceImpl.java`
     * `EventConsumer` 수정: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
   - **에러 처리 설계**: 
     * 동기화 실패 시 예외 전파 전략:
@@ -5364,8 +5364,8 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
 - [ ] "check first, then design" 원칙 준수: 기존 코드 확인 후 설계 진행
 - [ ] 사실(facts)과 추론(inferences) 명확히 구분하여 초기 설계 솔루션 작성
 - [ ] 동기화 서비스 초기 설계 솔루션 완성:
-  - `UserSyncService`, `ArchiveSyncService` 인터페이스 설계
-  - `UserSyncServiceImpl`, `ArchiveSyncServiceImpl` 구현 클래스 설계
+  - `UserSyncService`, `BookmarkSyncService` 인터페이스 설계
+  - `UserSyncServiceImpl`, `BookmarkSyncServiceImpl` 구현 클래스 설계
   - Upsert 패턴 구현 설계
   - `updatedFields` 처리 로직 설계
 - [ ] `EventConsumer.processEvent` 메서드 구현 설계 완성:
@@ -5377,7 +5377,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
 - [ ] **기능 검증** (설계서 "검증 기준" 섹션의 "1. 기능 검증" 참고):
   - [ ] 모든 이벤트 타입에 대한 동기화 동작 확인:
     * User 이벤트: `UserCreatedEvent`, `UserUpdatedEvent`, `UserDeletedEvent`, `UserRestoredEvent` → `UserProfileDocument` 동기화
-    * Archive 이벤트: `ArchiveCreatedEvent`, `ArchiveUpdatedEvent`, `ArchiveDeletedEvent`, `ArchiveRestoredEvent` → `ArchiveDocument` 동기화
+    * Bookmark 이벤트: `BookmarkCreatedEvent`, `BookmarkUpdatedEvent`, `BookmarkDeletedEvent`, `BookmarkRestoredEvent` → `BookmarkDocument` 동기화
   - [ ] 멱등성 보장 확인: 동일한 `eventId`로 이벤트 2회 수신 시 두 번째는 스킵 (Redis에서 처리 여부 확인)
   - [ ] 에러 핸들링 동작 확인: MongoDB 연결 실패, 잘못된 페이로드, 알 수 없는 이벤트 타입 처리
 - [ ] **통합 테스트 작성** (설계서 "검증 기준" 섹션의 "1. 기능 검증" 참고):
@@ -5386,10 +5386,10 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
     * `UserUpdatedEvent` → `UserProfileDocument` 업데이트 테스트 (updatedFields 처리)
     * `UserDeletedEvent` → `UserProfileDocument` 삭제 테스트
     * `UserRestoredEvent` → `UserProfileDocument` 생성 테스트
-    * `ArchiveCreatedEvent` → `ArchiveDocument` 생성 테스트
-    * `ArchiveUpdatedEvent` → `ArchiveDocument` 업데이트 테스트 (updatedFields 처리)
-    * `ArchiveDeletedEvent` → `ArchiveDocument` 삭제 테스트
-    * `ArchiveRestoredEvent` → `ArchiveDocument` 생성 테스트
+    * `BookmarkCreatedEvent` → `BookmarkDocument` 생성 테스트
+    * `BookmarkUpdatedEvent` → `BookmarkDocument` 업데이트 테스트 (updatedFields 처리)
+    * `BookmarkDeletedEvent` → `BookmarkDocument` 삭제 테스트
+    * `BookmarkRestoredEvent` → `BookmarkDocument` 생성 테스트
   - [ ] 멱등성 테스트 작성: 동일한 `eventId`로 이벤트 2회 수신 시나리오 테스트
   - [ ] 에러 핸들링 테스트 작성: MongoDB 연결 실패, 잘못된 페이로드, 알 수 없는 이벤트 타입 처리 테스트
 - [ ] **성능 검증** (설계서 "검증 기준" 섹션의 "2. 성능 검증" 참고):
@@ -5420,34 +5420,34 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/`: 동기화 서비스 패키지
     * `UserSyncService.java`: User 동기화 서비스 인터페이스 (생성 필요)
     * `UserSyncServiceImpl.java`: User 동기화 서비스 구현 클래스 (생성 필요)
-    * `ArchiveSyncService.java`: Archive 동기화 서비스 인터페이스 (생성 필요)
-    * `ArchiveSyncServiceImpl.java`: Archive 동기화 서비스 구현 클래스 (생성 필요)
+    * `BookmarkSyncService.java`: Bookmark 동기화 서비스 인터페이스 (생성 필요)
+    * `BookmarkSyncServiceImpl.java`: Bookmark 동기화 서비스 구현 클래스 (생성 필요)
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`: `processEvent` 메서드 구현 (수정 필요)
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java`: 이미 구현 완료 (참고용)
   - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/`: 이벤트 모델 (이미 정의 완료, 참고용)
     * `UserCreatedEvent.java`, `UserUpdatedEvent.java`, `UserDeletedEvent.java`, `UserRestoredEvent.java`
-    * `ArchiveCreatedEvent.java`, `ArchiveUpdatedEvent.java`, `ArchiveDeletedEvent.java`, `ArchiveRestoredEvent.java`
+    * `BookmarkCreatedEvent.java`, `BookmarkUpdatedEvent.java`, `BookmarkDeletedEvent.java`, `BookmarkRestoredEvent.java`
 - `domain/mongodb`: MongoDB Repository 및 Document (이미 구현 완료, 참고용, 모듈 경로: `domain/mongodb`)
   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java`: Repository 인터페이스
     * **주의**: `deleteByUserTsid(String userTsid)` 메서드가 없으면 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
-  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/ArchiveRepository.java`: Repository 인터페이스
-    * **주의**: `deleteByArchiveTsid(String archiveTsid)` 메서드가 없으면 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java`: Repository 인터페이스
+    * **주의**: `deleteByBookmarkTsid(String bookmarkTsid)` 메서드가 없으면 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java`: Document 클래스
-  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/ArchiveDocument.java`: Document 클래스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java`: Document 클래스
 
 **작업 의존성 관계**:
 - **작업 1 (동기화 서비스 인터페이스 생성)**:
-  * 입력: 설계서의 인터페이스 설계 (`docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션의 UserSyncService 인터페이스, ArchiveSyncService 인터페이스)
-  * 출력: `UserSyncService.java`, `ArchiveSyncService.java` 인터페이스 파일
+  * 입력: 설계서의 인터페이스 설계 (`docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션의 UserSyncService 인터페이스, BookmarkSyncService 인터페이스)
+  * 출력: `UserSyncService.java`, `BookmarkSyncService.java` 인터페이스 파일
   * 의존성: 없음 (최우선 작업)
   * 다음 작업: 작업 2, 3 전에 완료 필요
 - **작업 2 (동기화 서비스 구현 클래스 생성)**:
-  * 입력: 작업 1의 인터페이스, 설계서의 구현 클래스 설계 (`docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션의 UserSyncServiceImpl, ArchiveSyncServiceImpl 구현 클래스 및 "updatedFields 처리 전략" 섹션의 `updateDocumentFields` 메서드), Repository 인터페이스
-  * 출력: `UserSyncServiceImpl.java`, `ArchiveSyncServiceImpl.java` 구현 클래스 파일
+  * 입력: 작업 1의 인터페이스, 설계서의 구현 클래스 설계 (`docs/step11/cqrs-kafka-sync-design.md` "동기화 서비스 설계" 섹션의 UserSyncServiceImpl, BookmarkSyncServiceImpl 구현 클래스 및 "updatedFields 처리 전략" 섹션의 `updateDocumentFields` 메서드), Repository 인터페이스
+  * 출력: `UserSyncServiceImpl.java`, `BookmarkSyncServiceImpl.java` 구현 클래스 파일
   * 의존성: 작업 1 완료 필요
   * 다음 작업: 작업 3 전에 완료 필요
   * **주의사항**:
-    * Repository 인터페이스에 삭제 메서드(`deleteByUserTsid`, `deleteByArchiveTsid`)가 없으면 선언 필요
+    * Repository 인터페이스에 삭제 메서드(`deleteByUserTsid`, `deleteByBookmarkTsid`)가 없으면 선언 필요
     * 설계서 예제 코드의 `MongoTemplate` 의존성은 사용하지 않음 (Repository 인터페이스만 사용)
 - **작업 3 (`EventConsumer.processEvent` 구현)**:
   * 입력: 작업 1, 2의 동기화 서비스, 설계서의 `processEvent` 구현 설계 (`docs/step11/cqrs-kafka-sync-design.md` "이벤트 처리 로직 설계" 섹션의 "EventConsumer.processEvent 구현"), 이벤트 모델
@@ -5470,40 +5470,40 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archiv
 - 작업 1, 2 → 작업 3: `EventConsumer`는 동기화 서비스 인터페이스와 구현 클래스 모두 필요
 ```
 
-### 12단계: 사용자 아카이브 기능 구현
+### 12단계: 사용자 북마크 기능 구현
 
 **단계 번호**: 12단계
 **의존성**: 5단계 (사용자 인증 시스템 구현 완료 필수), 4단계 (Domain 모듈 구현 완료 필수), 11단계 (CQRS 패턴 구현 완료 필수), 9단계 (Contest 및 News API 모듈 구현 완료 필수)
 **다음 단계**: 13단계 (RAG 기반 챗봇 구현)
 
 ```
-plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
+plan task: 사용자 북마크 기능 구현 (CQRS 패턴 적용)
 
 **description** (작업 설명):
-`api-archive` 모듈의 사용자 아카이브 기능을 구현합니다. 로그인한 사용자가 조회할 수 있는 모든 contest, news 정보를 개인 아카이브에 저장하고, 태그와 메모를 수정하며, 삭제 및 복구할 수 있는 기능을 제공합니다. 또한 태그와 메모를 기준으로 검색하고, 원본 아이템 정보를 기준으로 정렬할 수 있는 기능을 포함합니다. 설계서(`docs/step13/user-archive-feature-design.md`)의 모든 설계 사항을 엄격히 준수하여 구현합니다.
+`api-bookmark` 모듈의 사용자 북마크 기능을 구현합니다. 로그인한 사용자가 조회할 수 있는 모든 contest, news 정보를 개인 북마크에 저장하고, 태그와 메모를 수정하며, 삭제 및 복구할 수 있는 기능을 제공합니다. 또한 태그와 메모를 기준으로 검색하고, 원본 아이템 정보를 기준으로 정렬할 수 있는 기능을 포함합니다. 설계서(`docs/step13/user-bookmark-feature-design.md`)의 모든 설계 사항을 엄격히 준수하여 구현합니다.
 
 **작업 목표**:
-- `api-archive` 모듈의 11개 API 엔드포인트 구현
-- ArchiveCommandService, ArchiveQueryService, ArchiveHistoryService 구현
-- ArchiveFacade 및 ArchiveController 구현
+- `api-bookmark` 모듈의 11개 API 엔드포인트 구현
+- BookmarkCommandService, BookmarkQueryService, BookmarkHistoryService 구현
+- BookmarkFacade 및 BookmarkController 구현
 - DTO 및 예외 처리 구현
-- Domain 모듈 확장 (ArchiveDocument 스키마 확장)
+- Domain 모듈 확장 (BookmarkDocument 스키마 확장)
 
 **배경**:
 - CQRS 패턴: Command Side (Aurora MySQL), Query Side (MongoDB Atlas)
-- Kafka 이벤트 동기화: `EventPublisher.publish("archive-events", event, archiveTsid)` 사용, `ArchiveSyncService` 이미 구현 완료
+- Kafka 이벤트 동기화: `EventPublisher.publish("bookmark-events", event, bookmarkTsid)` 사용, `BookmarkSyncService` 이미 구현 완료
 - 기존 API 모듈 패턴 준수: `api-contest`, `api-news`, `api-auth` 참고
 
 **requirements** (기술 요구사항 및 제약조건):
-1. **설계서 엄격 준수**: `docs/step13/user-archive-feature-design.md`의 모든 설계 사항 정확히 구현
+1. **설계서 엄격 준수**: `docs/step13/user-bookmark-feature-design.md`의 모든 설계 사항 정확히 구현
 2. **프로젝트 구조 일관성**: `api-contest`, `api-news`, `api-auth` 모듈 패턴 준수, Facade 패턴 유지
-3. **CQRS 패턴 적용**: Command Side (Aurora MySQL), Query Side (MongoDB Atlas), 삭제된 아카이브/히스토리 조회는 예외로 Aurora MySQL 사용
-4. **Kafka 이벤트 통합**: `EventPublisher.publish("archive-events", event, archiveTsid)` 사용, `ArchiveSyncService` 이미 구현 완료 (참고: `docs/step11/cqrs-kafka-sync-design.md`)
+3. **CQRS 패턴 적용**: Command Side (Aurora MySQL), Query Side (MongoDB Atlas), 삭제된 북마크/히스토리 조회는 예외로 Aurora MySQL 사용
+4. **Kafka 이벤트 통합**: `EventPublisher.publish("bookmark-events", event, bookmarkTsid)` 사용, `BookmarkSyncService` 이미 구현 완료 (참고: `docs/step11/cqrs-kafka-sync-design.md`)
 5. **Soft Delete**: Aurora MySQL에서 `is_deleted = true`, MongoDB는 물리적 삭제
 6. **권한 관리**: JWT 토큰에서 `userId` 추출, 사용자별 데이터 격리, 히스토리 조회/복구 권한 검증
 7. **히스토리 자동 저장**: `@EntityListeners(HistoryEntityListener.class)` 활용
-8. **원본 아이템 정보**: 저장/복구 시 조회하여 이벤트에 포함, 수정 시 `updatedFields`에는 `tag`/`memo`만 포함 (`itemTitle`/`itemSummary`는 `ArchiveEntity`에 없음)
-9. **ArchiveDocument 스키마 확장**: `itemStartDate`, `itemEndDate`, `itemPublishedAt` 필드 추가
+8. **원본 아이템 정보**: 저장/복구 시 조회하여 이벤트에 포함, 수정 시 `updatedFields`에는 `tag`/`memo`만 포함 (`itemTitle`/`itemSummary`는 `BookmarkEntity`에 없음)
+9. **BookmarkDocument 스키마 확장**: `itemStartDate`, `itemEndDate`, `itemPublishedAt` 필드 추가
 10. **클린코드 원칙**: SRP, DIP, OCP 준수
 11. **오버엔지니어링 금지**: 설계서에 명시된 기능만 구현
 
@@ -5513,31 +5513,31 @@ plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
 - Task Description 및 Requirements 이해
 - 작업 분해 및 우선순위: Domain 모듈 확장 → Service 레이어 → Facade/Controller → DTO/예외 처리
 - 기존 시스템 통합 요구사항: Kafka, MongoDB, 기존 API 모듈 패턴 확인
-- 설계서(`docs/step13/user-archive-feature-design.md`) 요구사항 명확화
+- 설계서(`docs/step13/user-bookmark-feature-design.md`) 요구사항 명확화
 
 **2단계: Identify Project Architecture**
 - 루트 디렉토리 구조 및 설정 파일 확인
-- `api-archive` 모듈 구조, `api-contest`/`api-news`/`api-auth` 모듈 참고
+- `api-bookmark` 모듈 구조, `api-contest`/`api-news`/`api-auth` 모듈 참고
 - 아키텍처 패턴 식별: CQRS, Facade 패턴, 이벤트 기반 아키텍처
 - 핵심 컴포넌트 분석: 기존 API 모듈, `HistoryEntityListener`, `EventPublisher`
 
 **3단계: Collect Information**
 - 불확실한 부분: 사용자 질문, `read_file`, `codebase_search`, `web_search` 활용
-- 정보 수집 대상: 설계서, 기존 API 모듈, 엔티티/Document 구조, Repository, `EventPublisher`, `ArchiveSyncService` (이미 구현 완료), `docs/step11/cqrs-kafka-sync-design.md`
+- 정보 수집 대상: 설계서, 기존 API 모듈, 엔티티/Document 구조, Repository, `EventPublisher`, `BookmarkSyncService` (이미 구현 완료), `docs/step11/cqrs-kafka-sync-design.md`
 - 추측 금지
 
 **4단계: Check Existing Programs and Structures**
 - 원칙: "check first, then design"
 - 검색 전략: `read_file`, `codebase_search` 활용
-- 기존 코드 확인: Controller/Facade/Service 구조, 엔티티/Document, Repository, `EventPublisher.publish(topic, event, partitionKey)`, `ArchiveSyncService` 인터페이스
+- 기존 코드 확인: Controller/Facade/Service 구조, 엔티티/Document, Repository, `EventPublisher.publish(topic, event, partitionKey)`, `BookmarkSyncService` 인터페이스
 - 패턴 기록 및 준수
 
 **5단계: Task Type-Specific Guidelines**
 - Backend API Tasks: API 라우트 구조, 에러 처리, 응답 형식
 - Database Operations: Repository 패턴, 트랜잭션 처리
-- 사용자 아카이브 기능 특화:
-  * 11개 API 엔드포인트: Base URL `/api/v1/archive`
-  * 이벤트 발행: `EventPublisher.publish("archive-events", event, archiveTsid)` (Partition Key: `archiveTsid`)
+- 사용자 북마크 기능 특화:
+  * 11개 API 엔드포인트: Base URL `/api/v1/bookmark`
+  * 이벤트 발행: `EventPublisher.publish("bookmark-events", event, bookmarkTsid)` (Partition Key: `bookmarkTsid`)
   * `updatedFields`: `tag`/`memo`만 포함 (`itemTitle`/`itemSummary` 제외)
   * MongoDB Soft Delete 미지원 (물리적 삭제)
 
@@ -5556,7 +5556,7 @@ plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
 - 기능/성능/데이터 일관성/권한/빌드 검증 (설계서 "검증 기준" 섹션 참고)
 
 **참고 파일**:
-- `docs/step13/user-archive-feature-design.md`: 사용자 아카이브 기능 구현 설계서 (필수)
+- `docs/step13/user-bookmark-feature-design.md`: 사용자 북마크 기능 구현 설계서 (필수)
 - `docs/step11/cqrs-kafka-sync-design.md`: CQRS Kafka 동기화 설계 (핵심 참고)
 - `docs/step1/2. mongodb-schema-design.md`, `docs/step1/3. aurora-schema-design.md`: 데이터베이스 스키마 설계
 - `docs/step2/1. api-endpoint-design.md`, `docs/step2/2. data-model-design.md`, `docs/step2/3. api-response-format-design.md`, `docs/step2/4. error-handling-strategy-design.md`: API 설계
@@ -5567,10 +5567,10 @@ plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
 **중요**: 아래 정보는 `splitTasksRaw` 단계에서만 참고용입니다. plan task 단계에서는 위의 description과 requirements를 기반으로 분석을 수행하세요.
 
 **모듈 구조**:
-- `api-archive`: Controller, Facade, Service (Command/Query/History), DTO, Config, Exception
-- `domain-aurora`: `ArchiveEntity`, `ArchiveHistoryEntity`, Repository (이미 구현 완료)
-- `domain-mongodb`: `ArchiveDocument` (확장 필요), `ArchiveRepository` (확장 필요), `ContestRepository`, `NewsArticleRepository`
-- `common-kafka`: `EventPublisher`, `EventConsumer`, `ArchiveSyncService` (이미 구현 완료)
+- `api-bookmark`: Controller, Facade, Service (Command/Query/History), DTO, Config, Exception
+- `domain-aurora`: `BookmarkEntity`, `BookmarkHistoryEntity`, Repository (이미 구현 완료)
+- `domain-mongodb`: `BookmarkDocument` (확장 필요), `BookmarkRepository` (확장 필요), `ContestRepository`, `NewsArticleRepository`
+- `common-kafka`: `EventPublisher`, `EventConsumer`, `BookmarkSyncService` (이미 구현 완료)
 
 **작업 의존성**: Domain 모듈 확장 → Service 레이어 → Facade/Controller → DTO/예외 처리
 ```
@@ -5578,14 +5578,14 @@ plan task: 사용자 아카이브 기능 구현 (CQRS 패턴 적용)
 ### 13단계: langchain4j를 활용한 RAG 기반 챗봇 구현
 
 **단계 번호**: 13단계
-**의존성**: 11단계 (CQRS 패턴 구현 완료 필수), 9단계 (Contest 및 News API 모듈 구현 완료 필수), 12단계 (사용자 아카이브 기능 구현 완료 권장)
+**의존성**: 11단계 (CQRS 패턴 구현 완료 필수), 9단계 (Contest 및 News API 모듈 구현 완료 필수), 12단계 (사용자 북마크 기능 구현 완료 권장)
 **다음 단계**: 14단계 (API Gateway 서버 구현)
 
 ```
 plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 구현
 
 **description** (작업 설명):
-`api-chatbot` 모듈의 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템을 구현합니다. langchain4j 오픈소스를 활용하여 MongoDB Atlas Vector Search 기반의 지식 검색 챗봇을 구축하며, ContestDocument, NewsArticleDocument, ArchiveDocument를 임베딩하여 벡터 검색 기반의 자연어 질의응답 시스템을 제공합니다. 설계서는 OpenAI GPT-4o-mini를 기본 LLM Provider로 선택하고, 동일 Provider인 OpenAI text-embedding-3-small을 Embedding Model로 사용하여, 비용 최적화($0.02 per 1M tokens), 빠른 응답 속도, 그리고 LLM과 Embedding Model 간의 완벽한 통합성을 제공합니다. 멀티턴 대화 히스토리 관리, Provider별 메시지 포맷 변환(OpenAI 기본, Anthropic 대안), JWT 토큰 기반 인증 통합, 토큰 제어, 비용 통제 전략을 포함합니다. 설계서(`docs/step12/rag-chatbot-design.md`)의 모든 설계 사항을 엄격히 준수하여 구현합니다.
+`api-chatbot` 모듈의 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템을 구현합니다. langchain4j 오픈소스를 활용하여 MongoDB Atlas Vector Search 기반의 지식 검색 챗봇을 구축하며, ContestDocument, NewsArticleDocument, BookmarkDocument를 임베딩하여 벡터 검색 기반의 자연어 질의응답 시스템을 제공합니다. 설계서는 OpenAI GPT-4o-mini를 기본 LLM Provider로 선택하고, 동일 Provider인 OpenAI text-embedding-3-small을 Embedding Model로 사용하여, 비용 최적화($0.02 per 1M tokens), 빠른 응답 속도, 그리고 LLM과 Embedding Model 간의 완벽한 통합성을 제공합니다. 멀티턴 대화 히스토리 관리, Provider별 메시지 포맷 변환(OpenAI 기본, Anthropic 대안), JWT 토큰 기반 인증 통합, 토큰 제어, 비용 통제 전략을 포함합니다. 설계서(`docs/step12/rag-chatbot-design.md`)의 모든 설계 사항을 엄격히 준수하여 구현합니다.
 
 **작업 목표** (구현할 구체적 기능):
 - `api-chatbot` 모듈 구현 (langchain4j 통합, MongoDB Atlas Vector Search 설정)
@@ -5601,7 +5601,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
 - TokenCountEstimator Bean 설정 (TokenWindowChatMemory용)
 - Redis 캐싱 패턴 구현 (Duration 객체 사용, RedisTemplate<String, Object> Bean 설정, ttl-hours 설정)
 - MongoDB Atlas Vector Search 설정:
-  - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, ArchiveDocument)
+  - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, BookmarkDocument)
   - Vector Index 생성 (MongoDB Atlas 콘솔 작업, 1536 dimensions)
   - 임베딩 생성 배치 작업 (기존 도큐먼트 임베딩 생성, 신규 도큐먼트 자동 임베딩 생성)
 - 멀티턴 대화 히스토리 관리 (세션 관리, 메시지 저장, ChatMemory 통합)
@@ -5649,7 +5649,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
    - `chatbot.session.*`: inactive-threshold-minutes (30), expiration-days (90), batch-enabled (true)
    - `chatbot.chat-memory.*`: max-tokens (2000), strategy (token-window)
 6. **MongoDB Atlas Vector Search**: 
-   - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, ArchiveDocument, 1536 dimensions)
+   - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, BookmarkDocument, 1536 dimensions)
    - Vector Index 생성 (MongoDB Atlas 콘솔에서 Vector Search Index 생성)
    - 검색 쿼리 구현
    - 임베딩 생성 배치 작업: 기존 도큐먼트 임베딩 생성, 신규 도큐먼트 저장 시 자동 임베딩 생성
@@ -5761,7 +5761,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
   - JSON 직렬화 (GenericJackson2JsonRedisSerializer)
 - Vector Search Tasks: 
   - MongoDB Atlas Vector Index 설정 (1536 dimensions, MongoDB Atlas 콘솔에서 생성)
-  - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, ArchiveDocument)
+  - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, BookmarkDocument)
   - 임베딩 생성 배치 작업 (기존 도큐먼트 임베딩 생성, 신규 도큐먼트 자동 임베딩 생성)
   - 검색 쿼리 구현, 성능 최적화
 - 멀티턴 대화 Tasks: 
@@ -5777,7 +5777,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
   - SchedulerConfig로 @EnableScheduling 활성화
   - inactive-threshold-minutes, expiration-days 설정 활용
 - RAG 파이프라인 Tasks: 입력 전처리, 벡터 검색, 프롬프트 체인, 답변 생성
-- CQRS 동기화 Tasks: ConversationSyncService 구현 (세션 및 메시지 동기화 통합), Kafka 이벤트 발행/소비, 기존 ArchiveSyncService 패턴 참고
+- CQRS 동기화 Tasks: ConversationSyncService 구현 (세션 및 메시지 동기화 통합), Kafka 이벤트 발행/소비, 기존 BookmarkSyncService 패턴 참고
 
 **6단계: Preliminary Solution Output**
 - 초기 설계 솔루션 작성 (복잡한 경우 `process_thought` 활용)
@@ -5896,14 +5896,14 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
     - ConversationSessionWriterRepository (findByUserIdAndIsDeletedFalse 패턴, findByIsActiveTrueAndIsDeletedFalseAndLastMessageAtBefore, findByIsActiveFalseAndIsDeletedFalseAndLastMessageAtBefore)
     - ConversationMessageWriterRepository
 - `domain-mongodb`: 
-  - `ContestDocument`, `NewsArticleDocument`, `ArchiveDocument` (벡터 필드 추가 필요, 1536 dimensions)
+  - `ContestDocument`, `NewsArticleDocument`, `BookmarkDocument` (벡터 필드 추가 필요, 1536 dimensions)
   - `ConversationSessionDocument`, `ConversationMessageDocument` (새로 생성)
   - Repository (확장 필요)
 - `common-core`: 
   - RedisConfig (확장: RedisTemplate<String, Object> Bean 추가, 방법 1인 경우 권장)
 - `common-kafka`: 
   - `EventPublisher`, `EventConsumer`
-  - `ConversationSyncService` (새로 생성, 세션 및 메시지 동기화 통합, 기존 ArchiveSyncService 패턴 참고)
+  - `ConversationSyncService` (새로 생성, 세션 및 메시지 동기화 통합, 기존 BookmarkSyncService 패턴 참고)
 
 **작업 의존성** (상세 순서, 설계서 "구현 가이드" 섹션의 8단계 프로세스 참고):
 1. **의존성 설정** (설계서 1단계): langchain4j 의존성 추가, build.gradle 설정
@@ -5912,7 +5912,7 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
    - Redis 캐싱 Bean 설정 (RedisTemplate<String, Object> - common/core 확장 또는 api/chatbot 생성)
    - 설정 파일 작성 (`application-chatbot-api.yml`: langchain4j, chatbot.* 설정값들)
 3. **MongoDB Vector Search 설정** (설계서 3단계):
-   - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, ArchiveDocument, 1536 dimensions)
+   - 벡터 필드 추가 (ContestDocument, NewsArticleDocument, BookmarkDocument, 1536 dimensions)
    - Vector Index 생성 (MongoDB Atlas 콘솔 작업)
    - 임베딩 생성 배치 작업 (기존 도큐먼트 임베딩 생성, 신규 도큐먼트 자동 임베딩 생성)
 4. **서비스 레이어 구현** (설계서 4단계): InputPreprocessingService, IntentClassificationService, VectorSearchService, PromptService, LLMService, TokenService, CacheService, ConversationSessionService, ConversationMessageService, Repository 확장
@@ -5933,18 +5933,18 @@ plan task: langchain4j를 활용한 RAG 기반 챗봇 구축 최적화 전략 �
 ### 14단계: API Gateway 서버 구현
 
 **단계 번호**: 14단계
-**의존성**: 2단계 (API 설계 완료 필수), 6단계 (OAuth 및 JWT 인증 구현 완료 필수), 9단계 (Contest 및 News API 구현 완료 필수), 12단계 (Archive API 구현 완료 필수), 13단계 (Chatbot API 구현 완료 필수)
+**의존성**: 2단계 (API 설계 완료 필수), 6단계 (OAuth 및 JWT 인증 구현 완료 필수), 9단계 (Contest 및 News API 구현 완료 필수), 12단계 (Bookmark API 구현 완료 필수), 13단계 (Chatbot API 구현 완료 필수)
 **다음 단계**: 15단계 (API 컨트롤러 및 서비스 구현) 또는 16단계 (Batch 모듈 구현)
 
 ```
 plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
 
-참고 파일: docs/step17/gateway-design.md (API Gateway 설계서, 필수), docs/step17/gateway-implementation-plan.md (API Gateway 구현 계획서, 필수), api/gateway/REF.md (Saturn Gateway Server 아키텍처 참고), docs/step2/1. api-endpoint-design.md (API 엔드포인트 설계), docs/step6/spring-security-auth-design-guide.md (Spring Security 설계 가이드), docs/step9/contest-news-api-design.md (Contest/News API 설계), docs/step12/rag-chatbot-design.md (Chatbot API 설계), docs/step13/user-archive-feature-design.md (Archive API 설계)
+참고 파일: docs/step17/gateway-design.md (API Gateway 설계서, 필수), docs/step17/gateway-implementation-plan.md (API Gateway 구현 계획서, 필수), api/gateway/REF.md (Saturn Gateway Server 아키텍처 참고), docs/step2/1. api-endpoint-design.md (API 엔드포인트 설계), docs/step6/spring-security-auth-design-guide.md (Spring Security 설계 가이드), docs/step9/contest-news-api-design.md (Contest/News API 설계), docs/step12/rag-chatbot-design.md (Chatbot API 설계), docs/step13/user-bookmark-feature-design.md (Bookmark API 설계)
 
 **description** (작업 설명):
 - **작업 목표**:
   - Spring Cloud Gateway 기반 API Gateway 서버 구현
-  - URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, archive, contest, news, chatbot)
+  - URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, bookmark, contest, news, chatbot)
   - JWT 토큰 기반 인증 필터 구현
   - 연결 풀 설정 및 Connection reset by peer 방지
   - CORS 설정 (환경별 차별화)
@@ -5955,16 +5955,16 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - 인프라 아키텍처: Client → ALB → Gateway Server → API Servers
   - Gateway 서버는 모든 외부 요청을 중앙에서 관리하고 적절한 백엔드 API 서버로 라우팅
   - **라우팅 흐름 명확화**:
-    * 인증이 필요한 요청 (예: `/api/v1/archive/**`, `/api/v1/chatbot/**`):
-      - Client → ALB → Gateway → [JWT 인증 필터 (Gateway 내부)] → Archive/Chatbot 서버
+    * 인증이 필요한 요청 (예: `/api/v1/bookmark/**`, `/api/v1/chatbot/**`):
+      - Client → ALB → Gateway → [JWT 인증 필터 (Gateway 내부)] → Bookmark/Chatbot 서버
       - Gateway 내부의 JWT 인증 필터가 토큰을 검증하므로 인증 서버(`@api/auth`)를 거치지 않음
       - JWT는 stateless이므로 Gateway에서 직접 검증 가능 (`common-security` 모듈의 `JwtTokenProvider` 활용)
       - **JWT 토큰 만료/무효 시**: Gateway는 401 Unauthorized를 반환하고, 인증 서버를 자동으로 호출하지 않음
       - **토큰 갱신 흐름 (사용자 응답 기준)**:
         * **시나리오 1: Access Token 만료 (사용자 개입 없음, 클라이언트 자동 처리)**
           - **특징**: 사용자 개입 없이 클라이언트(프론트엔드/앱)가 자동으로 처리
-          - **1단계**: Client → Gateway → Archive 요청 (만료된 Access Token)
-            - 요청: `GET /api/v1/archive`, `Authorization: Bearer {만료된_토큰}`
+          - **1단계**: Client → Gateway → Bookmark 요청 (만료된 Access Token)
+            - 요청: `GET /api/v1/bookmark`, `Authorization: Bearer {만료된_토큰}`
             - Gateway 응답: `401 Unauthorized`
             - 응답 본문: `{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}`
             - 클라이언트 동작: 401 응답 감지 → Refresh Token으로 자동 갱신 요청
@@ -5974,14 +5974,14 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
             - Auth 서버 응답: `200 OK`
             - 응답 본문: `{"code": "2000", "messageCode": {"code": "SUCCESS", "text": "성공"}, "message": "success", "data": {"accessToken": "{새_토큰}", "refreshToken": "{새_refresh_토큰}", "tokenType": "Bearer", "expiresIn": 3600, "refreshTokenExpiresIn": 604800}}`
             - 클라이언트 동작: 새 Access Token 저장 후 원래 요청 자동 재시도
-          - **3단계**: Client → Gateway → Archive 요청 (새 Access Token, 자동 재시도)
-            - 요청: `GET /api/v1/archive`, `Authorization: Bearer {새_토큰}`
-            - Gateway 응답: JWT 검증 성공 → Archive 서버로 라우팅
-            - Archive 서버 응답: `200 OK` (정상 응답)
+          - **3단계**: Client → Gateway → Bookmark 요청 (새 Access Token, 자동 재시도)
+            - 요청: `GET /api/v1/bookmark`, `Authorization: Bearer {새_토큰}`
+            - Gateway 응답: JWT 검증 성공 → Bookmark 서버로 라우팅
+            - Bookmark 서버 응답: `200 OK` (정상 응답)
         * **시나리오 2: Refresh Token도 만료/없음 (사용자 개입 필요)**
           - **특징**: 클라이언트가 자동 처리하다가 Refresh Token 만료 시 사용자 개입 필요
-          - **1단계**: Client → Gateway → Archive 요청 (만료된 Access Token)
-            - 요청: `GET /api/v1/archive`, `Authorization: Bearer {만료된_토큰}`
+          - **1단계**: Client → Gateway → Bookmark 요청 (만료된 Access Token)
+            - 요청: `GET /api/v1/bookmark`, `Authorization: Bearer {만료된_토큰}`
             - Gateway 응답: `401 Unauthorized`
             - 응답 본문: `{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}`
             - 클라이언트 동작: 401 응답 감지 → Refresh Token으로 자동 갱신 시도
@@ -5999,10 +5999,10 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
             - Auth 서버 응답: `200 OK`
             - 응답 본문: `{"code": "2000", "messageCode": {"code": "SUCCESS", "text": "성공"}, "message": "success", "data": {"accessToken": "{새_토큰}", "refreshToken": "{새_refresh_토큰}", "tokenType": "Bearer", "expiresIn": 3600, "refreshTokenExpiresIn": 604800}}`
             - 클라이언트 동작: 새 Access Token 저장 후 원래 요청 자동 재시도
-          - **5단계**: Client → Gateway → Archive 요청 (새 Access Token, 자동 재시도)
-            - 요청: `GET /api/v1/archive`, `Authorization: Bearer {새_토큰}`
-            - Gateway 응답: JWT 검증 성공 → Archive 서버로 라우팅
-            - Archive 서버 응답: `200 OK` (정상 응답)
+          - **5단계**: Client → Gateway → Bookmark 요청 (새 Access Token, 자동 재시도)
+            - 요청: `GET /api/v1/bookmark`, `Authorization: Bearer {새_토큰}`
+            - Gateway 응답: JWT 검증 성공 → Bookmark 서버로 라우팅
+            - Bookmark 서버 응답: `200 OK` (정상 응답)
     * 인증 서버 요청 (예: `/api/v1/auth/login`, `/api/v1/auth/refresh`):
       - Client → ALB → Gateway → Auth 서버
       - `/api/v1/auth/**` 경로만 `@api/auth` 서버로 라우팅
@@ -6046,16 +6046,16 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
     * 토큰 갱신 흐름 (사용자 응답 기준):
       - **시나리오 1: Access Token 만료 (사용자 개입 없음, 클라이언트 자동 처리)**
         * 특징: 사용자 개입 없이 클라이언트(프론트엔드/앱)가 자동으로 처리
-        * 1단계: Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
+        * 1단계: Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
         * 2단계: `POST /api/v1/auth/refresh` (유효한 Refresh Token, 자동 요청) → Gateway → Auth 서버: `200 OK` (새 Access Token + Refresh Token 발급)
-        * 3단계: Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+        * 3단계: Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
       - **시나리오 2: Refresh Token도 만료/없음 (사용자 개입 필요)**
         * 특징: 클라이언트가 자동 처리하다가 Refresh Token 만료 시 사용자 개입 필요
-        * 1단계: Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
+        * 1단계: Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
         * 2단계: `POST /api/v1/auth/refresh` (만료된/없는 Refresh Token, 자동 시도) → Gateway → Auth 서버: `401 Unauthorized` → 클라이언트: Refresh Token도 만료됨을 감지
         * 3단계: 사용자 개입 (로그인 화면 표시, 이메일/비밀번호 입력)
         * 4단계: `POST /api/v1/auth/login` (사용자 입력 후 요청) → Gateway → Auth 서버: `200 OK` (새 Access Token + Refresh Token 발급)
-        * 5단계: Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+        * 5단계: Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
     * 인증 서버 요청: Gateway → Auth 서버로 직접 라우팅 (`/api/v1/auth/**` 경로)
   - 예상 결과: Gateway 서버 구현 완료, 5개 API 서버 라우팅, JWT 인증 필터, 연결 풀 설정, CORS 설정
 - **Task Requirements 이해** (위의 `requirements` 섹션 참고):
@@ -6158,7 +6158,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
     * `JwtTokenPayload` 구조 확인
   - 기존 API 모듈의 엔드포인트 구조 확인
     * `api/auth` 모듈: `/api/v1/auth/**`
-    * `api/archive` 모듈: `/api/v1/archive/**`
+    * `api/bookmark` 모듈: `/api/v1/bookmark/**`
     * `api/contest` 모듈: `/api/v1/contest/**`
     * `api/news` 모듈: `/api/v1/news/**`
     * `api/chatbot` 모듈: `/api/v1/chatbot/**`
@@ -6192,16 +6192,16 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
     * **토큰 갱신 흐름 (사용자 응답 기준)**: Gateway에서 자동 처리하지 않음
       - **시나리오 1: Access Token 만료 (사용자 개입 없음, 클라이언트 자동 처리)**
         * 특징: 사용자 개입 없이 클라이언트(프론트엔드/앱)가 자동으로 처리
-        * Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
+        * Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
         * `POST /api/v1/auth/refresh` (유효한 Refresh Token, 자동 요청) → Gateway → Auth 서버: `200 OK` (새 토큰 발급)
-        * Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+        * Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
       - **시나리오 2: Refresh Token도 만료/없음 (사용자 개입 필요)**
         * 특징: 클라이언트가 자동 처리하다가 Refresh Token 만료 시 사용자 개입 필요
-        * Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
+        * Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
         * `POST /api/v1/auth/refresh` (만료된/없는 Refresh Token, 자동 시도) → Gateway → Auth 서버: `401 Unauthorized` → 클라이언트: Refresh Token도 만료됨을 감지
         * 사용자 개입: 로그인 화면 표시, 이메일/비밀번호 입력
         * `POST /api/v1/auth/login` (사용자 입력 후 요청) → Gateway → Auth 서버: `200 OK` (새 토큰 발급)
-        * Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+        * Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
   - **연결 풀 설정 패턴**:
     * Reactor Netty 연결 풀 설정 (`spring.cloud.gateway.httpclient.pool.*`)
     * Connection reset by peer 방지 설정 (`max-idle-time: 30초`, `max-life-time: 300초`)
@@ -6259,7 +6259,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
     * `common/exception/` (ApiGatewayExceptionHandler.java - ErrorWebExceptionHandler 구현)
     * `util/` (HeaderUtils.java 선택)
   - **라우팅 설정 설계**:
-    * 5개 API 서버에 대한 라우팅 규칙 설계 (auth, archive, contest, news, chatbot)
+    * 5개 API 서버에 대한 라우팅 규칙 설계 (auth, bookmark, contest, news, chatbot)
     * Path 기반 라우팅 (`Path=/api/v1/auth/**` 등)
     * 환경별 백엔드 서비스 URL 설정 (Local, Dev, Beta, Prod)
   - **JWT 인증 필터 설계**:
@@ -6274,16 +6274,16 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
       - **토큰 갱신 흐름 (사용자 응답 기준)**:
         * **시나리오 1: Access Token 만료 (사용자 개입 없음, 클라이언트 자동 처리)**
           - 특징: 사용자 개입 없이 클라이언트(프론트엔드/앱)가 자동으로 처리
-          - Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` (`{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}`) → 클라이언트: 401 응답 감지
+          - Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` (`{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}`) → 클라이언트: 401 응답 감지
           - `POST /api/v1/auth/refresh` (유효한 Refresh Token, 자동 요청) → Gateway → Auth 서버: `200 OK` (새 Access Token + Refresh Token 발급)
-          - Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+          - Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
         * **시나리오 2: Refresh Token도 만료/없음 (사용자 개입 필요)**
           - 특징: 클라이언트가 자동 처리하다가 Refresh Token 만료 시 사용자 개입 필요
-          - Archive 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
+          - Bookmark 요청 (만료된 토큰) → Gateway: `401 Unauthorized` → 클라이언트: 401 응답 감지
           - `POST /api/v1/auth/refresh` (만료된/없는 Refresh Token, 자동 시도) → Gateway → Auth 서버: `401 Unauthorized` (`{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "유효하지 않은 Refresh Token입니다."}}`) → 클라이언트: Refresh Token도 만료됨을 감지
           - 사용자 개입: 로그인 화면 표시, 이메일/비밀번호 입력
           - `POST /api/v1/auth/login` (사용자 입력 후 요청) → Gateway → Auth 서버: `200 OK` (새 Access Token + Refresh Token 발급)
-          - Archive 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Archive 서버: `200 OK`
+          - Bookmark 요청 (새 토큰, 자동 재시도) → Gateway: JWT 검증 성공 → Bookmark 서버: `200 OK`
     * 사용자 정보 추출 및 헤더 주입 로직 설계 (`JwtTokenProvider.getPayloadFromToken` 활용, `x-user-id`, `x-user-email`, `x-user-role` 헤더 주입)
     * Route 설정에서 필터 등록 방법 설계 (`GatewayConfig`에서 Bean 등록 또는 `application.yml`에서 필터 설정)
   - **연결 풀 설정 설계**:
@@ -6306,7 +6306,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - **설정 파일 설계**:
     * `application.yml` 기본 설정 설계 (라우팅, 연결 풀, CORS 설정 포함)
     * 환경별 설정 파일 설계 (`application-local.yml`, `application-dev.yml`, `application-beta.yml`, `application-prod.yml`)
-    * 라우팅 설정: 5개 Route 정의 (auth, archive, contest, news, chatbot)
+    * 라우팅 설정: 5개 Route 정의 (auth, bookmark, contest, news, chatbot)
     * 연결 풀 설정: `spring.cloud.gateway.httpclient.pool.*` 설정값 포함
     * CORS 설정: `spring.cloud.gateway.globalcors.*` 설정값 포함
     * JWT 설정: `jwt.*` 설정값 포함 (common-security 모듈 사용)
@@ -6331,7 +6331,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
 - [ ] "check first, then design" 원칙 준수: 기존 코드 확인 후 설계 진행
 - [ ] 사실(facts)과 추론(inferences) 명확히 구분하여 초기 설계 솔루션 작성
 - [ ] 라우팅 설정 설계 완성:
-  - 5개 API 서버에 대한 라우팅 규칙 설계 (auth, archive, contest, news, chatbot)
+  - 5개 API 서버에 대한 라우팅 규칙 설계 (auth, bookmark, contest, news, chatbot)
   - Path 기반 라우팅 설계 (`Path=/api/v1/{service}/**`)
   - 환경별 백엔드 서비스 URL 설정 설계 (Local: localhost, Dev/Beta/Prod: service-name)
 - [ ] JWT 인증 필터 설계 완성:
@@ -6386,7 +6386,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - `docs/step6/spring-security-auth-design-guide.md`: Spring Security 설계 가이드 (JWT 인증 패턴 참고)
   - `docs/step9/contest-news-api-design.md`: Contest/News API 설계 (기존 API 모듈 구조 참고)
   - `docs/step12/rag-chatbot-design.md`: Chatbot API 설계 (기존 API 모듈 구조 참고)
-  - `docs/step13/user-archive-feature-design.md`: Archive API 설계 (기존 API 모듈 구조 참고)
+  - `docs/step13/user-bookmark-feature-design.md`: Bookmark API 설계 (기존 API 모듈 구조 참고)
 - **공식 문서**:
   - Spring Cloud Gateway 공식 문서: https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/
   - Reactor Netty 공식 문서: https://projectreactor.io/docs/netty/release/reference/index.html
@@ -7419,7 +7419,7 @@ plan task: 테스트 작성 및 Spring REST Docs 기반 API 문서화
    
    - 벡터 필드 추가
      역할: MongoDB Document에 벡터 필드 추가
-     책임: ContestDocument, NewsArticleDocument, ArchiveDocument에 embeddingText, embeddingVector 필드 추가
+     책임: ContestDocument, NewsArticleDocument, BookmarkDocument에 embeddingText, embeddingVector 필드 추가
      참고 파일: docs/step12/rag-chatbot-design.md (벡터 필드 스키마 설계 섹션)
      검증 기준: 모든 Document에 벡터 필드가 추가되어야 함, 컴파일 에러가 없어야 함
    
@@ -7428,7 +7428,7 @@ plan task: 테스트 작성 및 Spring REST Docs 기반 API 문서화
      책임: 각 Document 타입별로 임베딩 텍스트 생성 메서드 구현
      ContestDocument: title + description + metadata.tags
      NewsArticleDocument: title + summary + content (content는 최대 2000자로 제한)
-     ArchiveDocument: itemTitle + itemSummary + tag + memo
+     BookmarkDocument: itemTitle + itemSummary + tag + memo
      참고 파일: docs/step12/rag-chatbot-design.md (임베딩 텍스트 생성 로직 섹션)
      검증 기준: 모든 Document 타입에 대해 임베딩 텍스트가 정상적으로 생성되어야 함
    
@@ -7457,7 +7457,7 @@ plan task: 테스트 작성 및 Spring REST Docs 기반 API 문서화
      역할: 벡터 검색 수행
      책임: 쿼리 임베딩 생성, MongoDB Atlas Vector Search 수행, 검색 결과 반환
      참고 파일: docs/step12/rag-chatbot-design.md (검색 쿼리 설계 섹션)
-     검증 기준: 벡터 검색이 정상적으로 동작해야 함, 유사도 점수가 정상적으로 계산되어야 함, 사용자별 아카이브 필터링이 정상적으로 동작해야 함
+     검증 기준: 벡터 검색이 정상적으로 동작해야 함, 유사도 점수가 정상적으로 계산되어야 함, 사용자별 북마크 필터링이 정상적으로 동작해야 함
    
    - PromptService 구현
      역할: 프롬프트 생성 및 최적화
@@ -7664,7 +7664,7 @@ plan task: 단위 테스트, 통합 테스트 및 Spring REST Docs 기반 API �
    - 모듈별 섹션 구성:
      * 공개 API (Contest, News, Source)
      * 인증 API (Auth)
-     * 사용자 아카이브 API (Archive)
+     * 사용자 북마크 API (Bookmark)
      * 변경 이력 조회 API (History)
    - 공통 섹션:
      * 인증 방법 (JWT 토큰 사용법)
@@ -7871,7 +7871,7 @@ list tasks
 5. 📊 **구현 우선순위**: Phase별 구현 전략 제시
 6. 💡 **실제 예제**: 각 출처별 통합 예제 코드 및 엔드포인트 정보 포함
 7. 🔐 **사용자 인증 시스템**: JWT 토큰 기반 인증, OAuth 2.0 지원, 보안 강화
-8. 📦 **사용자 아카이브 기능**: CRUD API, Soft Delete, 권한 관리
+8. 📦 **사용자 북마크 기능**: CRUD API, Soft Delete, 권한 관리
 9. 🔄 **CQRS 패턴**: 읽기(MongoDB Atlas)와 쓰기(Amazon Aurora MySQL) 분리, Kafka 동기화
 10. 🔄 **정보 출처 자동 업데이트**: AI LLM 통합을 통한 json/sources.json 자동 생성 시스템 (spring-ai/langchain4j 지원)
 11. 📋 **데이터베이스 설계서**: MongoDB Atlas 및 Amazon Aurora MySQL 설계서 생성 가이드
@@ -8008,12 +8008,12 @@ spring:
        SELECT 
            u.id,
            u.email,
-           COUNT(a.id) as archiveCount,
-           MAX(a.created_at) as lastArchiveDate
+           COUNT(a.id) as bookmarkCount,
+           MAX(a.created_at) as lastBookmarkDate
        FROM users u
        LEFT JOIN (
            SELECT id, user_id, created_at
-           FROM archives
+           FROM bookmarks
            WHERE deleted_yn = 'N'
        ) a ON u.id = a.user_id
        WHERE u.id = #{userId}
@@ -8081,9 +8081,9 @@ spring:
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/mapper/ContestMapper.java
-package com.tech.n.ai.datasource.aurora.mapper;
+package com.tech.n.ai.domain.aurora.mapper;
 
-import com.tech.n.ai.datasource.aurora.dto.ContestDto;
+import com.tech.n.ai.domain.aurora.dto.ContestDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.time.LocalDate;

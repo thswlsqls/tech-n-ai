@@ -3,7 +3,7 @@
 ## Plan Task
 
 ```
-plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Archive 엔티티 MongoDB Atlas 동기화
+plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookmark 엔티티 MongoDB Atlas 동기화
 ```
 
 ## 개요
@@ -25,7 +25,7 @@ CQRS 패턴의 Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 간 실
 ## 주요 작업 내용
 
 - `EventConsumer.processEvent` 메서드 구현
-- `UserSyncService` 및 `ArchiveSyncService` 동기화 서비스 구현
+- `UserSyncService` 및 `BookmarkSyncService` 동기화 서비스 구현
 - Kafka 이벤트를 통한 Aurora MySQL → MongoDB Atlas 실시간 동기화
 
 ## 의존성
@@ -37,4 +37,4 @@ CQRS 패턴의 Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 간 실
 
 ## 다음 단계
 
-- 12단계 (사용자 아카이브 기능 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (REST API 컨트롤러 및 비즈니스 로직 구현)
+- 12단계 (사용자 북마크 기능 구현) 또는 14단계 (API Gateway 서버 구현) 또는 15단계 (REST API 컨트롤러 및 비즈니스 로직 구현)

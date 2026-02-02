@@ -8,12 +8,12 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
 
 ## 개요
 
-Spring Cloud Gateway 기반 API Gateway 서버 구현. URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, archive, contest, news, chatbot). JWT 토큰 기반 인증 필터 구현. 연결 풀 설정 및 Connection reset by peer 방지. CORS 설정 (환경별 차별화). 에러 처리 및 모니터링 구현.
+Spring Cloud Gateway 기반 API Gateway 서버 구현. URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, bookmark, contest, news, chatbot). JWT 토큰 기반 인증 필터 구현. 연결 풀 설정 및 Connection reset by peer 방지. CORS 설정 (환경별 차별화). 에러 처리 및 모니터링 구현.
 
 ## 작업 목표
 
 - Spring Cloud Gateway 기반 API Gateway 서버 구현
-- URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, archive, contest, news, chatbot)
+- URI 기반 라우팅 규칙 구현 (5개 API 서버: auth, bookmark, contest, news, chatbot)
 - JWT 토큰 기반 인증 필터 구현
 - 연결 풀 설정 및 Connection reset by peer 방지
 - CORS 설정 (환경별 차별화)
@@ -29,7 +29,7 @@ Spring Cloud Gateway 기반 API Gateway 서버 구현. URI 기반 라우팅 규�
 - 2단계: API 설계 완료 필수
 - 6단계: OAuth 및 JWT 인증 구현 완료 필수
 - 9단계: Contest 및 News API 구현 완료 필수
-- 12단계: Archive API 구현 완료 필수
+- 12단계: Bookmark API 구현 완료 필수
 - 13단계: Chatbot API 구현 완료 필수
 
 ## 다음 단계

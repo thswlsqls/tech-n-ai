@@ -150,7 +150,7 @@
 | 경로 패턴 | 대상 서버 | 인증 필요 |
 |----------|---------|---------|
 | `/api/v1/auth/**` | api-auth | ❌ |
-| `/api/v1/archive/**` | api-archive | ✅ |
+| `/api/v1/bookmark/**` | api-bookmark | ✅ |
 
 ### CORS
 - Allowed Origins: `http://localhost:*`, `https://*.example.com`

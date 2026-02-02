@@ -13,7 +13,7 @@
 **준수 항목**:
 - ✅ Document 클래스에 `embedding_text`, `embedding_vector` 필드 정의 완료
 - ✅ 벡터 타입: `List<Float>` (1536 dimensions)
-- ✅ `ContestDocument`, `NewsArticleDocument`, `ArchiveDocument` 모두 벡터 필드 포함
+- ✅ `ContestDocument`, `NewsArticleDocument`, `BookmarkDocument` 모두 벡터 필드 포함
 
 **미구현/부족 항목**:
 - ❌ Vector Search Index 생성 코드 없음 (`domain/mongodb`)
@@ -107,7 +107,7 @@
 }
 ```
 
-**ArchiveDocument Vector Index**:
+**BookmarkDocument Vector Index**:
 ```json
 {
   "fields": [
@@ -166,7 +166,7 @@
 
 **클래스 구조**:
 ```java
-package com.tech.n.ai.datasource.mongodb.config;
+package com.tech.n.ai.domain.mongodb.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -215,9 +215,9 @@ public class VectorSearchIndexConfig {
     }
     
     /**
-     * ArchiveDocument Vector Search Index 정의
+     * BookmarkDocument Vector Search Index 정의
      */
-    public static String getArchiveVectorIndexDefinition() {
+    public static String getBookmarkVectorIndexDefinition() {
         // 구현
     }
     
@@ -240,7 +240,7 @@ public class VectorSearchIndexConfig {
 
 **클래스 구조**:
 ```java
-package com.tech.n.ai.datasource.mongodb.util;
+package com.tech.n.ai.domain.mongodb.util;
 
 import org.bson.Document;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -335,9 +335,9 @@ public class VectorSearchUtil {
     }
     
     /**
-     * Archive 컬렉션 Vector Search 파이프라인 생성 (userId 필터 포함)
+     * Bookmark 컬렉션 Vector Search 파이프라인 생성 (userId 필터 포함)
      */
-    public static List<Document> createArchiveSearchPipeline(
+    public static List<Document> createBookmarkSearchPipeline(
             List<Float> queryVector,
             String userId,
             VectorSearchOptions options) {
@@ -348,7 +348,7 @@ public class VectorSearchUtil {
 
 **VectorSearchOptions 클래스**:
 ```java
-package com.tech.n.ai.datasource.mongodb.util;
+package com.tech.n.ai.domain.mongodb.util;
 
 import lombok.Builder;
 import lombok.Value;
@@ -505,7 +505,7 @@ VectorSearchOptions options = VectorSearchOptions.builder()
 1. **VectorSearchIndexConfig**: Index 정의 제공 및 가이드 로깅
 2. **VectorSearchUtil**: `$vectorSearch` pipeline 생성 유틸리티
 3. **VectorSearchOptions**: 검색 옵션 DTO
-4. **기본 검색 파이프라인**: Contest, NewsArticle, Archive 컬렉션용
+4. **기본 검색 파이프라인**: Contest, NewsArticle, Bookmark 컬렉션용
 
 ### 제외 사항
 
@@ -577,8 +577,8 @@ VectorSearchOptions options = VectorSearchOptions.builder()
 - [ ] `SearchOptions`에 `numCandidates`, `exact` 필드 추가
 - [ ] `VectorSearchServiceImpl`에서 `VectorSearchUtil` 활용
 - [ ] `MongoTemplate.aggregate()` 또는 `getCollection().aggregate()` 사용
-- [ ] Contest, News, Archive 컬렉션별 검색 정상 동작
-- [ ] userId 필터 적용 (Archive 검색)
+- [ ] Contest, News, Bookmark 컬렉션별 검색 정상 동작
+- [ ] userId 필터 적용 (Bookmark 검색)
 
 ---
 
@@ -649,7 +649,7 @@ VectorSearchOptions options = VectorSearchOptions.builder()
 public record SearchOptions(
     Boolean includeContests,      // Contest 포함 여부
     Boolean includeNews,          // News 포함 여부
-    Boolean includeArchives,      // Archive 포함 여부
+    Boolean includeBookmarks,      // Bookmark 포함 여부
     Integer maxResults,           // 최대 결과 수 (limit)
     Integer numCandidates,        // 검색 후보 수 (추가)
     Double minSimilarityScore,    // 최소 유사도 점수
@@ -659,7 +659,7 @@ public record SearchOptions(
         return SearchOptions.builder()
             .includeContests(true)
             .includeNews(true)
-            .includeArchives(true)
+            .includeBookmarks(true)
             .maxResults(5)
             .numCandidates(100)        // 추가: limit의 10~20배 권장
             .minSimilarityScore(0.7)
@@ -680,8 +680,8 @@ public record SearchOptions(
 
 **구현 예시**:
 ```java
-import com.tech.n.ai.datasource.mongodb.util.VectorSearchUtil;
-import com.tech.n.ai.datasource.mongodb.util.VectorSearchOptions;
+import com.tech.n.ai.domain.mongodb.util.VectorSearchUtil;
+import com.tech.n.ai.domain.mongodb.util.VectorSearchOptions;
 import org.bson.Document;
 
 private List<SearchResult> searchContests(List<Float> queryVector, SearchOptions options) {
@@ -717,14 +717,14 @@ private List<SearchResult> searchContests(List<Float> queryVector, SearchOptions
 }
 ```
 
-**Archive 검색 (userId 필터 포함)**:
+**Bookmark 검색 (userId 필터 포함)**:
 ```java
-private List<SearchResult> searchArchives(List<Float> queryVector, String userId, SearchOptions options) {
+private List<SearchResult> searchBookmarks(List<Float> queryVector, String userId, SearchOptions options) {
     // userId 필터 생성
     Document filter = new Document("user_id", userId);
     
     VectorSearchOptions vectorOptions = VectorSearchOptions.builder()
-        .indexName("vector_index_archives")
+        .indexName("vector_index_bookmarks")
         .path("embedding_vector")
         .numCandidates(options.numCandidates())
         .limit(options.maxResults())
@@ -733,7 +733,7 @@ private List<SearchResult> searchArchives(List<Float> queryVector, String userId
         .exact(options.exact())
         .build();
     
-    List<Document> pipeline = VectorSearchUtil.createArchiveSearchPipeline(
+    List<Document> pipeline = VectorSearchUtil.createBookmarkSearchPipeline(
         queryVector, userId, vectorOptions);
     
     // ... 실행 및 변환

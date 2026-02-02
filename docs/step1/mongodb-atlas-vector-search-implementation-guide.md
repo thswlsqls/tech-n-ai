@@ -65,7 +65,7 @@ private String embeddingText;
 private List<Float> embeddingVector;  // 1536차원
 ```
 
-**ArchiveDocument**:
+**BookmarkDocument**:
 ```java
 @Field("embedding_text")
 private String embeddingText;
@@ -88,7 +88,7 @@ private List<Float> embeddingVector;  // 1536차원
 - `createVectorSearchStage()`: $vectorSearch stage 생성
 - `createContestSearchPipeline()`: Contest 검색 pipeline
 - `createNewsArticleSearchPipeline()`: NewsArticle 검색 pipeline
-- `createArchiveSearchPipeline()`: Archive 검색 pipeline (userId 필터 포함)
+- `createBookmarkSearchPipeline()`: Bookmark 검색 pipeline (userId 필터 포함)
 
 ### 2.3 저장 로직 분석
 
@@ -290,7 +290,7 @@ batch/
     │   ├── job/
     │   │   ├── ContestEmbeddingJobConfig.java
     │   │   ├── NewsArticleEmbeddingJobConfig.java
-    │   │   └── ArchiveEmbeddingJobConfig.java
+    │   │   └── BookmarkEmbeddingJobConfig.java
     │   ├── processor/
     │   │   └── EmbeddingProcessor.java
     │   ├── service/
@@ -312,7 +312,7 @@ public interface EmbeddingTextGenerator {
     
     String generateForNewsArticle(NewsArticleDocument document);
     
-    String generateForArchive(ArchiveDocument document);
+    String generateForBookmark(BookmarkDocument document);
 }
 ```
 
@@ -332,7 +332,7 @@ public interface EmbeddingVectorService {
 |--------|----------|----------|
 | contests | `title + " " + description + " " + tags.join(" ")` | 4000자 |
 | news_articles | `title + " " + summary + " " + content.substring(0, 2000)` | 4000자 |
-| archives | `itemTitle + " " + itemSummary + " " + tag + " " + memo` | 4000자 |
+| bookmarks | `itemTitle + " " + itemSummary + " " + tag + " " + memo` | 4000자 |
 
 **구현 예시**:
 ```java
@@ -388,7 +388,7 @@ public class EmbeddingTextGeneratorImpl implements EmbeddingTextGenerator {
 │                          │                                      │
 │                          ▼                                      │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Step 3: Archive Embedding                                 │  │
+│  │ Step 3: Bookmark Embedding                                 │  │
 │  │                                                           │  │
 │  │  Reader ──▶ Processor ──▶ Writer                         │  │
 │  └──────────────────────────────────────────────────────────┘  │
@@ -631,7 +631,7 @@ atlas clusters search indexes list \
 - [ ] `EmbeddingVectorService` 인터페이스 및 구현체 (langchain4j 사용)
 - [ ] Contest Embedding Batch Job
 - [ ] NewsArticle Embedding Batch Job
-- [ ] Archive Embedding Batch Job
+- [ ] Bookmark Embedding Batch Job
 
 ### Phase 2: 통합 테스트
 

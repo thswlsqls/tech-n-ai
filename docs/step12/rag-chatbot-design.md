@@ -37,9 +37,9 @@
 
 - **ContestDocument**: 개발자 대회 정보
 - **NewsArticleDocument**: IT 테크 뉴스 기사
-- **ArchiveDocument**: 사용자 아카이브 항목
+- **BookmarkDocument**: 사용자 북마크 항목
 
-이러한 도큐먼트들을 임베딩하여 벡터 검색 기반의 지식 검색 챗봇을 구축함으로써, 사용자가 자연어로 대회 정보, 뉴스 기사, 자신의 아카이브를 검색하고 질문할 수 있도록 합니다. 본 설계서는 OpenAI GPT-4o-mini를 기본 LLM Provider로 선택하고, 동일 Provider인 OpenAI text-embedding-3-small을 Embedding Model로 사용하여, 비용 최적화($0.02 per 1M tokens), 빠른 응답 속도, 그리고 LLM과 Embedding Model 간의 완벽한 통합성을 제공합니다.
+이러한 도큐먼트들을 임베딩하여 벡터 검색 기반의 지식 검색 챗봇을 구축함으로써, 사용자가 자연어로 대회 정보, 뉴스 기사, 자신의 북마크를 검색하고 질문할 수 있도록 합니다. 본 설계서는 OpenAI GPT-4o-mini를 기본 LLM Provider로 선택하고, 동일 Provider인 OpenAI text-embedding-3-small을 Embedding Model로 사용하여, 비용 최적화($0.02 per 1M tokens), 빠른 응답 속도, 그리고 LLM과 Embedding Model 간의 완벽한 통합성을 제공합니다.
 
 ### 설계 범위
 
@@ -122,7 +122,7 @@
 - `api/auth`: 인증 및 사용자 관리
 - `api/contest`: 대회 정보 조회 (MongoDB Atlas)
 - `api/news`: 뉴스 정보 조회 (MongoDB Atlas)
-- `api/archive`: 사용자 아카이브 관리
+- `api/bookmark`: 사용자 북마크 관리
 - `api/gateway`: API 게이트웨이
 
 ### MongoDB Atlas 컬렉션 구조
@@ -166,11 +166,11 @@
 
 **임베딩 대상 필드**: `title + summary + content` (content는 최대 2000자로 제한)
 
-#### ArchiveDocument (`archives`)
+#### BookmarkDocument (`bookmarks`)
 ```java
 {
   _id: ObjectId,
-  archiveTsid: String,  // Aurora MySQL PK
+  bookmarkTsid: String,  // Aurora MySQL PK
   userId: String,
   itemType: String,  // "CONTEST", "NEWS_ARTICLE"
   itemId: ObjectId,
@@ -798,12 +798,12 @@ public String generateEmbeddingText(NewsArticleDocument document) {
 }
 ```
 
-**ArchiveDocument 벡터 필드 추가**:
+**BookmarkDocument 벡터 필드 추가**:
 ```java
-@Document(collection = "archives")
+@Document(collection = "bookmarks")
 @Getter
 @Setter
-public class ArchiveDocument {
+public class BookmarkDocument {
     // 기존 필드...
     
     @Field("embedding_text")
@@ -814,7 +814,7 @@ public class ArchiveDocument {
 }
 
 // 임베딩 텍스트 생성
-public String generateEmbeddingText(ArchiveDocument document) {
+public String generateEmbeddingText(BookmarkDocument document) {
     StringBuilder sb = new StringBuilder();
     sb.append(document.getItemTitle() != null ? document.getItemTitle() : "").append(" ");
     sb.append(document.getItemSummary() != null ? document.getItemSummary() : "").append(" ");
@@ -864,7 +864,7 @@ MongoDB Atlas에서 Vector Search Index를 생성합니다:
 }
 ```
 
-**ArchiveDocument Vector Index**:
+**BookmarkDocument Vector Index**:
 ```javascript
 {
   "fields": [
@@ -909,7 +909,7 @@ public class VectorSearchService {
     
     private final ContestRepository contestRepository;
     private final NewsArticleRepository newsArticleRepository;
-    private final ArchiveRepository archiveRepository;
+    private final BookmarkRepository bookmarkRepository;
     
     /**
      * 벡터 검색 수행
@@ -918,7 +918,7 @@ public class VectorSearchService {
      * 벡터 검색 수행
      * 
      * @param query 검색 쿼리
-     * @param userId JWT에서 추출한 사용자 ID (아카이브 검색 필터링용)
+     * @param userId JWT에서 추출한 사용자 ID (북마크 검색 필터링용)
      * @param options 검색 옵션
      * @return 검색 결과 목록
      */
@@ -935,8 +935,8 @@ public class VectorSearchService {
         if (options.includeNews()) {
             results.addAll(searchNews(queryVector, options));
         }
-        if (options.includeArchives() && userId != null) {
-            results.addAll(searchArchives(queryVector, userId, options));
+        if (options.includeBookmarks() && userId != null) {
+            results.addAll(searchBookmarks(queryVector, userId, options));
         }
         
         // 3. 유사도 점수로 정렬 및 필터링
@@ -957,7 +957,7 @@ public class VectorSearchService {
         // 동일한 방식으로 뉴스 검색
     }
     
-    private List<SearchResult> searchArchives(float[] queryVector, String userId, SearchOptions options) {
+    private List<SearchResult> searchBookmarks(float[] queryVector, String userId, SearchOptions options) {
         // userId 필터링 포함 벡터 검색
     }
 }
@@ -1108,7 +1108,7 @@ public class IntentClassificationService {
     );
     
     private static final Set<String> RAG_KEYWORDS = Set.of(
-        "대회", "contest", "뉴스", "news", "기사", "아카이브", "archive",
+        "대회", "contest", "뉴스", "news", "기사", "북마크", "bookmark",
         "검색", "찾아", "알려", "정보", "어떤", "무엇"
     );
     
@@ -1368,7 +1368,7 @@ public class InputInterpretationChain {
     }
     
     private SearchContext analyzeContext(String input) {
-        // 컨텍스트 분석 (대회, 뉴스, 아카이브 등)
+        // 컨텍스트 분석 (대회, 뉴스, 북마크 등)
         SearchContext context = new SearchContext();
         
         if (input.contains("대회") || input.contains("contest")) {
@@ -1377,8 +1377,8 @@ public class InputInterpretationChain {
         if (input.contains("뉴스") || input.contains("news") || input.contains("기사")) {
             context.addCollection("news_articles");
         }
-        if (input.contains("아카이브") || input.contains("archive")) {
-            context.addCollection("archives");
+        if (input.contains("북마크") || input.contains("bookmark")) {
+            context.addCollection("bookmarks");
         }
         
         return context;
@@ -1589,9 +1589,9 @@ langchain4j는 `ChatMemory` 인터페이스를 통해 대화 메모리를 관리
 **Command Side (Aurora MySQL) - ConversationSession 엔티티**:
 
 ```java
-package com.tech.n.ai.datasource.mariadb.entity.chatbot;
+package com.tech.n.ai.domain.mariadb.entity.chatbot;
 
-import com.tech.n.ai.datasource.mariadb.entity.BaseEntity;
+import com.tech.n.ai.domain.mariadb.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -1632,7 +1632,7 @@ public class ConversationSessionEntity extends BaseEntity {
 **Query Side (MongoDB Atlas) - ConversationSessionDocument**:
 
 ```java
-package com.tech.n.ai.datasource.mongodb.document;
+package com.tech.n.ai.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -1691,7 +1691,7 @@ public class ConversationSessionDocument {
 **Command Side (Aurora MySQL) - ConversationMessage 엔티티**:
 
 ```java
-package com.tech.n.ai.datasource.mariadb.entity.chatbot;
+package com.tech.n.ai.domain.mariadb.entity.chatbot;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -1746,7 +1746,7 @@ public class ConversationMessageEntity {
 **Query Side (MongoDB Atlas) - ConversationMessageDocument**:
 
 ```java
-package com.tech.n.ai.datasource.mongodb.document;
+package com.tech.n.ai.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -2254,7 +2254,7 @@ public record ChatRequest(
     
     String conversationId,  // 선택: 대화 세션 ID (없으면 새 세션 생성)
     
-    String userId,  // 선택: 사용자 ID (아카이브 검색용)
+    String userId,  // 선택: 사용자 ID (북마크 검색용)
     
     ChatOptions options  // 선택: 검색 옵션
 ) {
@@ -2404,8 +2404,8 @@ import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
 import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
 import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundException;
 import com.tech.n.ai.api.chatbot.common.exception.UnauthorizedException;
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -2581,9 +2581,9 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
 세션 생명주기 관리를 위한 Repository 메서드 추가:
 
 ```java
-package com.tech.n.ai.datasource.mariadb.repository.writer.chatbot;
+package com.tech.n.ai.domain.mariadb.repository.writer.chatbot;
 
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -2986,7 +2986,7 @@ public record ConversationMessageCreatedEvent(
 
 ##### 동기화 서비스
 
-기존 `ArchiveSyncService` 패턴을 참고하여 `ConversationSyncService`를 구현합니다:
+기존 `BookmarkSyncService` 패턴을 참고하여 `ConversationSyncService`를 구현합니다:
 
 ```java
 @Service
@@ -3246,7 +3246,7 @@ public class ChatbotService {
     }
     
     private ChatResponse processRagRequest(ChatRequest request, Long userId) {
-        // RAG 파이프라인 (userId는 벡터 검색 시 아카이브 필터링용)
+        // RAG 파이프라인 (userId는 벡터 검색 시 북마크 필터링용)
         // ... 구현
     }
 }
@@ -3621,14 +3621,14 @@ public record ChatRequest(
 public record ChatOptions(
     Boolean includeContests,  // 대회 검색 포함 여부
     Boolean includeNews,      // 뉴스 검색 포함 여부
-    Boolean includeArchives,  // 아카이브 검색 포함 여부
+    Boolean includeBookmarks,  // 북마크 검색 포함 여부
     Integer maxResults,        // 최대 검색 결과 수
     Double minSimilarityScore // 최소 유사도 점수
 ) {
     public ChatOptions {
         if (includeContests == null) includeContests = true;
         if (includeNews == null) includeNews = true;
-        if (includeArchives == null) includeArchives = false;
+        if (includeBookmarks == null) includeBookmarks = false;
         if (maxResults == null) maxResults = 5;
         if (minSimilarityScore == null) minSimilarityScore = 0.7;
     }
@@ -3951,7 +3951,7 @@ public ChatResponse generateResponse(ChatRequest request, Long userId) {
         sessionId = sessionService.createSession(userId, null);
     }
     
-    // 2. 벡터 검색 시 userId 사용 (아카이브 필터링)
+    // 2. 벡터 검색 시 userId 사용 (북마크 필터링)
     List<SearchResult> searchResults = vectorSearchService.search(
         searchQuery.getQuery(),
         userId,  // JWT에서 추출한 userId
@@ -4178,7 +4178,7 @@ public class ChatbotExceptionHandler {
 #### 3단계: MongoDB Vector Search 설정
 
 1. **벡터 필드 추가**
-   - ContestDocument, NewsArticleDocument, ArchiveDocument에 벡터 필드 추가
+   - ContestDocument, NewsArticleDocument, BookmarkDocument에 벡터 필드 추가
 
 2. **임베딩 생성 배치 작업** 
    - 기존 도큐먼트에 OpenAI text-embedding-3-small 임베딩 생성
@@ -4371,7 +4371,7 @@ logging:
 5. **벡터 검색** (OpenAI text-embedding-3-small Embeddings)
    - [ ] 검색 결과 반환
    - [ ] 유사도 점수 계산
-   - [ ] 사용자별 아카이브 필터링 (JWT에서 추출한 userId 사용)
+   - [ ] 사용자별 북마크 필터링 (JWT에서 추출한 userId 사용)
    - [ ] OpenAI text-embedding-3-small embedding 품질 확인 (MTEB 벤치마크: 62.3%)
 
 6. **LLM 응답 생성** (OpenAI GPT-4o-mini)

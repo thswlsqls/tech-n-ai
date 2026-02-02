@@ -278,7 +278,7 @@ gateway:
   routes:
     auth:
       uri: http://localhost:8082
-    archive:
+    bookmark:
       uri: http://localhost:8083
     contest:
       uri: http://localhost:8084

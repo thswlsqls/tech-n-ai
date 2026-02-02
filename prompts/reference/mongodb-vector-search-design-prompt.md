@@ -11,7 +11,7 @@
 ### 현재 구현 상태
 
 1. **Document 클래스에 Vector Search 필드 정의됨**
-   - `NewsArticleDocument`, `ContestDocument`, `ArchiveDocument`
+   - `NewsArticleDocument`, `ContestDocument`, `BookmarkDocument`
    - 필드: `embeddingText` (임베딩 대상 텍스트), `embeddingVector` (1536차원 벡터)
 
 2. **Vector Search 유틸리티 구현됨**
@@ -99,7 +99,7 @@
 |--------|------------------------|------|
 | contests | title + description + tags | "Codeforces Round 900..." |
 | news_articles | title + summary + content(2000자) | "Spring Boot 4.0..." |
-| archives | itemTitle + itemSummary + tag + memo | "Codeforces Round 900..." |
+| bookmarks | itemTitle + itemSummary + tag + memo | "Codeforces Round 900..." |
 
 ### 4. 설계 원칙 준수
 

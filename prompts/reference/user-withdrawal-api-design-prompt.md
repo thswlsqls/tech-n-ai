@@ -126,7 +126,7 @@
      - 각 RefreshToken에 대해 `refreshTokenService.deleteRefreshToken()` 호출
    - **EmailVerification 토큰 처리**: 만료된 토큰은 자동 정리되므로 별도 처리 불필요 (선택적)
    - **관련 엔티티 처리**: 
-     - `archives` 테이블의 사용자 아카이브는 스키마 분리로 인해 별도 처리 불필요 (애플리케이션 레벨에서 처리)
+     - `bookmarks` 테이블의 사용자 북마크는 스키마 분리로 인해 별도 처리 불필요 (애플리케이션 레벨에서 처리)
      - 필요 시 관련 데이터 정리 로직 포함
 
 5. **User 엔티티 Soft Delete**

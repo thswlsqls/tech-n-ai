@@ -10,7 +10,7 @@
 - **프로젝트 타입**: Spring Boot 기반 멀티모듈 프로젝트
 - **아키텍처 패턴**: CQRS 패턴 적용 (Command Side: Aurora MySQL, Query Side: MongoDB Atlas)
 - **동기화 메커니즘**: Kafka 기반 이벤트 동기화
-- **API 모듈 구조**: `api/auth`, `api/contest`, `api/news`, `api/gateway`, `api/archive`
+- **API 모듈 구조**: `api/auth`, `api/contest`, `api/news`, `api/gateway`, `api/bookmark`
 
 ### MongoDB Atlas 컬렉션 구조
 현재 프로젝트에서 사용 중인 MongoDB Atlas 컬렉션:
@@ -18,7 +18,7 @@
    - 주요 필드: `title`, `description`, `startDate`, `endDate`, `status`, `metadata.tags`
 2. **NewsArticleDocument** (`news_articles`): IT 테크 뉴스 기사
    - 주요 필드: `title`, `content`, `summary`, `publishedAt`, `metadata.tags`
-3. **ArchiveDocument** (`archives`): 사용자 아카이브 항목
+3. **BookmarkDocument** (`bookmarks`): 사용자 북마크 항목
    - 주요 필드: `itemTitle`, `itemSummary`, `tag`, `memo`
 4. **UserProfileDocument** (`user_profiles`): 사용자 프로필 정보
 5. **SourcesDocument** (`sources`): 정보 출처 메타데이터
@@ -49,11 +49,11 @@
 - **대상 컬렉션**: 다음 컬렉션의 도큐먼트들을 임베딩해야 함
   - `ContestDocument`: 대회 정보 검색용
   - `NewsArticleDocument`: 뉴스 기사 검색용
-  - `ArchiveDocument`: 사용자 아카이브 검색용 (사용자별 필터링 필요)
+  - `BookmarkDocument`: 사용자 북마크 검색용 (사용자별 필터링 필요)
 - **임베딩 필드**: 각 도큐먼트의 검색에 적합한 필드 조합 설계
   - 예: `ContestDocument`: `title + description + metadata.tags`
   - 예: `NewsArticleDocument`: `title + summary + content` (길이 제한 고려)
-  - 예: `ArchiveDocument`: `itemTitle + itemSummary + tag + memo`
+  - 예: `BookmarkDocument`: `itemTitle + itemSummary + tag + memo`
 - **임베딩 모델**: langchain4j에서 지원하는 임베딩 모델 선택 및 근거 제시
 - **벡터 필드**: MongoDB Atlas Vector Search를 위한 벡터 필드 설계
 
@@ -134,7 +134,7 @@
   ```java
   - message: String (유저 메시지)
   - conversationId: String? (선택, 대화 세션 관리)
-  - userId: String? (선택, 사용자별 아카이브 검색용)
+  - userId: String? (선택, 사용자별 북마크 검색용)
   - options: ChatOptions? (선택, 검색 옵션)
   ```
 - **응답 DTO 설계**:

@@ -9,7 +9,7 @@
 -- 실행 순서:
 -- 1. 스키마 생성
 -- 2. auth 스키마 테이블 생성 (의존성 순서 고려)
--- 3. archive 스키마 테이블 생성
+-- 3. bookmark 스키마 테이블 생성
 -- 4. chatbot 스키마 테이블 생성
 -- =====================================================================
 
@@ -22,8 +22,8 @@ CREATE DATABASE IF NOT EXISTS auth
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
--- archive 스키마 생성
-CREATE DATABASE IF NOT EXISTS archive
+-- bookmark 스키마 생성
+CREATE DATABASE IF NOT EXISTS bookmark
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
@@ -223,18 +223,18 @@ COLLATE=utf8mb4_unicode_ci
 COMMENT='관리자 변경 이력 테이블';
 
 -- =====================================================================
--- 3. archive 스키마 테이블 생성
+-- 3. bookmark 스키마 테이블 생성
 -- =====================================================================
 
-USE archive;
+USE bookmark;
 
 -- ---------------------------------------------------------------------
--- 3.1. archives 테이블 (의존성 없음 - FK 없음)
+-- 3.1. bookmarks 테이블 (의존성 없음 - FK 없음)
 -- ---------------------------------------------------------------------
 -- 주의: user_id는 auth.users를 참조하지만 스키마 간 FK는 지원되지 않음
 -- 애플리케이션 레벨에서 참조 무결성 보장 필요
 
-CREATE TABLE archives (
+CREATE TABLE bookmarks (
     id BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT 'TSID',
     user_id BIGINT UNSIGNED NOT NULL COMMENT '사용자 ID',
     item_type VARCHAR(50) NOT NULL COMMENT '항목 타입',
@@ -248,31 +248,31 @@ CREATE TABLE archives (
     created_by BIGINT UNSIGNED NULL COMMENT '생성한 사용자 ID',
     updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '수정 일시',
     updated_by BIGINT UNSIGNED NULL COMMENT '수정한 사용자 ID',
-    INDEX idx_archive_user_id (user_id),
-    INDEX idx_archive_user_is_deleted (user_id, is_deleted),
-    UNIQUE KEY uk_archive_user_item (user_id, item_type, item_id)
+    INDEX idx_bookmark_user_id (user_id),
+    INDEX idx_bookmark_user_is_deleted (user_id, is_deleted),
+    UNIQUE KEY uk_bookmark_user_item (user_id, item_type, item_id)
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
 COMMENT='아카이브 테이블';
 
 -- ---------------------------------------------------------------------
--- 3.2. archive_history 테이블 (archives 참조)
+-- 3.2. bookmark_history 테이블 (bookmarks 참조)
 -- ---------------------------------------------------------------------
 
-CREATE TABLE archive_history (
+CREATE TABLE bookmark_history (
     history_id BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT 'TSID',
-    archive_id BIGINT UNSIGNED NOT NULL COMMENT '아카이브 ID',
+    bookmark_id BIGINT UNSIGNED NOT NULL COMMENT '북마크 ID',
     operation_type VARCHAR(20) NOT NULL COMMENT '작업 타입 (INSERT, UPDATE, DELETE - DELETE는 Soft Delete를 의미)',
     before_data JSON NULL COMMENT '변경 전 데이터',
     after_data JSON NULL COMMENT '변경 후 데이터',
     changed_by BIGINT UNSIGNED NULL COMMENT '변경한 사용자 ID',
     changed_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '변경 일시',
     change_reason VARCHAR(500) NULL COMMENT '변경 사유',
-    INDEX idx_archive_history_archive_id (archive_id),
-    INDEX idx_archive_history_changed_at (changed_at),
-    INDEX idx_archive_history_operation (operation_type, changed_at),
-    CONSTRAINT fk_archive_history_archive FOREIGN KEY (archive_id) REFERENCES archives(id) ON DELETE CASCADE
+    INDEX idx_bookmark_history_bookmark_id (bookmark_id),
+    INDEX idx_bookmark_history_changed_at (changed_at),
+    INDEX idx_bookmark_history_operation (operation_type, changed_at),
+    CONSTRAINT fk_bookmark_history_bookmark FOREIGN KEY (bookmark_id) REFERENCES bookmarks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
@@ -332,11 +332,11 @@ COMMENT='대화 메시지 테이블';
 -- DDL 실행 완료
 -- =====================================================================
 -- 
--- 생성된 스키마: auth, archive, chatbot
+-- 생성된 스키마: auth, bookmark, chatbot
 -- 생성된 테이블: 12개
 --   - auth: providers, users, admins, refresh_tokens, email_verifications,
 --           user_history, admin_history
---   - archive: archives, archive_history
+--   - bookmark: bookmarks, bookmark_history
 --   - chatbot: conversation_sessions, conversation_messages
 -- 
 -- 다음 단계:

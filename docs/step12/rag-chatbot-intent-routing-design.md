@@ -110,7 +110,7 @@ public enum Intent {
 
     /**
      * RAG 요청 (내부 데이터 검색 필요)
-     * - 대회, 뉴스, 아카이브 관련 질문
+     * - 대회, 뉴스, 북마크 관련 질문
      * - 저장된 데이터 기반 답변 필요
      */
     RAG_REQUIRED,
@@ -147,7 +147,7 @@ public class IntentClassificationServiceImpl implements IntentClassificationServ
     );
 
     private static final Set<String> RAG_KEYWORDS = Set.of(
-        "대회", "contest", "뉴스", "news", "기사", "아카이브", "archive",
+        "대회", "contest", "뉴스", "news", "기사", "북마크", "bookmark",
         "검색", "찾아", "알려", "정보", "어떤", "무엇",
         "kaggle", "codeforces", "leetcode", "hackathon"
     );

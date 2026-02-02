@@ -96,7 +96,7 @@
 - `$vectorSearch` aggregation stage 구성의 정확성
 - `numCandidates` 파라미터 설정 (limit의 10~20배 권장)
 - `$meta: "vectorSearchScore"` 활용한 유사도 점수 추출
-- pre-filter (archives의 userId 필터) 구현 정확성
+- pre-filter (bookmarks의 userId 필터) 구현 정확성
 
 #### 3.3 최적화
 - 검색 결과 수 제한 (기본값 5)

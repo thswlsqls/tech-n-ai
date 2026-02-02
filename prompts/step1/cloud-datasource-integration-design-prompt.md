@@ -37,7 +37,7 @@
    - `docs/step1/1. multimodule-structure-verification.md`: 프로젝트 구조
    - `docs/step1/4. schema-design-verification-report.md`: 스키마 검증 보고서
    - `docs/step11/cqrs-kafka-sync-design.md`: CQRS 패턴 및 동기화 설계
-   - `docs/step13/user-archive-feature-design.md`: 아카이브 기능 설계
+   - `docs/step13/user-bookmark-feature-design.md`: 북마크 기능 설계
    - `docs/step12/rag-chatbot-design.md`: 챗봇 설계
 
 ### 구현 코드
@@ -68,7 +68,7 @@
 - **모니터링 및 알림**: CloudWatch 메트릭, Performance Insights 설정
 
 #### 1.2 데이터베이스 스키마 및 테이블 구축 가이드
-- **스키마 생성**: `auth`, `archive`, `chatbot` 스키마 생성 DDL
+- **스키마 생성**: `auth`, `bookmark`, `chatbot` 스키마 생성 DDL
 - **테이블 생성**: `docs/step1/3. aurora-schema-design.md`의 DDL 예제 기반
 - **인덱스 생성**: Command Side 최적화를 위한 최소 인덱스 전략
 - **Foreign Key 제약조건**: 스키마 간 참조 제약조건 처리 방법

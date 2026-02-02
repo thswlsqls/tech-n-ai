@@ -75,7 +75,7 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 1. **단일 책임 원칙 (SRP)**
    - 각 동기화 서비스는 하나의 엔티티 타입만 담당
    - `ConversationSyncService`: Conversation 엔티티 동기화만 담당
-   - 향후 확장: `UserSyncService`, `ArchiveSyncService` 등
+   - 향후 확장: `UserSyncService`, `BookmarkSyncService` 등
 
 2. **의존성 역전 원칙 (DIP)**
    - 인터페이스 기반 설계
@@ -123,7 +123,7 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 1. **현재 필요한 기능만 구현**
    - Conversation 동기화만 구현 (대화 세션 및 메시지)
    - Contest/News는 배치 작업으로 직접 저장되므로 Kafka 동기화 불필요
-   - 향후 확장: User, Archive 동기화 추가 가능
+   - 향후 확장: User, Bookmark 동기화 추가 가능
 
 2. **단순하고 명확한 구조**
    - 복잡한 추상화 레이어 지양
@@ -331,10 +331,10 @@ public interface ConversationSyncService {
 
 **미래 확장 가능**:
 - `UserSyncService`: User 이벤트 → UserProfileDocument 동기화
-- `ArchiveSyncService`: Archive 이벤트 → ArchiveDocument 동기화
+- `BookmarkSyncService`: Bookmark 이벤트 → BookmarkDocument 동기화
 
 **제외 서비스**:
-- `ContestSyncService`, `NewsArticleSyncService`: 배치 작업에서 직접 MongoDB에 저장
+- Contest/News 수집 기능 폐기됨
 
 ### 3. updatedFields 처리 전략
 
@@ -381,7 +381,7 @@ private void updateSessionDocumentFields(ConversationSessionDocument document,
 
 #### 필수 구현 항목 (Phase 1)
 1. ✅ `UserSyncService` 인터페이스 및 구현 클래스
-2. ✅ `ArchiveSyncService` 인터페이스 및 구현 클래스
+2. ✅ `BookmarkSyncService` 인터페이스 및 구현 클래스
 3. ✅ `EventConsumer.processEvent` 메서드 구현
 4. ✅ `updatedFields` 처리 로직
 
@@ -463,7 +463,7 @@ spring:
 - `MONGODB_ATLAS_DATABASE`: 데이터베이스 이름 (선택사항, URI에 포함 가능, 기본값: `shrimp_task_manager`)
 
 **API 모듈 Profile 설정**:
-- `api-news`, `api-contest`, `api-gateway` 모듈의 `application-*-api.yml`에 `mongodb-domain` profile 추가 필요
+- `api-gateway` 모듈의 `application-*-api.yml`에 `mongodb-domain` profile 추가 필요
 - 예시:
   ```yaml
   spring:
@@ -480,7 +480,7 @@ spring:
 **설정 내용**:
 
 ```java
-package com.tech.n.ai.datasource.mongodb.config;
+package com.tech.n.ai.domain.mongodb.config;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
@@ -655,7 +655,7 @@ flowchart TB
 
 **최적화 확인 사항**:
 - ESR 규칙 준수 (Equality → Sort → Range)
-- UNIQUE 인덱스 설정 (`userTsid`, `archiveTsid`)
+- UNIQUE 인덱스 설정 (`userTsid`, `bookmarkTsid`)
 - TTL 인덱스 설정 (`news_articles.publishedAt`, `exception_logs.occurredAt`)
 
 #### 5. 프로젝션 최적화
@@ -667,8 +667,8 @@ flowchart TB
 **예시**:
 ```java
 // 필요한 필드만 선택
-@Query(value = "{userId: ?0}", fields = "{_id: 1, itemTitle: 1, archivedAt: 1}")
-List<ArchiveDocument> findArchivesByUserId(String userId);
+@Query(value = "{userId: ?0}", fields = "{_id: 1, itemTitle: 1, bookmarkedAt: 1}")
+List<BookmarkDocument> findBookmarksByUserId(String userId);
 ```
 
 ### 설정 파일 구조
@@ -721,40 +721,40 @@ List<ArchiveDocument> findArchivesByUserId(String userId);
 flowchart TB
     subgraph CommandSide["Command Side (Aurora MySQL)"]
         UserEntity[User Entity]
-        ArchiveEntity[Archive Entity]
+        BookmarkEntity[Bookmark Entity]
         EventPublisher[EventPublisher<br/>✅ 완료]
     end
     
     subgraph Kafka["Kafka"]
         UserTopic[user-events Topic]
-        ArchiveTopic[archive-events Topic]
+        BookmarkTopic[bookmark-events Topic]
         EventConsumer[EventConsumer<br/>✅ 기본 구조<br/>❌ processEvent 미구현]
     end
     
     subgraph QuerySide["Query Side (MongoDB Atlas)"]
         UserProfileDoc[UserProfileDocument]
-        ArchiveDoc[ArchiveDocument]
+        BookmarkDoc[BookmarkDocument]
         UserSyncService[UserSyncService<br/>❌ 미구현]
-        ArchiveSyncService[ArchiveSyncService<br/>❌ 미구현]
+        BookmarkSyncService[BookmarkSyncService<br/>❌ 미구현]
     end
     
     UserEntity -->|이벤트 발행| EventPublisher
-    ArchiveEntity -->|이벤트 발행| EventPublisher
+    BookmarkEntity -->|이벤트 발행| EventPublisher
     EventPublisher -->|publish| UserTopic
-    EventPublisher -->|publish| ArchiveTopic
+    EventPublisher -->|publish| BookmarkTopic
     UserTopic -->|이벤트 수신| EventConsumer
-    ArchiveTopic -->|이벤트 수신| EventConsumer
+    BookmarkTopic -->|이벤트 수신| EventConsumer
     EventConsumer -->|syncUserCreated<br/>syncUserUpdated<br/>syncUserDeleted<br/>syncUserRestored| UserSyncService
-    EventConsumer -->|syncArchiveCreated<br/>syncArchiveUpdated<br/>syncArchiveDeleted<br/>syncArchiveRestored| ArchiveSyncService
+    EventConsumer -->|syncBookmarkCreated<br/>syncBookmarkUpdated<br/>syncBookmarkDeleted<br/>syncBookmarkRestored| BookmarkSyncService
     UserSyncService -->|save/delete| UserProfileDoc
-    ArchiveSyncService -->|save/delete| ArchiveDoc
+    BookmarkSyncService -->|save/delete| BookmarkDoc
     
     style EventPublisher fill:#90EE90
     style EventConsumer fill:#FFE4B5
     style UserSyncService fill:#FFB6C1
-    style ArchiveSyncService fill:#FFB6C1
+    style BookmarkSyncService fill:#FFB6C1
     style UserProfileDoc fill:#87CEEB
-    style ArchiveDoc fill:#87CEEB
+    style BookmarkDoc fill:#87CEEB
 ```
 
 #### 동기화 흐름
@@ -793,9 +793,9 @@ sequenceDiagram
 **동기화 흐름 단계**:
 
 1. **Command Side (Aurora MySQL)**
-   - User 또는 Archive 엔티티 생성/수정/삭제/복원
+   - User 또는 Bookmark 엔티티 생성/수정/삭제/복원
    - `EventPublisher.publish()` 호출하여 Kafka 이벤트 발행
-   - Partition Key 사용 (userId, archiveTsid 등)으로 이벤트 순서 보장
+   - Partition Key 사용 (userId, bookmarkTsid 등)으로 이벤트 순서 보장
 
 2. **Kafka**
    - 이벤트를 토픽에 저장
@@ -821,7 +821,7 @@ sequenceDiagram
 ```mermaid
 erDiagram
     User ||--o{ UserProfileDocument : "1:1 매핑"
-    Archive ||--o{ ArchiveDocument : "1:1 매핑"
+    Bookmark ||--o{ BookmarkDocument : "1:1 매핑"
     
     User {
         BIGINT id "TSID PK"
@@ -840,7 +840,7 @@ erDiagram
         String profileImageUrl
     }
     
-    Archive {
+    Bookmark {
         BIGINT id "TSID PK"
         BIGINT userId "FK to User"
         VARCHAR itemType
@@ -851,9 +851,9 @@ erDiagram
         TEXT memo
     }
     
-    ArchiveDocument {
+    BookmarkDocument {
         ObjectId _id "MongoDB PK"
-        String archiveTsid "UNIQUE, TSID 매핑"
+        String bookmarkTsid "UNIQUE, TSID 매핑"
         String userId
         String itemType
         ObjectId itemId
@@ -866,7 +866,7 @@ erDiagram
 
 **매핑 규칙**:
 - `User.id` (TSID) → `UserProfileDocument.userTsid` (1:1 매핑, UNIQUE 인덱스)
-- `Archive.id` (TSID) → `ArchiveDocument.archiveTsid` (1:1 매핑, UNIQUE 인덱스)
+- `Bookmark.id` (TSID) → `BookmarkDocument.bookmarkTsid` (1:1 매핑, UNIQUE 인덱스)
 - TSID 필드를 통한 정확한 동기화 보장
 
 ### 동기화 서비스 설계
@@ -899,27 +899,27 @@ classDiagram
         +UserRestoredPayload payload
     }
     
-    class ArchiveCreatedEvent {
-        +ArchiveCreatedPayload payload
+    class BookmarkCreatedEvent {
+        +BookmarkCreatedPayload payload
     }
     
-    class ArchiveUpdatedEvent {
-        +ArchiveUpdatedPayload payload
+    class BookmarkUpdatedEvent {
+        +BookmarkUpdatedPayload payload
         +Map~String,Object~ updatedFields
     }
     
-    class ArchiveDeletedEvent {
-        +ArchiveDeletedPayload payload
+    class BookmarkDeletedEvent {
+        +BookmarkDeletedPayload payload
     }
     
-    class ArchiveRestoredEvent {
-        +ArchiveRestoredPayload payload
+    class BookmarkRestoredEvent {
+        +BookmarkRestoredPayload payload
     }
     
     class EventConsumer {
         -RedisTemplate redisTemplate
         -UserSyncService userSyncService
-        -ArchiveSyncService archiveSyncService
+        -BookmarkSyncService bookmarkSyncService
         +consume(BaseEvent, Acknowledgment)
         -processEvent(BaseEvent)
         -isEventProcessed(String) boolean
@@ -943,20 +943,20 @@ classDiagram
         -updateDocumentFields(Document, Map)
     }
     
-    class ArchiveSyncService {
+    class BookmarkSyncService {
         <<interface>>
-        +syncArchiveCreated(ArchiveCreatedEvent)
-        +syncArchiveUpdated(ArchiveUpdatedEvent)
-        +syncArchiveDeleted(ArchiveDeletedEvent)
-        +syncArchiveRestored(ArchiveRestoredEvent)
+        +syncBookmarkCreated(BookmarkCreatedEvent)
+        +syncBookmarkUpdated(BookmarkUpdatedEvent)
+        +syncBookmarkDeleted(BookmarkDeletedEvent)
+        +syncBookmarkRestored(BookmarkRestoredEvent)
     }
     
-    class ArchiveSyncServiceImpl {
-        -ArchiveRepository repository
-        +syncArchiveCreated(ArchiveCreatedEvent)
-        +syncArchiveUpdated(ArchiveUpdatedEvent)
-        +syncArchiveDeleted(ArchiveDeletedEvent)
-        +syncArchiveRestored(ArchiveRestoredEvent)
+    class BookmarkSyncServiceImpl {
+        -BookmarkRepository repository
+        +syncBookmarkCreated(BookmarkCreatedEvent)
+        +syncBookmarkUpdated(BookmarkUpdatedEvent)
+        +syncBookmarkDeleted(BookmarkDeletedEvent)
+        +syncBookmarkRestored(BookmarkRestoredEvent)
         -updateDocumentFields(Document, Map)
         -convertToLocalDateTime(Instant) LocalDateTime
     }
@@ -968,11 +968,11 @@ classDiagram
         +deleteByUserTsid(String)
     }
     
-    class ArchiveRepository {
+    class BookmarkRepository {
         <<interface>>
-        +findByArchiveTsid(String) Optional
-        +save(ArchiveDocument)
-        +deleteByArchiveTsid(String)
+        +findByBookmarkTsid(String) Optional
+        +save(BookmarkDocument)
+        +deleteByBookmarkTsid(String)
     }
     
     class UserProfileDocument {
@@ -983,8 +983,8 @@ classDiagram
         +String profileImageUrl
     }
     
-    class ArchiveDocument {
-        +String archiveTsid
+    class BookmarkDocument {
+        +String bookmarkTsid
         +String userId
         +String itemType
         +ObjectId itemId
@@ -998,23 +998,23 @@ classDiagram
     BaseEvent <|.. UserUpdatedEvent
     BaseEvent <|.. UserDeletedEvent
     BaseEvent <|.. UserRestoredEvent
-    BaseEvent <|.. ArchiveCreatedEvent
-    BaseEvent <|.. ArchiveUpdatedEvent
-    BaseEvent <|.. ArchiveDeletedEvent
-    BaseEvent <|.. ArchiveRestoredEvent
+    BaseEvent <|.. BookmarkCreatedEvent
+    BaseEvent <|.. BookmarkUpdatedEvent
+    BaseEvent <|.. BookmarkDeletedEvent
+    BaseEvent <|.. BookmarkRestoredEvent
     
     EventConsumer --> UserSyncService : uses
-    EventConsumer --> ArchiveSyncService : uses
+    EventConsumer --> BookmarkSyncService : uses
     EventConsumer --> BaseEvent : consumes
     
     UserSyncService <|.. UserSyncServiceImpl : implements
-    ArchiveSyncService <|.. ArchiveSyncServiceImpl : implements
+    BookmarkSyncService <|.. BookmarkSyncServiceImpl : implements
     
     UserSyncServiceImpl --> UserProfileRepository : uses
-    ArchiveSyncServiceImpl --> ArchiveRepository : uses
+    BookmarkSyncServiceImpl --> BookmarkRepository : uses
     
     UserProfileRepository --> UserProfileDocument : manages
-    ArchiveRepository --> ArchiveDocument : manages
+    BookmarkRepository --> BookmarkDocument : manages
 ```
 
 #### UserSyncService
@@ -1071,8 +1071,8 @@ public interface UserSyncService {
 package com.tech.n.ai.common.kafka.sync;
 
 import com.tech.n.ai.common.kafka.event.*;
-import com.tech.n.ai.datasource.mongodb.document.UserProfileDocument;
-import com.tech.n.ai.datasource.mongodb.repository.UserProfileRepository;
+import com.tech.n.ai.domain.mongodb.document.UserProfileDocument;
+import com.tech.n.ai.domain.mongodb.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -1231,7 +1231,7 @@ public class UserSyncServiceImpl implements UserSyncService {
 - MongoDB Soft Delete 미지원: 삭제 시 물리적 삭제, 복원 시 새로 생성
 - 에러 핸들링: 예외 발생 시 로깅 및 `RuntimeException` 전파
 
-#### ArchiveSyncService
+#### BookmarkSyncService
 
 **인터페이스 정의**:
 
@@ -1241,41 +1241,41 @@ package com.tech.n.ai.common.kafka.sync;
 import com.tech.n.ai.common.kafka.event.*;
 
 /**
- * Archive 엔티티 동기화 서비스 인터페이스
+ * Bookmark 엔티티 동기화 서비스 인터페이스
  * 
- * Aurora MySQL의 Archive 엔티티 변경을 MongoDB Atlas의 ArchiveDocument에 동기화합니다.
+ * Aurora MySQL의 Bookmark 엔티티 변경을 MongoDB Atlas의 BookmarkDocument에 동기화합니다.
  */
-public interface ArchiveSyncService {
+public interface BookmarkSyncService {
     
     /**
-     * Archive 생성 이벤트 동기화
+     * Bookmark 생성 이벤트 동기화
      * 
-     * @param event ArchiveCreatedEvent
+     * @param event BookmarkCreatedEvent
      */
-    void syncArchiveCreated(ArchiveCreatedEvent event);
+    void syncBookmarkCreated(BookmarkCreatedEvent event);
     
     /**
-     * Archive 수정 이벤트 동기화
+     * Bookmark 수정 이벤트 동기화
      * 
-     * @param event ArchiveUpdatedEvent
+     * @param event BookmarkUpdatedEvent
      */
-    void syncArchiveUpdated(ArchiveUpdatedEvent event);
+    void syncBookmarkUpdated(BookmarkUpdatedEvent event);
     
     /**
-     * Archive 삭제 이벤트 동기화 (Soft Delete)
+     * Bookmark 삭제 이벤트 동기화 (Soft Delete)
      * MongoDB는 Soft Delete를 지원하지 않으므로 물리적 삭제 수행
      * 
-     * @param event ArchiveDeletedEvent
+     * @param event BookmarkDeletedEvent
      */
-    void syncArchiveDeleted(ArchiveDeletedEvent event);
+    void syncBookmarkDeleted(BookmarkDeletedEvent event);
     
     /**
-     * Archive 복원 이벤트 동기화
+     * Bookmark 복원 이벤트 동기화
      * MongoDB는 Soft Delete를 지원하지 않으므로 Document 새로 생성
      * 
-     * @param event ArchiveRestoredEvent
+     * @param event BookmarkRestoredEvent
      */
-    void syncArchiveRestored(ArchiveRestoredEvent event);
+    void syncBookmarkRestored(BookmarkRestoredEvent event);
 }
 ```
 
@@ -1285,8 +1285,8 @@ public interface ArchiveSyncService {
 package com.tech.n.ai.common.kafka.sync;
 
 import com.tech.n.ai.common.kafka.event.*;
-import com.tech.n.ai.datasource.mongodb.document.ArchiveDocument;
-import com.tech.n.ai.datasource.mongodb.repository.ArchiveRepository;
+import com.tech.n.ai.domain.mongodb.document.BookmarkDocument;
+import com.tech.n.ai.domain.mongodb.repository.BookmarkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -1298,26 +1298,26 @@ import java.time.ZoneId;
 import java.util.Map;
 
 /**
- * Archive 동기화 서비스 구현 클래스
+ * Bookmark 동기화 서비스 구현 클래스
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ArchiveSyncServiceImpl implements ArchiveSyncService {
+public class BookmarkSyncServiceImpl implements BookmarkSyncService {
     
-    private final ArchiveRepository archiveRepository;
+    private final BookmarkRepository bookmarkRepository;
     
     @Override
-    public void syncArchiveCreated(ArchiveCreatedEvent event) {
+    public void syncBookmarkCreated(BookmarkCreatedEvent event) {
         try {
             var payload = event.payload();
             
-            // Upsert 패턴: archiveTsid로 조회하여 없으면 생성, 있으면 업데이트
-            ArchiveDocument document = archiveRepository
-                .findByArchiveTsid(payload.archiveTsid())
-                .orElse(new ArchiveDocument());
+            // Upsert 패턴: bookmarkTsid로 조회하여 없으면 생성, 있으면 업데이트
+            BookmarkDocument document = bookmarkRepository
+                .findByBookmarkTsid(payload.bookmarkTsid())
+                .orElse(new BookmarkDocument());
             
-            document.setArchiveTsid(payload.archiveTsid());
+            document.setBookmarkTsid(payload.bookmarkTsid());
             document.setUserId(payload.userId());
             document.setItemType(payload.itemType());
             document.setItemId(new ObjectId(payload.itemId()));
@@ -1325,73 +1325,73 @@ public class ArchiveSyncServiceImpl implements ArchiveSyncService {
             document.setItemSummary(payload.itemSummary());
             document.setTag(payload.tag());
             document.setMemo(payload.memo());
-            document.setArchivedAt(convertToLocalDateTime(payload.archivedAt()));
+            document.setBookmarkedAt(convertToLocalDateTime(payload.bookmarkedAt()));
             document.setCreatedAt(LocalDateTime.now());
             document.setUpdatedAt(LocalDateTime.now());
             
-            archiveRepository.save(document);
+            bookmarkRepository.save(document);
             
-            log.debug("Successfully synced ArchiveCreatedEvent: archiveTsid={}, userId={}", 
-                payload.archiveTsid(), payload.userId());
+            log.debug("Successfully synced BookmarkCreatedEvent: bookmarkTsid={}, userId={}", 
+                payload.bookmarkTsid(), payload.userId());
         } catch (Exception e) {
-            log.error("Failed to sync ArchiveCreatedEvent: eventId={}, archiveTsid={}", 
-                event.eventId(), event.payload().archiveTsid(), e);
-            throw new RuntimeException("Failed to sync ArchiveCreatedEvent", e);
+            log.error("Failed to sync BookmarkCreatedEvent: eventId={}, bookmarkTsid={}", 
+                event.eventId(), event.payload().bookmarkTsid(), e);
+            throw new RuntimeException("Failed to sync BookmarkCreatedEvent", e);
         }
     }
     
     @Override
-    public void syncArchiveUpdated(ArchiveUpdatedEvent event) {
+    public void syncBookmarkUpdated(BookmarkUpdatedEvent event) {
         try {
             var payload = event.payload();
             var updatedFields = payload.updatedFields();
             
-            // archiveTsid로 Document 조회
-            ArchiveDocument document = archiveRepository
-                .findByArchiveTsid(payload.archiveTsid())
+            // bookmarkTsid로 Document 조회
+            BookmarkDocument document = bookmarkRepository
+                .findByBookmarkTsid(payload.bookmarkTsid())
                 .orElseThrow(() -> new RuntimeException(
-                    "ArchiveDocument not found: archiveTsid=" + payload.archiveTsid()));
+                    "BookmarkDocument not found: bookmarkTsid=" + payload.bookmarkTsid()));
             
             // updatedFields를 Document 필드에 매핑 (부분 업데이트)
             updateDocumentFields(document, updatedFields);
             document.setUpdatedAt(LocalDateTime.now());
             
-            archiveRepository.save(document);
+            bookmarkRepository.save(document);
             
-            log.debug("Successfully synced ArchiveUpdatedEvent: archiveTsid={}, updatedFields={}", 
-                payload.archiveTsid(), updatedFields.keySet());
+            log.debug("Successfully synced BookmarkUpdatedEvent: bookmarkTsid={}, updatedFields={}", 
+                payload.bookmarkTsid(), updatedFields.keySet());
         } catch (Exception e) {
-            log.error("Failed to sync ArchiveUpdatedEvent: eventId={}, archiveTsid={}", 
-                event.eventId(), event.payload().archiveTsid(), e);
-            throw new RuntimeException("Failed to sync ArchiveUpdatedEvent", e);
+            log.error("Failed to sync BookmarkUpdatedEvent: eventId={}, bookmarkTsid={}", 
+                event.eventId(), event.payload().bookmarkTsid(), e);
+            throw new RuntimeException("Failed to sync BookmarkUpdatedEvent", e);
         }
     }
     
     @Override
-    public void syncArchiveDeleted(ArchiveDeletedEvent event) {
+    public void syncBookmarkDeleted(BookmarkDeletedEvent event) {
         try {
             var payload = event.payload();
             
             // MongoDB는 Soft Delete를 지원하지 않으므로 물리적 삭제
-            archiveRepository.deleteByArchiveTsid(payload.archiveTsid());
+            bookmarkRepository.deleteByBookmarkTsid(payload.bookmarkTsid());
             
-            log.debug("Successfully synced ArchiveDeletedEvent: archiveTsid={}, userId={}", 
-                payload.archiveTsid(), payload.userId());
+            log.debug("Successfully synced BookmarkDeletedEvent: bookmarkTsid={}, userId={}", 
+                payload.bookmarkTsid(), payload.userId());
         } catch (Exception e) {
-            log.error("Failed to sync ArchiveDeletedEvent: eventId={}, archiveTsid={}", 
-                event.eventId(), event.payload().archiveTsid(), e);
-            throw new RuntimeException("Failed to sync ArchiveDeletedEvent", e);
+            log.error("Failed to sync BookmarkDeletedEvent: eventId={}, bookmarkTsid={}", 
+                event.eventId(), event.payload().bookmarkTsid(), e);
+            throw new RuntimeException("Failed to sync BookmarkDeletedEvent", e);
         }
     }
     
     @Override
-    public void syncArchiveRestored(ArchiveRestoredEvent event) {
+    public void syncBookmarkRestored(BookmarkRestoredEvent event) {
         try {
             var payload = event.payload();
             
             // MongoDB는 Soft Delete를 지원하지 않으므로 Document 새로 생성
-            ArchiveDocument document = new ArchiveDocument();
-            document.setArchiveTsid(payload.archiveTsid());
+            BookmarkDocument document = new BookmarkDocument();
+            document.setBookmarkTsid(payload.bookmarkTsid());
             document.setUserId(payload.userId());
             document.setItemType(payload.itemType());
             document.setItemId(new ObjectId(payload.itemId()));
@@ -1399,39 +1399,39 @@ public class ArchiveSyncServiceImpl implements ArchiveSyncService {
             document.setItemSummary(payload.itemSummary());
             document.setTag(payload.tag());
             document.setMemo(payload.memo());
-            document.setArchivedAt(convertToLocalDateTime(payload.archivedAt()));
+            document.setBookmarkedAt(convertToLocalDateTime(payload.bookmarkedAt()));
             document.setCreatedAt(LocalDateTime.now());
             document.setUpdatedAt(LocalDateTime.now());
             
-            archiveRepository.save(document);
+            bookmarkRepository.save(document);
             
-            log.debug("Successfully synced ArchiveRestoredEvent: archiveTsid={}, userId={}", 
-                payload.archiveTsid(), payload.userId());
+            log.debug("Successfully synced BookmarkRestoredEvent: bookmarkTsid={}, userId={}", 
+                payload.bookmarkTsid(), payload.userId());
         } catch (Exception e) {
-            log.error("Failed to sync ArchiveRestoredEvent: eventId={}, archiveTsid={}", 
-                event.eventId(), event.payload().archiveTsid(), e);
-            throw new RuntimeException("Failed to sync ArchiveRestoredEvent", e);
+            log.error("Failed to sync BookmarkRestoredEvent: eventId={}, bookmarkTsid={}", 
+                event.eventId(), event.payload().bookmarkTsid(), e);
+            throw new RuntimeException("Failed to sync BookmarkRestoredEvent", e);
         }
     }
     
     /**
      * updatedFields를 Document 필드에 매핑 (부분 업데이트)
      * 
-     * 주의: itemTitle, itemSummary는 ArchiveEntity에 없는 필드이므로
-     * ArchiveUpdatedEvent의 updatedFields에 포함될 수 없습니다.
+     * 주의: itemTitle, itemSummary는 BookmarkEntity에 없는 필드이므로
+     * BookmarkUpdatedEvent의 updatedFields에 포함될 수 없습니다.
      * 이 필드들은 원본 아이템(ContestDocument/NewsArticleDocument) 변경 시
      * 별도의 동기화 메커니즘으로 업데이트되어야 합니다.
      * 
      * @param document 대상 Document
      * @param updatedFields 업데이트할 필드 맵 (tag, memo만 가능)
      */
-    private void updateDocumentFields(ArchiveDocument document, Map<String, Object> updatedFields) {
+    private void updateDocumentFields(BookmarkDocument document, Map<String, Object> updatedFields) {
         for (Map.Entry<String, Object> entry : updatedFields.entrySet()) {
             String fieldName = entry.getKey();
             Object value = entry.getValue();
             
             switch (fieldName) {
-                // itemTitle, itemSummary는 ArchiveEntity에 없는 필드이므로 제외
+                // itemTitle, itemSummary는 BookmarkEntity에 없는 필드이므로 제외
                 // 원본 아이템 변경 시 별도 동기화 메커니즘 필요
                 case "tag":
                     document.setTag((String) value);
@@ -1440,7 +1440,7 @@ public class ArchiveSyncServiceImpl implements ArchiveSyncService {
                     document.setMemo((String) value);
                     break;
                 default:
-                    log.warn("Unknown field in updatedFields: {} (itemTitle, itemSummary are not supported as they are not in ArchiveEntity)", fieldName);
+                    log.warn("Unknown field in updatedFields: {} (itemTitle, itemSummary are not supported as they are not in BookmarkEntity)", fieldName);
             }
         }
     }
@@ -1460,7 +1460,7 @@ public class ArchiveSyncServiceImpl implements ArchiveSyncService {
 ```
 
 **특징**:
-- Upsert 패턴 사용: `findByArchiveTsid().orElse(new ArchiveDocument())`로 생성/수정 통합
+- Upsert 패턴 사용: `findByBookmarkTsid().orElse(new BookmarkDocument())`로 생성/수정 통합
 - 부분 업데이트: `updatedFields`를 Document 필드에 매핑
 - 타입 변환: `Instant` → `LocalDateTime`, `String` → `ObjectId`
 - MongoDB Soft Delete 미지원: 삭제 시 물리적 삭제, 복원 시 새로 생성
@@ -1473,12 +1473,12 @@ public class ArchiveSyncServiceImpl implements ArchiveSyncService {
 - 알 수 없는 필드는 경고 로그만 출력 (무시)
 
 **중요 제약사항**:
-- **ArchiveUpdatedEvent의 updatedFields에는 ArchiveEntity에 있는 필드만 포함 가능**
-  - 지원 필드: `tag`, `memo` (ArchiveEntity에 존재하는 필드)
-  - **제외 필드**: `itemTitle`, `itemSummary` (ArchiveEntity에 없는 필드)
+- **BookmarkUpdatedEvent의 updatedFields에는 BookmarkEntity에 있는 필드만 포함 가능**
+  - 지원 필드: `tag`, `memo` (BookmarkEntity에 존재하는 필드)
+  - **제외 필드**: `itemTitle`, `itemSummary` (BookmarkEntity에 없는 필드)
 - `itemTitle`, `itemSummary`는 비정규화 필드로, 원본 아이템(ContestDocument/NewsArticleDocument)의 정보를 중복 저장
-- 원본 아이템 변경 시 별도의 동기화 메커니즘으로 `ArchiveDocument`의 `itemTitle`, `itemSummary`를 업데이트해야 함
-- `ArchiveUpdatedEvent`의 `updatedFields`에 `itemTitle`, `itemSummary`가 포함되면 경고 로그만 출력하고 무시
+- 원본 아이템 변경 시 별도의 동기화 메커니즘으로 `BookmarkDocument`의 `itemTitle`, `itemSummary`를 업데이트해야 함
+- `BookmarkUpdatedEvent`의 `updatedFields`에 `itemTitle`, `itemSummary`가 포함되면 경고 로그만 출력하고 무시
 
 **타입 변환**:
 - `String` → `String`: 그대로 사용
@@ -1507,10 +1507,10 @@ flowchart TD
     EventType -->|USER_DELETED| UserDeleted[UserSyncService<br/>syncUserDeleted]
     EventType -->|USER_RESTORED| UserRestored[UserSyncService<br/>syncUserRestored]
     
-    EventType -->|ARCHIVE_CREATED| ArchiveCreated[ArchiveSyncService<br/>syncArchiveCreated]
-    EventType -->|ARCHIVE_UPDATED| ArchiveUpdated[ArchiveSyncService<br/>syncArchiveUpdated]
-    EventType -->|ARCHIVE_DELETED| ArchiveDeleted[ArchiveSyncService<br/>syncArchiveDeleted]
-    EventType -->|ARCHIVE_RESTORED| ArchiveRestored[ArchiveSyncService<br/>syncArchiveRestored]
+    EventType -->|BOOKMARK_CREATED| BookmarkCreated[BookmarkSyncService<br/>syncBookmarkCreated]
+    EventType -->|BOOKMARK_UPDATED| BookmarkUpdated[BookmarkSyncService<br/>syncBookmarkUpdated]
+    EventType -->|BOOKMARK_DELETED| BookmarkDeleted[BookmarkSyncService<br/>syncBookmarkDeleted]
+    EventType -->|BOOKMARK_RESTORED| BookmarkRestored[BookmarkSyncService<br/>syncBookmarkRestored]
     
     EventType -->|Unknown| UnknownEvent[경고 로그<br/>무시]
     
@@ -1518,10 +1518,10 @@ flowchart TD
     UserUpdated --> SyncSuccess
     UserDeleted --> SyncSuccess
     UserRestored --> SyncSuccess
-    ArchiveCreated --> SyncSuccess
-    ArchiveUpdated --> SyncSuccess
-    ArchiveDeleted --> SyncSuccess
-    ArchiveRestored --> SyncSuccess
+    BookmarkCreated --> SyncSuccess
+    BookmarkUpdated --> SyncSuccess
+    BookmarkDeleted --> SyncSuccess
+    BookmarkRestored --> SyncSuccess
     UnknownEvent --> MarkProcessed
     
     SyncSuccess -->|성공| MarkProcessed[Redis에 처리 완료 표시]
@@ -1570,24 +1570,24 @@ private void processEvent(BaseEvent event) {
                     userSyncService.syncUserRestored(userEvent);
                 }
                 break;
-            case "ARCHIVE_CREATED":
-                if (event instanceof ArchiveCreatedEvent archiveEvent) {
-                    archiveSyncService.syncArchiveCreated(archiveEvent);
+            case "BOOKMARK_CREATED":
+                if (event instanceof BookmarkCreatedEvent bookmarkEvent) {
+                    bookmarkSyncService.syncBookmarkCreated(bookmarkEvent);
                 }
                 break;
-            case "ARCHIVE_UPDATED":
-                if (event instanceof ArchiveUpdatedEvent archiveEvent) {
-                    archiveSyncService.syncArchiveUpdated(archiveEvent);
+            case "BOOKMARK_UPDATED":
+                if (event instanceof BookmarkUpdatedEvent bookmarkEvent) {
+                    bookmarkSyncService.syncBookmarkUpdated(bookmarkEvent);
                 }
                 break;
-            case "ARCHIVE_DELETED":
-                if (event instanceof ArchiveDeletedEvent archiveEvent) {
-                    archiveSyncService.syncArchiveDeleted(archiveEvent);
+            case "BOOKMARK_DELETED":
+                if (event instanceof BookmarkDeletedEvent bookmarkEvent) {
+                    bookmarkSyncService.syncBookmarkDeleted(bookmarkEvent);
                 }
                 break;
-            case "ARCHIVE_RESTORED":
-                if (event instanceof ArchiveRestoredEvent archiveEvent) {
-                    archiveSyncService.syncArchiveRestored(archiveEvent);
+            case "BOOKMARK_RESTORED":
+                if (event instanceof BookmarkRestoredEvent bookmarkEvent) {
+                    bookmarkSyncService.syncBookmarkRestored(bookmarkEvent);
                 }
                 break;
             default:
@@ -1615,7 +1615,7 @@ public class EventConsumer {
     
     private final RedisTemplate<String, String> redisTemplate;
     private final UserSyncService userSyncService;        // 추가
-    private final ArchiveSyncService archiveSyncService;  // 추가
+    private final BookmarkSyncService bookmarkSyncService;  // 추가
     
     // ... 기존 코드 ...
 }
@@ -1624,7 +1624,6 @@ public class EventConsumer {
 **특징**:
 - `switch` 문을 통한 이벤트 타입별 분기 처리 (단순하고 명확)
 - Pattern Matching for `instanceof` 사용 (Java 16+)
-- Contest/News 이벤트는 로깅만 수행 (동기화 불필요)
 - 예외 발생 시 전파하여 Spring Kafka 재시도 메커니즘 활용
 
 **에러 핸들링**:
@@ -1636,14 +1635,14 @@ public class EventConsumer {
 
 ```mermaid
 flowchart TD
-    Start([UserUpdatedEvent<br/>또는<br/>ArchiveUpdatedEvent]) --> Extract[updatedFields<br/>Map 추출]
+    Start([UserUpdatedEvent<br/>또는<br/>BookmarkUpdatedEvent]) --> Extract[updatedFields<br/>Map 추출]
     Extract --> Loop{모든 필드<br/>순회}
     Loop -->|다음 필드| CheckField{필드명 확인}
     
     CheckField -->|username| SetUsername[document.setUsername]
     CheckField -->|email| SetEmail[document.setEmail]
     CheckField -->|profileImageUrl| SetProfileImage[document.setProfileImageUrl]
-    CheckField -->|itemTitle| WarnLog[경고 로그<br/>ArchiveEntity에 없는 필드<br/>무시]
+    CheckField -->|itemTitle| WarnLog[경고 로그<br/>BookmarkEntity에 없는 필드<br/>무시]
     CheckField -->|itemSummary| WarnLog
     CheckField -->|tag| SetTag[document.setTag]
     CheckField -->|memo| SetMemo[document.setMemo]
@@ -1708,7 +1707,7 @@ sequenceDiagram
 
 **파일 생성**:
 1. `UserSyncService.java` (인터페이스)
-2. `ArchiveSyncService.java` (인터페이스)
+2. `BookmarkSyncService.java` (인터페이스)
 
 **주의사항**:
 - 인터페이스는 `public` 접근 제어자 사용
@@ -1719,12 +1718,12 @@ sequenceDiagram
 
 **파일 생성**:
 1. `UserSyncServiceImpl.java` (구현 클래스)
-2. `ArchiveSyncServiceImpl.java` (구현 클래스)
+2. `BookmarkSyncServiceImpl.java` (구현 클래스)
 
 **의존성 주입**:
 - `@Service` 어노테이션 사용
 - `@RequiredArgsConstructor` 사용 (Lombok)
-- `UserProfileRepository` 또는 `ArchiveRepository` 주입
+- `UserProfileRepository` 또는 `BookmarkRepository` 주입
 - `MongoTemplate` 주입 (필요 시, 현재는 Repository만 사용)
 
 **Upsert 패턴 구현**:
@@ -1757,7 +1756,6 @@ repository.save(document);
 
 **주의사항**:
 - Pattern Matching for `instanceof` 사용 (Java 16+)
-- Contest/News 이벤트는 로깅만 수행
 - 예외 발생 시 전파하여 재시도 메커니즘 활용
 
 ### 4. 의존성 주입 설정
@@ -1767,8 +1765,8 @@ repository.save(document);
 - `@RequiredArgsConstructor`로 생성자 주입
 
 **순환 의존성 방지**:
-- `EventConsumer` → `UserSyncService`, `ArchiveSyncService`
-- `UserSyncService`, `ArchiveSyncService` → `Repository`
+- `EventConsumer` → `UserSyncService`, `BookmarkSyncService`
+- `UserSyncService`, `BookmarkSyncService` → `Repository`
 - 순환 의존성 없음 (단방향 의존성)
 
 ### 5. MongoDB Atlas 연결 설정 구현
@@ -1797,11 +1795,11 @@ repository.save(document);
 - ✅ `UserDeletedEvent` → `UserProfileDocument` 삭제
 - ✅ `UserRestoredEvent` → `UserProfileDocument` 생성
 
-**Archive 이벤트**:
-- ✅ `ArchiveCreatedEvent` → `ArchiveDocument` 생성
-- ✅ `ArchiveUpdatedEvent` → `ArchiveDocument` 업데이트
-- ✅ `ArchiveDeletedEvent` → `ArchiveDocument` 삭제
-- ✅ `ArchiveRestoredEvent` → `ArchiveDocument` 생성
+**Bookmark 이벤트**:
+- ✅ `BookmarkCreatedEvent` → `BookmarkDocument` 생성
+- ✅ `BookmarkUpdatedEvent` → `BookmarkDocument` 업데이트
+- ✅ `BookmarkDeletedEvent` → `BookmarkDocument` 삭제
+- ✅ `BookmarkRestoredEvent` → `BookmarkDocument` 생성
 
 **검증 방법**:
 - 각 이벤트 타입별 통합 테스트 작성
@@ -1849,7 +1847,7 @@ repository.save(document);
 #### 2.2 동시성 처리 확인
 
 **검증 시나리오**:
-1. 동일한 `userTsid` 또는 `archiveTsid`로 여러 이벤트 동시 수신
+1. 동일한 `userTsid` 또는 `bookmarkTsid`로 여러 이벤트 동시 수신
 2. Partition Key를 통한 순서 보장 확인
 
 **검증 방법**:
@@ -1970,8 +1968,6 @@ repository.save(document);
    - Retry 설정 (retryWrites, retryReads)
 
 3. **API 모듈 Profile 설정 업데이트**:
-   - `api-news`: `mongodb-domain` profile 추가
-   - `api-contest`: `mongodb-domain` profile 추가
    - `api-gateway`: `mongodb-domain` profile 추가
 
 ### 환경변수 설정
@@ -2018,7 +2014,7 @@ repository.save(document);
 
 3. **Profile 활성화**:
    - API 모듈의 `application-*-api.yml`에 `mongodb-domain` profile이 포함되어 있어야 함
-   - 이미 업데이트 완료: `api-news`, `api-contest`, `api-gateway`
+   - 이미 업데이트 완료: `api-gateway`
 
 ---
 

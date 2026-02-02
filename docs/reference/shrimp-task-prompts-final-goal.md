@@ -7,7 +7,7 @@
 기존 프로젝트에 다음 기능들을 추가하여 확장합니다:
 1. 정보 출처 자동 업데이트 시스템
 2. 사용자 인증 및 관리 시스템
-3. 사용자 아카이브 기능
+3. 사용자 북마크 기능
 4. CQRS 패턴 기반 아키텍처
 5. 데이터베이스 설계서 생성
 6. 변경 이력 추적 시스템 (히스토리 테이블)
@@ -304,41 +304,41 @@
    - CORS 설정: 허용된 도메인만 접근 (개발 환경: 모든 origin 허용, 운영 환경: 특정 도메인 지정)
    - PasswordEncoderConfig: BCryptPasswordEncoder 설정 (salt rounds: 12)
 
-### 3. 사용자 아카이브 기능
+### 3. 사용자 북마크 기능
 
-**목표**: 사용자가 관심 있는 대회/뉴스를 개인 아카이브에 저장 및 관리
+**목표**: 사용자가 관심 있는 대회/뉴스를 개인 북마크에 저장 및 관리
 
 **입력 요구사항**:
 - 사용자 ID (JWT 토큰에서 추출)
-- 아카이브 항목 정보 (itemType, itemId, title, description, tags, category, memo)
-- 수정 요청 데이터 (아카이브 ID, 수정할 필드)
+- 북마크 항목 정보 (itemType, itemId, title, description, tags, category, memo)
+- 수정 요청 데이터 (북마크 ID, 수정할 필드)
 
 **출력 결과**:
-- 생성된 아카이브 ID
-- 아카이브 목록 (페이징, 필터링, 정렬 적용)
-- 아카이브 상세 정보
+- 생성된 북마크 ID
+- 북마크 목록 (페이징, 필터링, 정렬 적용)
+- 북마크 상세 정보
 - Soft Delete 상태 (deleteYn, deletedAt)
 
 **성공 기준**:
-- 아카이브가 정상적으로 생성되어야 함
-- 아카이브 목록 조회가 정상적으로 동작해야 함
+- 북마크가 정상적으로 생성되어야 함
+- 북마크 목록 조회가 정상적으로 동작해야 함
 - 페이징, 필터링, 정렬이 정상적으로 적용되어야 함
 - Soft Delete가 정상적으로 동작해야 함
-- 아카이브 복원이 정상적으로 동작해야 함
+- 북마크 복원이 정상적으로 동작해야 함
 - 권한 검증이 정상적으로 동작해야 함 (본인만 조회/수정/삭제 가능)
 
 **에러 처리 시나리오**:
 - 권한 없음: 403 Forbidden, 에러 메시지 반환
-- 아카이브 없음: 404 Not Found, 에러 메시지 반환
+- 북마크 없음: 404 Not Found, 에러 메시지 반환
 - 잘못된 요청 데이터: 400 Bad Request, 검증 에러 메시지 반환
-- 중복 아카이브: 409 Conflict, 에러 메시지 반환
+- 중복 북마크: 409 Conflict, 에러 메시지 반환
 
 **기능 요구사항**:
-- 아카이브 저장: 대회 또는 뉴스 기사를 아카이브에 추가
-- 아카이브 조회: 사용자의 아카이브 목록 조회 (페이징, 필터링, 정렬)
-- 아카이브 수정: 메모, 태그, 카테고리 등 사용자 정의 정보 수정
-- 아카이브 삭제: Soft Delete 방식 (delete_yn 플래그 사용)
-- 아카이브 복원: 삭제된 항목 복원 기능
+- 북마크 저장: 대회 또는 뉴스 기사를 북마크에 추가
+- 북마크 조회: 사용자의 북마크 목록 조회 (페이징, 필터링, 정렬)
+- 북마크 수정: 메모, 태그, 카테고리 등 사용자 정의 정보 수정
+- 북마크 삭제: Soft Delete 방식 (delete_yn 플래그 사용)
+- 북마크 복원: 삭제된 항목 복원 기능
 
 **Soft Delete 요구사항**:
 - delete_yn 플래그 사용 (Y/N 또는 boolean)
@@ -348,7 +348,7 @@
 - 물리적 삭제는 별도 배치 작업으로 처리 (30일 후)
 
 **구현 세부사항**:
-1. Archive 엔티티 설계
+1. Bookmark 엔티티 설계
    - id (BIGINT UNSIGNED, TSID Primary Key)
    - user_id (BIGINT UNSIGNED, auth 스키마의 users 테이블 참조, 스키마 간 Foreign Key 미지원)
    - item_type (VARCHAR(50), CONTEST, NEWS_ARTICLE)
@@ -358,21 +358,21 @@
    - is_deleted, deleted_at, deleted_by (Soft Delete)
    - created_at, created_by, updated_at, updated_by (감사 필드)
 
-2. Archive API 엔드포인트 (api-archive 모듈, 참고: `docs/step2/1. api-endpoint-design.md`)
-   - POST /api/v1/archive - 아카이브 추가 (Aurora MySQL 저장, Kafka 이벤트 발행)
-   - GET /api/v1/archive - 아카이브 목록 조회 (MongoDB Atlas 조회, userId 필터링)
+2. Bookmark API 엔드포인트 (api-bookmark 모듈, 참고: `docs/step2/1. api-endpoint-design.md`)
+   - POST /api/v1/bookmark - 북마크 추가 (Aurora MySQL 저장, Kafka 이벤트 발행)
+   - GET /api/v1/bookmark - 북마크 목록 조회 (MongoDB Atlas 조회, userId 필터링)
      * 파라미터: page, size, sort, itemType
-   - GET /api/v1/archive/{id} - 아카이브 상세 조회 (MongoDB Atlas 조회, archiveTsid 또는 ObjectId 사용)
-   - PUT /api/v1/archive/{id} - 아카이브 수정 (Aurora MySQL 업데이트, Kafka 이벤트 발행)
-   - DELETE /api/v1/archive/{id} - 아카이브 삭제 (Soft Delete, Aurora MySQL, Kafka 이벤트 발행)
-   - POST /api/v1/archive/{id}/restore - 아카이브 복원 (Aurora MySQL 복원, Kafka 이벤트 발행)
-   - GET /api/v1/archive/deleted - 삭제된 아카이브 목록 (Aurora MySQL 조회, CQRS 패턴 예외)
-   - GET /api/v1/archive/history/{entityId} - 변경 이력 조회 (Aurora MySQL 조회, CQRS 패턴 예외)
-   - GET /api/v1/archive/history/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (Aurora MySQL 조회, CQRS 패턴 예외)
-   - POST /api/v1/archive/history/{entityId}/restore?historyId={historyId} - 특정 버전으로 복구 (Aurora MySQL 복구, Kafka 이벤트 발행)
+   - GET /api/v1/bookmark/{id} - 북마크 상세 조회 (MongoDB Atlas 조회, bookmarkTsid 또는 ObjectId 사용)
+   - PUT /api/v1/bookmark/{id} - 북마크 수정 (Aurora MySQL 업데이트, Kafka 이벤트 발행)
+   - DELETE /api/v1/bookmark/{id} - 북마크 삭제 (Soft Delete, Aurora MySQL, Kafka 이벤트 발행)
+   - POST /api/v1/bookmark/{id}/restore - 북마크 복원 (Aurora MySQL 복원, Kafka 이벤트 발행)
+   - GET /api/v1/bookmark/deleted - 삭제된 북마크 목록 (Aurora MySQL 조회, CQRS 패턴 예외)
+   - GET /api/v1/bookmark/history/{entityId} - 변경 이력 조회 (Aurora MySQL 조회, CQRS 패턴 예외)
+   - GET /api/v1/bookmark/history/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (Aurora MySQL 조회, CQRS 패턴 예외)
+   - POST /api/v1/bookmark/history/{entityId}/restore?historyId={historyId} - 특정 버전으로 복구 (Aurora MySQL 복구, Kafka 이벤트 발행)
 
 3. 권한 관리
-   - 사용자는 본인의 아카이브만 조회/수정/삭제 가능
+   - 사용자는 본인의 북마크만 조회/수정/삭제 가능
    - JWT 토큰에서 userId 추출하여 권한 검증
    - @PreAuthorize 어노테이션 활용
 
@@ -381,8 +381,8 @@
 **목표**: 읽기와 쓰기 작업을 분리하여 성능 최적화 및 확장성 향상
 
 **입력 요구사항**:
-- Command 작업 (쓰기): 사용자 생성, 아카이브 생성/수정/삭제, 대회/뉴스 수집
-- Query 작업 (읽기): 대회 목록 조회, 뉴스 목록 조회, 아카이브 목록 조회
+- Command 작업 (쓰기): 사용자 생성, 북마크 생성/수정/삭제, 대회/뉴스 수집
+- Query 작업 (읽기): 대회 목록 조회, 뉴스 목록 조회, 북마크 목록 조회
 
 **출력 결과**:
 - Command Side: Amazon Aurora MySQL에 데이터 저장, Kafka 이벤트 발행
@@ -415,7 +415,7 @@
 **아키텍처 설계**:
 - **Command (쓰기)**: Amazon Aurora MySQL 호환 RDBMS 사용
   - 사용자 생성, 수정, 삭제
-  - 아카이브 생성, 수정, 삭제
+  - 북마크 생성, 수정, 삭제
   - 정보 출처 업데이트
   - **Aurora 특화 고려사항**:
     * 고가용성: Multi-AZ 배포 (자동 장애 조치)
@@ -425,7 +425,7 @@
 - **Query (읽기)**: MongoDB Atlas 클라우드 서비스 사용
   - 대회 목록 조회
   - 뉴스 목록 조회
-  - 아카이브 목록 조회
+  - 북마크 목록 조회
   - 검색 쿼리
   - **연결 정보**: MongoDB Atlas Cluster 연결 문자열 사용
   - **인증**: MongoDB Atlas에서 제공하는 사용자명/비밀번호 또는 X.509 인증서 사용
@@ -448,12 +448,12 @@
      - AdminHistory 엔티티 (관리자 변경 이력)
      - **스키마 설정**: `api-auth-application.yml`에서 `module.aurora.schema=auth` 설정
      - **동적 연결**: `domain/aurora/src/main/resources/application-api-domain.yml`에서 `${module.aurora.schema}` 사용
-   - **archive 스키마** (api-archive 모듈):
-     - Archive 엔티티 (쓰기 전용)
-     - ArchiveHistory 엔티티 (아카이브 변경 이력)
-     - **스키마 설정**: `api-archive-application.yml`에서 `module.aurora.schema=archive` 설정
+   - **bookmark 스키마** (api-bookmark 모듈):
+     - Bookmark 엔티티 (쓰기 전용)
+     - BookmarkHistory 엔티티 (북마크 변경 이력)
+     - **스키마 설정**: `api-bookmark-application.yml`에서 `module.aurora.schema=bookmark` 설정
      - **동적 연결**: `domain/aurora/src/main/resources/application-api-domain.yml`에서 `${module.aurora.schema}` 사용
-     - **주의사항**: `archives` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key를 지원하지 않으므로 애플리케이션 레벨에서 참조 무결성을 보장해야 함
+     - **주의사항**: `bookmarks` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key를 지원하지 않으므로 애플리케이션 레벨에서 참조 무결성을 보장해야 함
    - **주의사항**: 
      - `api-contest`, `api-news` 모듈은 Aurora DB를 사용하지 않으므로 해당 스키마의 엔티티는 존재하지 않음
      - Contest와 NewsArticle 데이터는 MongoDB Atlas에만 저장됨 (읽기 전용 데이터)
@@ -471,14 +471,14 @@
      * **API 모듈별 스키마 매핑**:
    - 각 API 모듈의 `api-*-application.yml` 파일에서 `module.aurora.schema` 속성 설정
      - `api-auth` 모듈: `module.aurora.schema=auth` (auth 스키마 사용)
-     - `api-archive` 모듈: `module.aurora.schema=archive` (archive 스키마 사용)
+     - `api-bookmark` 모듈: `module.aurora.schema=bookmark` (bookmark 스키마 사용)
      - `api-contest`, `api-news` 모듈: Aurora DB 미사용 (MongoDB Atlas 사용)
      - `domain/aurora/src/main/resources/application-api-domain.yml`에서 `${module.aurora.schema}` 환경변수를 사용하여 동적으로 스키마 참조
      - DataSource URL 형식: `jdbc:mysql://${AURORA_WRITER_ENDPOINT}:3306/${module.aurora.schema}?${AURORA_OPTIONS}`
      * **스키마별 관리 테이블** (참고: `docs/step1/3. aurora-schema-design.md`):
        - `auth` 스키마 (api-auth 모듈): providers, users, admins, refresh_tokens, email_verifications, user_history, admin_history
-       - `archive` 스키마 (api-archive 모듈): archives, archive_history
-       - **주의사항**: `archives` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key를 지원하지 않으므로 애플리케이션 레벨에서 참조 무결성을 보장해야 함
+       - `bookmark` 스키마 (api-bookmark 모듈): bookmarks, bookmark_history
+       - **주의사항**: `bookmarks` 테이블의 `user_id`는 `auth` 스키마의 `users` 테이블을 참조하지만, MySQL은 스키마 간 Foreign Key를 지원하지 않으므로 애플리케이션 레벨에서 참조 무결성을 보장해야 함
      * 연결 풀 최적화: HikariCP 설정 (최소/최대 연결 수 조정)
      * 타임아웃 설정: connectionTimeout, idleTimeout, maxLifetime
      * SSL 연결: 프로덕션 환경 필수
@@ -487,7 +487,7 @@
    - SourcesDocument (정보 출처 정보, `json/sources.json` 기반)
    - ContestDocument (읽기 최적화, `client-scraper` 모듈에서 수집)
    - NewsArticleDocument (읽기 최적화, `client-rss` 모듈에서 수집)
-   - ArchiveDocument (읽기 최적화, 사용자별 인덱스, `archiveTsid` 필드로 Aurora MySQL 동기화)
+   - BookmarkDocument (읽기 최적화, 사용자별 인덱스, `bookmarkTsid` 필드로 Aurora MySQL 동기화)
    - UserProfileDocument (읽기 최적화, 통계 정보 포함, `userTsid` 필드로 Aurora MySQL 동기화)
    - ExceptionLogDocument (예외 로그, 읽기/쓰기 예외 모두 기록, TTL 인덱스로 90일 후 자동 삭제)
    - **MongoDB Atlas 연결 설정**:
@@ -503,11 +503,11 @@
    - UserUpdatedEvent (User 엔티티 수정 시 → UserProfileDocument 업데이트)
    - UserDeletedEvent (User 엔티티 Soft Delete 시 → UserProfileDocument 물리적 삭제)
    - UserRestoredEvent (User 엔티티 복원 시 → UserProfileDocument 새로 생성)
-   - ArchiveCreatedEvent (Archive 엔티티 생성 시 → ArchiveDocument 생성)
-   - ArchiveUpdatedEvent (Archive 엔티티 수정 시 → ArchiveDocument 업데이트)
-   - ArchiveDeletedEvent (Archive 엔티티 Soft Delete 시 → ArchiveDocument 물리적 삭제)
-   - ArchiveRestoredEvent (Archive 엔티티 복원 시 → ArchiveDocument 새로 생성)
-   - **동기화 매핑**: TSID 필드 기반 1:1 매핑 (`User.id(TSID)` → `UserProfileDocument.userTsid`, `Archive.id(TSID)` → `ArchiveDocument.archiveTsid`)
+   - BookmarkCreatedEvent (Bookmark 엔티티 생성 시 → BookmarkDocument 생성)
+   - BookmarkUpdatedEvent (Bookmark 엔티티 수정 시 → BookmarkDocument 업데이트)
+   - BookmarkDeletedEvent (Bookmark 엔티티 Soft Delete 시 → BookmarkDocument 물리적 삭제)
+   - BookmarkRestoredEvent (Bookmark 엔티티 복원 시 → BookmarkDocument 새로 생성)
+   - **동기화 매핑**: TSID 필드 기반 1:1 매핑 (`User.id(TSID)` → `UserProfileDocument.userTsid`, `Bookmark.id(TSID)` → `BookmarkDocument.bookmarkTsid`)
    - **동기화 지연 시간**: 실시간 동기화 목표 (1초 이내)
 
 4. Kafka Producer 구현
@@ -522,7 +522,7 @@
    - Dead Letter Queue (DLQ) 처리
 
 6. 동기화 전략 (참고: `docs/step2/2. data-model-design.md`)
-   - 실시간 동기화: 중요 이벤트 (사용자 생성, 아카이브 변경), 목표 지연 시간 1초 이내
+   - 실시간 동기화: 중요 이벤트 (사용자 생성, 북마크 변경), 목표 지연 시간 1초 이내
    - 배치 동기화: 대량 데이터 (대회/뉴스 수집)
    - 동기화 상태 모니터링 및 알림
    - **TSID 필드 기반 매핑**: Command Side의 TSID Primary Key를 Query Side의 UNIQUE 필드로 매핑하여 1:1 관계 보장
@@ -542,7 +542,7 @@
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/annotation/Tsid.java
-package com.tech.n.ai.datasource.aurora.annotation;
+package com.tech.n.ai.domain.aurora.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -577,9 +577,9 @@ public @interface Tsid {
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/generator/TsidGenerator.java
-package com.tech.n.ai.datasource.aurora.generator;
+package com.tech.n.ai.domain.aurora.generator;
 
-import com.tech.n.ai.datasource.aurora.annotation.Tsid;
+import com.tech.n.ai.domain.aurora.annotation.Tsid;
 import io.hypersistence.tsid.TSID;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.IdentifierGenerator;
@@ -603,9 +603,9 @@ public class TsidGenerator implements IdentifierGenerator {
 
 ```java
 // domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/entity/User.java
-package com.tech.n.ai.datasource.aurora.entity;
+package com.tech.n.ai.domain.aurora.entity;
 
-import com.tech.n.ai.datasource.aurora.annotation.Tsid;
+import com.tech.n.ai.domain.aurora.annotation.Tsid;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -621,7 +621,7 @@ public class User {
     @GeneratedValue(generator = "tsid-generator")
     @org.hibernate.annotations.GenericGenerator(
         name = "tsid-generator",
-        type = com.tech.n.ai.datasource.aurora.generator.TsidGenerator.class
+        type = com.tech.n.ai.domain.aurora.generator.TsidGenerator.class
     )
     private Long id;
     
@@ -671,7 +671,7 @@ dependencies {
 - 샘플 데이터 예제
 - 성능 최적화 전략
 - 마이그레이션 전략
-- **MongoDB 설계서**: SourcesDocument, ContestDocument, NewsArticleDocument, ArchiveDocument, UserProfileDocument, ExceptionLogDocument 포함
+- **MongoDB 설계서**: SourcesDocument, ContestDocument, NewsArticleDocument, BookmarkDocument, UserProfileDocument, ExceptionLogDocument 포함
 - **Aurora 설계서**: API 모듈별 스키마 매핑, 환경변수 관리, TSID Primary Key 전략 포함
 
 **작업 세부사항** (참고: `docs/step1/2. mongodb-schema-design.md`, `docs/step1/3. aurora-schema-design.md`):
@@ -679,7 +679,7 @@ dependencies {
    - SourcesDocument 스키마 (`json/sources.json` 기반)
    - ContestDocument 스키마 (`client-scraper` 모듈에서 수집)
    - NewsArticleDocument 스키마 (`client-rss` 모듈에서 수집)
-   - ArchiveDocument 스키마 (`archiveTsid` 필드로 Aurora MySQL 동기화)
+   - BookmarkDocument 스키마 (`bookmarkTsid` 필드로 Aurora MySQL 동기화)
    - UserProfileDocument 스키마 (`userTsid` 필드로 Aurora MySQL 동기화)
    - ExceptionLogDocument 스키마 (예외 로그, TTL 인덱스)
    - 인덱스 전략 (ESR 규칙 준수)
@@ -694,9 +694,9 @@ dependencies {
      - EmailVerification 테이블 (TSID Primary Key)
      - UserHistory 테이블 (TSID Primary Key)
      - AdminHistory 테이블 (TSID Primary Key)
-   - **archive 스키마** (api-archive 모듈):
-     - Archive 테이블 (TSID Primary Key)
-     - ArchiveHistory 테이블 (TSID Primary Key)
+   - **bookmark 스키마** (api-bookmark 모듈):
+     - Bookmark 테이블 (TSID Primary Key)
+     - BookmarkHistory 테이블 (TSID Primary Key)
    - **주의사항**:
      - `api-contest`, `api-news` 모듈은 Aurora DB를 사용하지 않으므로 해당 스키마의 테이블은 존재하지 않음
      - Contest와 NewsArticle 데이터는 MongoDB Atlas에만 저장됨
@@ -738,8 +738,8 @@ dependencies {
    - **auth 스키마** (api-auth 모듈):
      - UserHistory 테이블: User 엔티티 변경 이력 (history_id: TSID Primary Key)
      - AdminHistory 테이블: Admin 엔티티 변경 이력 (history_id: TSID Primary Key)
-   - **archive 스키마** (api-archive 모듈):
-     - ArchiveHistory 테이블: Archive 엔티티 변경 이력 (history_id: TSID Primary Key)
+   - **bookmark 스키마** (api-bookmark 모듈):
+     - BookmarkHistory 테이블: Bookmark 엔티티 변경 이력 (history_id: TSID Primary Key)
    - **주의**: ContestHistory, NewsArticleHistory, SourceHistory는 불필요함
      - Contest와 NewsArticle은 읽기 전용 데이터 (Query Side: MongoDB Atlas)
      - Command Side(Aurora MySQL)에는 Contest와 NewsArticle 엔티티가 존재하지 않음
@@ -761,10 +761,10 @@ dependencies {
      - GET /api/v1/auth/history/{entityType}/{entityId} - 특정 엔티티의 변경 이력 조회 (entityType: user, admin, CQRS 패턴 예외로 Aurora MySQL 조회)
      - GET /api/v1/auth/history/{entityType}/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (entityType: user, admin, CQRS 패턴 예외로 Aurora MySQL 조회)
      - POST /api/v1/auth/history/{entityType}/{entityId}/restore?historyId={historyId} - 특정 버전으로 복구 (entityType: user, admin, 관리자만 접근 가능)
-   - **api-archive 모듈**:
-     - GET /api/v1/archive/history/{entityId} - 아카이브 엔티티의 변경 이력 조회 (CQRS 패턴 예외로 Aurora MySQL 조회)
-     - GET /api/v1/archive/history/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (CQRS 패턴 예외로 Aurora MySQL 조회)
-     - POST /api/v1/archive/history/{entityId}/restore?historyId={historyId} - 특정 버전으로 복구 (관리자만 접근 가능)
+   - **api-bookmark 모듈**:
+     - GET /api/v1/bookmark/history/{entityId} - 북마크 엔티티의 변경 이력 조회 (CQRS 패턴 예외로 Aurora MySQL 조회)
+     - GET /api/v1/bookmark/history/{entityId}/at?timestamp={timestamp} - 특정 시점 데이터 조회 (CQRS 패턴 예외로 Aurora MySQL 조회)
+     - POST /api/v1/bookmark/history/{entityId}/restore?historyId={historyId} - 특정 버전으로 복구 (관리자만 접근 가능)
 
 4. 성능 최적화
    - 비동기 처리 (Kafka 이벤트 활용)
@@ -799,7 +799,7 @@ dependencies {
       ├── api-contest/           # 대회 정보 API 
       ├── api-news/              # 뉴스 정보 API 
       ├── api-auth/              # 인증 API 
-      └── api-archive/           # 아카이브 API 
+      └── api-bookmark/           # 북마크 API 
   ```
 
 **모듈 설명**:
@@ -809,13 +809,13 @@ dependencies {
     * **역할**: 쓰기 작업 전용 데이터베이스 연동
     * **책임**: JPA 엔티티 관리, 트랜잭션 처리, 데이터 무결성 보장
     * **검증 기준**: 모든 쓰기 작업이 정상적으로 저장되고 트랜잭션이 롤백 가능해야 함
-    * **스키마 매핑**: API 모듈별 스키마 분리 (auth, archive)
+    * **스키마 매핑**: API 모듈별 스키마 분리 (auth, bookmark)
     * **TSID Primary Key**: 모든 테이블의 Primary Key는 TSID 방식 사용
   - `domain-mongodb/`: MongoDB Atlas 클라우드 서비스 관련 Document 및 Repository (Query Side, 참고: `docs/step1/2. mongodb-schema-design.md`)
     * **연결 대상**: MongoDB Atlas Cluster (클라우드 서비스)
     * **역할**: 읽기 작업 전용 데이터베이스 연동
     * **책임**: 읽기 최적화된 쿼리, Full-text search, 인덱스 관리
-    * **TSID 동기화**: `archiveTsid`, `userTsid` 필드로 Aurora MySQL과 1:1 매핑
+    * **TSID 동기화**: `bookmarkTsid`, `userTsid` 필드로 Aurora MySQL과 1:1 매핑
 - **common/**: 공통 기능 모듈
   - `common-core/`: 핵심 유틸리티 클래스
   - `common-security/`: 보안 관련 (JWT, Spring Security 설정)
@@ -836,7 +836,7 @@ dependencies {
   - `api-contest/`: 대회 정보 API
   - `api-news/`: 뉴스 정보 API
   - `api-auth/`: 인증 API
-  - `api-archive/`: 아카이브 API
+  - `api-bookmark/`: 북마크 API
 
 **작업 세부사항**:
 1. 프로젝트 구조 설계
@@ -866,11 +866,11 @@ dependencies {
        ├── src/main/java/com/ebson/domain/aurora/
        │   ├── entity/
        │   │   ├── User.java
-       │   │   ├── Archive.java
+       │   │   ├── Bookmark.java
        │   │   └── ...
        │   └── repository/
        │       ├── UserRepository.java
-       │       ├── ArchiveRepository.java
+       │       ├── BookmarkRepository.java
        │       └── ...
        └── src/main/resources/
            └── application.yml
@@ -892,7 +892,7 @@ dependencies {
        │   │   ├── SourcesDocument.java
        │   │   ├── ContestDocument.java
        │   │   ├── NewsArticleDocument.java
-       │   │   ├── ArchiveDocument.java
+       │   │   ├── BookmarkDocument.java
        │   │   ├── UserProfileDocument.java
        │   │   ├── ExceptionLogDocument.java
        │   │   └── ...
@@ -900,7 +900,7 @@ dependencies {
        │       ├── SourcesDocumentRepository.java
        │       ├── ContestDocumentRepository.java
        │       ├── NewsArticleDocumentRepository.java
-       │       ├── ArchiveDocumentRepository.java
+       │       ├── BookmarkDocumentRepository.java
        │       ├── UserProfileDocumentRepository.java
        │       ├── ExceptionLogDocumentRepository.java
        │       └── ...
@@ -939,7 +939,7 @@ dependencies {
              ddl-auto: validate
            show-sql: false
        ```
-       **참고**: 각 API 모듈의 `api-*-application.yml`에서 `module.aurora.schema` 설정 필요 (api-auth: `auth`, api-archive: `archive`)
+       **참고**: 각 API 모듈의 `api-*-application.yml`에서 `module.aurora.schema` 설정 필요 (api-auth: `auth`, api-bookmark: `bookmark`)
 
 3. Common 모듈 구현
    - common-core: 유틸리티 클래스, 상수, 헬퍼
@@ -1294,7 +1294,7 @@ dependencies {
    - 모듈별 섹션 구성:
      * 공개 API (Contest, News, Source)
      * 인증 API (Auth)
-     * 사용자 아카이브 API (Archive)
+     * 사용자 북마크 API (Bookmark)
      * 변경 이력 조회 API (History)
    - 공통 섹션:
      * 인증 방법 (JWT 토큰 사용법)
@@ -1757,8 +1757,8 @@ dependencies {
    - **데이터 수집**: `client-rss` 모듈에서 RSS 피드 파싱을 통해 NewsArticleDocument 수집
    - **검증 기준**: api-news 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :api-news:build` 명령이 성공해야 함)
    - **검증 기준**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
-3. api-archive 모듈 구현
-   - **검증 기준**: api-archive 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :api-archive:build` 명령이 성공해야 함)
+3. api-bookmark 모듈 구현
+   - **검증 기준**: api-bookmark 모듈이 정상적으로 빌드 가능해야 함 (`./gradlew :api-bookmark:build` 명령이 성공해야 함)
    - **검증 기준**: 컴파일 에러 없음 (모든 Java 파일이 정상적으로 컴파일되어야 함)
 4. Soft Delete 구현
    - **검증 기준**: 관련 모듈들이 정상적으로 빌드 가능해야 함 (`./gradlew clean build` 명령이 성공해야 함)
@@ -1852,7 +1852,7 @@ dependencies {
 
 3. **캐싱 전략**
    - Redis를 활용한 자주 조회되는 데이터 캐싱
-   - 사용자 아카이브 캐싱
+   - 사용자 북마크 캐싱
    - JWT 토큰 검증 결과 캐싱
 
 4. **Kafka 최적화**
@@ -1915,7 +1915,7 @@ dependencies {
      * `AURORA_USERNAME`: 데이터베이스 사용자명
      * `AURORA_PASSWORD`: 데이터베이스 비밀번호
      * `AURORA_OPTIONS`: JDBC 연결 옵션 (예: `useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8`)
-     * **참고**: 각 API 모듈의 `api-*-application.yml`에서 `module.aurora.schema` 설정 (api-auth: `auth`, api-archive: `archive`)
+     * **참고**: 각 API 모듈의 `api-*-application.yml`에서 `module.aurora.schema` 설정 (api-auth: `auth`, api-bookmark: `bookmark`)
      * **참고**: `domain/aurora/src/main/resources/application-api-domain.yml`에서 `${module.aurora.schema}` 사용하여 동적 스키마 참조
    - Kafka 연결 정보
    - OAuth 클라이언트 정보 (Google, Naver, Kakao, 참고: `docs/step6/oauth-provider-implementation-guide.md`)

@@ -58,7 +58,7 @@ API Gateway 서버는 모든 외부 요청을 중앙에서 관리하고, 적절�
      │                                     │
      ▼                                     ▼
 ┌──────────────┐                   ┌──────────────┐
-│ @api/archive │                   │  @api/auth   │
+│ @api/bookmark │                   │  @api/auth   │
 │  (인증 필요)  │                   │ (인증 불필요) │
 └──────────────┘                   └──────────────┘
      │                                     │
@@ -84,14 +84,14 @@ sequenceDiagram
     participant Gateway as Gateway Server<br/>(Spring Cloud Gateway)
     participant AuthFilter as JWT 인증 필터
     participant AuthService as @api/auth<br/>(인증 서버)
-    participant ApiServer as API 서버<br/>(archive/contest/news/chatbot)
+    participant ApiServer as API 서버<br/>(bookmark/contest/news/chatbot)
 
     Note over Client, ApiServer: 인증이 필요한 요청 처리
 
-    Client->>ALB: HTTP 요청<br/>GET /api/v1/archive<br/>Authorization: Bearer {JWT_TOKEN}
+    Client->>ALB: HTTP 요청<br/>GET /api/v1/bookmark<br/>Authorization: Bearer {JWT_TOKEN}
     ALB->>Gateway: 요청 전달<br/>(600초 timeout)
     
-    Gateway->>Gateway: 라우팅 규칙 매칭<br/>(Path=/api/v1/archive/**)
+    Gateway->>Gateway: 라우팅 규칙 매칭<br/>(Path=/api/v1/bookmark/**)
     
     Gateway->>AuthFilter: JWT 인증 필터 실행
     AuthFilter->>AuthFilter: JWT 토큰 추출<br/>(Authorization 헤더)
@@ -168,7 +168,7 @@ graph TB
     A[Client Request] --> B[Spring Cloud Gateway]
     B --> C{Route Matcher}
     C -->|/api/v1/auth/**| D[Auth Route]
-    C -->|/api/v1/archive/**| E[Archive Route]
+    C -->|/api/v1/bookmark/**| E[Bookmark Route]
     C -->|/api/v1/contest/**| F[Contest Route]
     C -->|/api/v1/news/**| G[News Route]
     C -->|/api/v1/chatbot/**| H[Chatbot Route]
@@ -183,7 +183,7 @@ graph TB
     J -->|Valid Token| L[Extract User Info]
     J -->|Invalid Token| M[401 Unauthorized]
     L --> N[Add Headers]
-    N --> O[Archive Service]
+    N --> O[Bookmark Service]
     K --> P[Contest/News Service]
     
     O --> Q[Response]
@@ -236,7 +236,7 @@ dependencies {
 | 경로 패턴 | 대상 서버 | 인증 필요 | 설명 |
 |----------|---------|---------|------|
 | `/api/v1/auth/**` | `@api/auth` | ❌ | 인증 서버 (회원가입, 로그인, 토큰 갱신 등) |
-| `/api/v1/archive/**` | `@api/archive` | ✅ | 사용자 아카이브 관리 API |
+| `/api/v1/bookmark/**` | `@api/bookmark` | ✅ | 사용자 북마크 관리 API |
 | `/api/v1/contest/**` | `@api/contest` | ❌ | 대회 정보 조회 API (공개) |
 | `/api/v1/news/**` | `@api/news` | ❌ | 뉴스 정보 조회 API (공개) |
 | `/api/v1/chatbot/**` | `@api/chatbot` | ✅ | RAG 기반 챗봇 API |
@@ -249,9 +249,9 @@ dependencies {
 - **인증**: 불필요 (인증 서버 자체이므로)
 - **URL Rewrite**: 없음 (경로 그대로 전달)
 
-**2. 아카이브 서버 라우팅**
-- **경로**: `/api/v1/archive/**`
-- **대상**: `@api/archive` 서버
+**2. 북마크 서버 라우팅**
+- **경로**: `/api/v1/bookmark/**`
+- **대상**: `@api/bookmark` 서버
 - **인증**: 필요 (JWT 토큰 검증 필수)
 - **URL Rewrite**: 없음 (경로 그대로 전달)
 
@@ -285,8 +285,8 @@ spring:
       routes:
         - id: auth-route
           uri: http://localhost:8082  # api-auth 서버 포트
-        - id: archive-route
-          uri: http://localhost:8083   # api-archive 서버 포트
+        - id: bookmark-route
+          uri: http://localhost:8083   # api-bookmark 서버 포트
         - id: contest-route
           uri: http://localhost:8084  # api-contest 서버 포트
         - id: news-route
@@ -303,8 +303,8 @@ spring:
       routes:
         - id: auth-route
           uri: http://api-auth-service:8080
-        - id: archive-route
-          uri: http://api-archive-service:8080
+        - id: bookmark-route
+          uri: http://api-bookmark-service:8080
         - id: contest-route
           uri: http://api-contest-service:8080
         - id: news-route
@@ -385,7 +385,7 @@ sequenceDiagram
 | 경로 패턴 | 인증 필요 | 설명 |
 |----------|---------|------|
 | `/api/v1/auth/**` | ❌ | 인증 서버 자체 경로 |
-| `/api/v1/archive/**` | ✅ | 사용자별 데이터 접근 필요 |
+| `/api/v1/bookmark/**` | ✅ | 사용자별 데이터 접근 필요 |
 | `/api/v1/contest/**` | ❌ | 공개 API |
 | `/api/v1/news/**` | ❌ | 공개 API |
 | `/api/v1/chatbot/**` | ✅ | 사용자별 세션 관리 필요 |
@@ -417,11 +417,11 @@ sequenceDiagram
     participant Client as 클라이언트<br/>(프론트엔드/앱)
     participant Gateway as Gateway Server
     participant AuthService as @api/auth<br/>(인증 서버)
-    participant ApiServer as API 서버<br/>(archive/chatbot)
+    participant ApiServer as API 서버<br/>(bookmark/chatbot)
 
-    Note over Client, ApiServer: 1단계: Archive 요청 (만료된 Access Token)
+    Note over Client, ApiServer: 1단계: Bookmark 요청 (만료된 Access Token)
 
-    Client->>Gateway: GET /api/v1/archive<br/>Authorization: Bearer {만료된_토큰}
+    Client->>Gateway: GET /api/v1/bookmark<br/>Authorization: Bearer {만료된_토큰}
     Gateway->>Gateway: JWT 인증 필터 실행
     Gateway->>Gateway: 토큰 만료 감지
     Gateway->>Client: 401 Unauthorized<br/>{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}
@@ -437,7 +437,7 @@ sequenceDiagram
 
     Note over Client, ApiServer: 3단계: 원래 요청 자동 재시도
 
-    Client->>Gateway: GET /api/v1/archive<br/>Authorization: Bearer {새_토큰}<br/>(자동 재시도)
+    Client->>Gateway: GET /api/v1/bookmark<br/>Authorization: Bearer {새_토큰}<br/>(자동 재시도)
     Gateway->>Gateway: JWT 인증 필터 실행
     Gateway->>Gateway: JWT 검증 성공
     Gateway->>ApiServer: 인증된 요청 전달<br/>(사용자 정보 헤더 포함)
@@ -455,11 +455,11 @@ sequenceDiagram
     participant User as 사용자
     participant Gateway as Gateway Server
     participant AuthService as @api/auth<br/>(인증 서버)
-    participant ApiServer as API 서버<br/>(archive/chatbot)
+    participant ApiServer as API 서버<br/>(bookmark/chatbot)
 
-    Note over Client, ApiServer: 1단계: Archive 요청 (만료된 Access Token)
+    Note over Client, ApiServer: 1단계: Bookmark 요청 (만료된 Access Token)
 
-    Client->>Gateway: GET /api/v1/archive<br/>Authorization: Bearer {만료된_토큰}
+    Client->>Gateway: GET /api/v1/bookmark<br/>Authorization: Bearer {만료된_토큰}
     Gateway->>Gateway: JWT 인증 필터 실행
     Gateway->>Gateway: 토큰 만료 감지
     Gateway->>Client: 401 Unauthorized<br/>{"code": "4001", "messageCode": {"code": "AUTH_FAILED", "text": "인증에 실패했습니다."}}
@@ -488,7 +488,7 @@ sequenceDiagram
 
     Note over Client, ApiServer: 5단계: 원래 요청 자동 재시도
 
-    Client->>Gateway: GET /api/v1/archive<br/>Authorization: Bearer {새_토큰}<br/>(자동 재시도)
+    Client->>Gateway: GET /api/v1/bookmark<br/>Authorization: Bearer {새_토큰}<br/>(자동 재시도)
     Gateway->>Gateway: JWT 인증 필터 실행
     Gateway->>Gateway: JWT 검증 성공
     Gateway->>ApiServer: 인증된 요청 전달<br/>(사용자 정보 헤더 포함)
@@ -921,10 +921,10 @@ spring:
               args:
                 requireAuth: false
         
-        - id: archive-route
-          uri: ${gateway.routes.archive.uri:http://localhost:8083}
+        - id: bookmark-route
+          uri: ${gateway.routes.bookmark.uri:http://localhost:8083}
           predicates:
-            - Path=/api/v1/archive/**
+            - Path=/api/v1/bookmark/**
           filters:
             - name: JwtAuthentication
               args:
@@ -1017,7 +1017,7 @@ gateway:
   routes:
     auth:
       uri: http://localhost:8082
-    archive:
+    bookmark:
       uri: http://localhost:8083
     contest:
       uri: http://localhost:8084
@@ -1043,8 +1043,8 @@ gateway:
   routes:
     auth:
       uri: http://api-auth-service:8080
-    archive:
-      uri: http://api-archive-service:8080
+    bookmark:
+      uri: http://api-bookmark-service:8080
     contest:
       uri: http://api-contest-service:8080
     news:
@@ -1069,8 +1069,8 @@ gateway:
   routes:
     auth:
       uri: http://api-auth-service:8080
-    archive:
-      uri: http://api-archive-service:8080
+    bookmark:
+      uri: http://api-bookmark-service:8080
     contest:
       uri: http://api-contest-service:8080
     news:
@@ -1146,8 +1146,8 @@ logging:
 # 인증 서버 라우팅 테스트
 curl http://localhost:8081/api/v1/auth/login
 
-# 아카이브 서버 라우팅 테스트 (인증 필요)
-curl -H "Authorization: Bearer {JWT_TOKEN}" http://localhost:8081/api/v1/archive
+# 북마크 서버 라우팅 테스트 (인증 필요)
+curl -H "Authorization: Bearer {JWT_TOKEN}" http://localhost:8081/api/v1/bookmark
 
 # 대회 서버 라우팅 테스트 (공개 API)
 curl http://localhost:8081/api/v1/contest
@@ -1157,13 +1157,13 @@ curl http://localhost:8081/api/v1/contest
 
 ```bash
 # 인증 없이 인증 필요 경로 접근 (401 예상)
-curl http://localhost:8081/api/v1/archive
+curl http://localhost:8081/api/v1/bookmark
 
 # 유효한 JWT 토큰으로 접근 (200 예상)
-curl -H "Authorization: Bearer {VALID_JWT_TOKEN}" http://localhost:8081/api/v1/archive
+curl -H "Authorization: Bearer {VALID_JWT_TOKEN}" http://localhost:8081/api/v1/bookmark
 
 # 무효한 JWT 토큰으로 접근 (401 예상)
-curl -H "Authorization: Bearer invalid_token" http://localhost:8081/api/v1/archive
+curl -H "Authorization: Bearer invalid_token" http://localhost:8081/api/v1/bookmark
 ```
 
 #### 3. 연결 풀 테스트
@@ -1210,7 +1210,7 @@ curl -H "Authorization: Bearer invalid_token" http://localhost:8081/api/v1/archi
 - `docs/step6/spring-security-auth-design-guide.md`: Spring Security 설계 가이드
 - `docs/step9/contest-news-api-design.md`: Contest/News API 설계
 - `docs/step12/rag-chatbot-design.md`: Chatbot API 설계
-- `docs/step13/user-archive-feature-design.md`: Archive API 설계
+- `docs/step13/user-bookmark-feature-design.md`: Bookmark API 설계
 
 ---
 
@@ -1239,7 +1239,7 @@ Spring Cloud Gateway는 Reactive 기반이므로, 기존 Spring Security의 Serv
 **예시**:
 ```yaml
 filters:
-  - RewritePath=/api/v1/archive/(?<segment>.*), /archive/$\{segment}
+  - RewritePath=/api/v1/bookmark/(?<segment>.*), /bookmark/$\{segment}
 ```
 
 ### C. 서비스 디스커버리
