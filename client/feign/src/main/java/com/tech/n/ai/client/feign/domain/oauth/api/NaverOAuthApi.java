@@ -6,7 +6,7 @@ import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.NaverTokenRespo
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.NaverUserInfoResponse;
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
 import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
-import com.ebson.shrimp.tm.demo.common.exception.exception.UnauthorizedException;
+import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.LinkedMultiValueMap;

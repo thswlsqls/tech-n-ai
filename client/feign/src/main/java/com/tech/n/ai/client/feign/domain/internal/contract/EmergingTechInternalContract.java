@@ -1,6 +1,6 @@
 package com.tech.n.ai.client.feign.domain.internal.contract;
 
-import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.tech.n.ai.common.core.dto.ApiResponse;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -13,7 +13,7 @@ public interface EmergingTechInternalContract {
      * Emerging Tech 단건 생성 (내부 API)
      */
     @PostMapping("/api/v1/emerging-tech/internal")
-    ApiResponse<Object> createEmergingTechInternal(
+    ApiResponse<InternalApiDto.EmergingTechDetailResponse> createEmergingTechInternal(
         @RequestHeader("X-Internal-Api-Key") String apiKey,
         @RequestBody InternalApiDto.EmergingTechCreateRequest request);
 
@@ -21,7 +21,7 @@ public interface EmergingTechInternalContract {
      * Emerging Tech 다건 생성 (내부 API)
      */
     @PostMapping("/api/v1/emerging-tech/internal/batch")
-    ApiResponse<Object> createEmergingTechBatchInternal(
+    ApiResponse<InternalApiDto.EmergingTechBatchResponse> createEmergingTechBatchInternal(
         @RequestHeader("X-Internal-Api-Key") String apiKey,
         @RequestBody InternalApiDto.EmergingTechBatchRequest request);
 
