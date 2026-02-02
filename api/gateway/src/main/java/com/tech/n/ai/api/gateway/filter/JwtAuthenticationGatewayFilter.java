@@ -91,9 +91,8 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
      */
     private boolean isPublicPath(String path) {
         return path.startsWith("/api/v1/auth") ||
-               path.startsWith("/api/v1/contest") ||
-               path.startsWith("/api/v1/news") ||
-               path.startsWith("/api/v1/agent") ||  // 내부 API Key 인증 사용
+               path.startsWith("/api/v1/agent") ||          // 내부 API Key 인증 사용
+               path.startsWith("/api/v1/emerging-tech") ||   // 공개 API
                path.startsWith("/actuator");
     }
     
