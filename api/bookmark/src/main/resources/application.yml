@@ -3,10 +3,10 @@ server:
 
 spring:
   application:
-    name: archive-api
+    name: bookmark-api
   profiles:
     include:
       - common-core
       - kafka
       - api-domain
-      - archive-api
+      - bookmark-api

@@ -1,0 +1,40 @@
+package com.tech.n.ai.api.bookmark.dto.response;
+
+import com.tech.n.ai.domain.mariadb.entity.bookmark.BookmarkEntity;
+
+import java.time.LocalDateTime;
+
+/**
+ * 북마크 상세 조회 응답 DTO
+ */
+public record BookmarkDetailResponse(
+    String bookmarkTsid,
+    String userId,
+    String itemType,
+    String itemId,
+    String tag,
+    String memo,
+    LocalDateTime createdAt,
+    String createdBy,
+    LocalDateTime updatedAt,
+    String updatedBy
+) {
+    public static BookmarkDetailResponse from(BookmarkEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        
+        return new BookmarkDetailResponse(
+            entity.getId() != null ? entity.getId().toString() : null,
+            entity.getUserId() != null ? entity.getUserId().toString() : null,
+            entity.getItemType(),
+            entity.getItemId(),
+            entity.getTag(),
+            entity.getMemo(),
+            entity.getCreatedAt(),
+            entity.getCreatedBy() != null ? entity.getCreatedBy().toString() : null,
+            entity.getUpdatedAt(),
+            entity.getUpdatedBy() != null ? entity.getUpdatedBy().toString() : null
+        );
+    }
+}

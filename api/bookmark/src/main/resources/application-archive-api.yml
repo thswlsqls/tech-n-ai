@@ -1,7 +1,0 @@
-module:
-  aurora:
-    schema: archive
-
-archive:
-  restore:
-    max-days: 30

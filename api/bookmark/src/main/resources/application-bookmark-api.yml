@@ -1,0 +1,7 @@
+module:
+  aurora:
+    schema: bookmark
+
+bookmark:
+  restore:
+    max-days: 30
