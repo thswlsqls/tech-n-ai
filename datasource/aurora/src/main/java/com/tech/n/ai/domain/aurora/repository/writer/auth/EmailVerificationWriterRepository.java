@@ -1,6 +1,6 @@
-package com.tech.n.ai.datasource.mariadb.repository.writer.auth;
+package com.tech.n.ai.domain.aurora.repository.writer.auth;
 
-import com.tech.n.ai.datasource.mariadb.entity.auth.EmailVerificationEntity;
+import com.tech.n.ai.domain.aurora.entity.auth.EmailVerificationEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

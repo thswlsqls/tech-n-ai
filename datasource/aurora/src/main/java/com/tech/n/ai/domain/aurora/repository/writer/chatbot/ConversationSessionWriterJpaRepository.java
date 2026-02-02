@@ -1,6 +1,6 @@
-package com.tech.n.ai.datasource.mariadb.repository.writer.chatbot;
+package com.tech.n.ai.domain.aurora.repository.writer.chatbot;
 
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.aurora.entity.chatbot.ConversationSessionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

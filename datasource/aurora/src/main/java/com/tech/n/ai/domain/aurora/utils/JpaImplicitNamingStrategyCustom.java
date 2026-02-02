@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mariadb.utils;
+package com.tech.n.ai.domain.aurora.utils;
 
 import org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl;
 import org.springframework.stereotype.Component;

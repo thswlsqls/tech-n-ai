@@ -1,4 +1,4 @@
-package com.tech.n.ai.domain.aurora.entity.auth;
+package com.tech.n.ai.domain.aurora.entity.bookmark;
 
 import com.tech.n.ai.domain.aurora.annotation.Tsid;
 import jakarta.persistence.*;
@@ -8,13 +8,13 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * UserHistoryEntity
+ * BookmarkHistoryEntity
  */
 @Entity
-@Table(name = "user_history")
+@Table(name = "bookmark_history")
 @Getter
 @Setter
-public class UserHistoryEntity {
+public class BookmarkHistoryEntity {
 
     @Id
     @Tsid
@@ -22,11 +22,11 @@ public class UserHistoryEntity {
     private Long historyId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @JoinColumn(name = "bookmark_id", nullable = false)
+    private BookmarkEntity bookmark;
 
-    @Column(name = "user_id", insertable = false, updatable = false, nullable = false)
-    private Long userId;
+    @Column(name = "bookmark_id", insertable = false, updatable = false, nullable = false)
+    private Long bookmarkId;
 
     @Column(name = "operation_type", length = 20, nullable = false)
     private String operationType;

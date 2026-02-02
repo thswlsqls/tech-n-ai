@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mariadb.generator;
+package com.tech.n.ai.domain.aurora.generator;
 
 import com.github.f4b6a3.tsid.Tsid;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;

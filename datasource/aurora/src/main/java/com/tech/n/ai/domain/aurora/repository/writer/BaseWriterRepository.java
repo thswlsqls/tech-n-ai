@@ -1,8 +1,8 @@
-package com.tech.n.ai.datasource.mariadb.repository.writer;
+package com.tech.n.ai.domain.aurora.repository.writer;
 
-import com.tech.n.ai.datasource.mariadb.entity.BaseEntity;
-import com.tech.n.ai.datasource.mariadb.service.history.HistoryService;
-import com.tech.n.ai.datasource.mariadb.service.history.OperationType;
+import com.tech.n.ai.domain.aurora.entity.BaseEntity;
+import com.tech.n.ai.domain.aurora.service.history.HistoryService;
+import com.tech.n.ai.domain.aurora.service.history.OperationType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

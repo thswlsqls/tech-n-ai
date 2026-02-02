@@ -1,6 +1,6 @@
-package com.tech.n.ai.datasource.mariadb.repository.writer.history;
+package com.tech.n.ai.domain.aurora.repository.writer.history;
 
-import com.tech.n.ai.datasource.mariadb.entity.auth.UserHistoryEntity;
+import com.tech.n.ai.domain.aurora.entity.auth.UserHistoryEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

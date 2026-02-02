@@ -1,4 +1,4 @@
-package com.tech.n.ai.datasource.mariadb.config;
+package com.tech.n.ai.domain.aurora.config;
 
 
 import com.querydsl.jpa.JPQLTemplates;
@@ -25,10 +25,10 @@ import lombok.RequiredArgsConstructor;
 @Profile("api-domain")
 @EnableTransactionManagement
 @EnableJpaRepositories(
-    basePackages = {"com.tech.n.ai.datasource.mariadb.repository"}
+    basePackages = {"com.tech.n.ai.domain.aurora.repository"}
 )
-@EntityScan(value = {"com.tech.n.ai.datasource.mariadb.entity"})
-@ComponentScan(basePackages = {"com.tech.n.ai.datasource.mariadb"})
+@EntityScan(value = {"com.tech.n.ai.domain.aurora.entity"})
+@ComponentScan(basePackages = {"com.tech.n.ai.domain.aurora"})
 @Import({
     ApiDataSourceConfig.class,
     ApiMybatisConfig.class
