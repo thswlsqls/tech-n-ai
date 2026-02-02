@@ -5,12 +5,12 @@ import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
 import com.tech.n.ai.api.chatbot.memory.MongoDbChatMemoryStore;
 import com.tech.n.ai.common.kafka.event.ConversationMessageCreatedEvent;
 import com.tech.n.ai.common.kafka.publisher.EventPublisher;
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationMessageEntity;
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationMessageWriterRepository;
-import com.tech.n.ai.datasource.mongodb.document.ConversationMessageDocument;
-import com.tech.n.ai.datasource.mongodb.repository.ConversationMessageRepository;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationMessageEntity;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationMessageWriterRepository;
+import com.tech.n.ai.domain.mongodb.document.ConversationMessageDocument;
+import com.tech.n.ai.domain.mongodb.repository.ConversationMessageRepository;
 import dev.langchain4j.data.message.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,11 +32,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ConversationMessageServiceImpl implements ConversationMessageService {
-    
-    private static final String KAFKA_TOPIC_CONVERSATION_EVENTS = "conversation-events";
+
+    private static final String TOPIC_MESSAGE_CREATED = "shrimp-tm.conversation.message.created";
     
     private final ConversationMessageWriterRepository conversationMessageWriterRepository;
-    private final com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationMessageWriterJpaRepository conversationMessageWriterJpaRepository;
+    private final com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationMessageWriterJpaRepository conversationMessageWriterJpaRepository;
     private final ConversationMessageRepository conversationMessageRepository;
     private final ConversationSessionReaderRepository conversationSessionReaderRepository;
     private final MongoDbChatMemoryStore mongoDbChatMemoryStore;
@@ -81,39 +81,68 @@ public class ConversationMessageServiceImpl implements ConversationMessageServic
             );
         
         ConversationMessageCreatedEvent event = new ConversationMessageCreatedEvent(payload);
-        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, sessionId);
+        eventPublisher.publish(TOPIC_MESSAGE_CREATED, event, sessionId);
         
-        log.debug("Message saved: sessionId={}, role={}, sequenceNumber={}", 
+        log.info("Message saved: sessionId={}, role={}, sequenceNumber={}",
             sessionId, role, nextSequenceNumber);
     }
     
     @Override
     @Transactional(readOnly = true)
     public Page<MessageResponse> getMessages(String sessionId, Pageable pageable) {
+        log.info("Fetching messages for sessionId={}, page={}, size={}",
+            sessionId, pageable.getPageNumber(), pageable.getPageSize());
+
         try {
             Page<ConversationMessageDocument> mongoPage = conversationMessageRepository
                 .findBySessionIdOrderBySequenceNumberAsc(sessionId, pageable);
-            
+
             if (mongoPage.hasContent()) {
-                return mongoPage.map(this::toResponse);
+                // 방어적 검증: 반환된 데이터의 sessionId가 요청한 것과 일치하는지 확인
+                Page<MessageResponse> result = mongoPage.map(doc -> {
+                    if (!sessionId.equals(doc.getSessionId())) {
+                        log.error("Session ID mismatch detected! Requested: {}, Found: {}, MessageId: {}",
+                            sessionId, doc.getSessionId(), doc.getMessageId());
+                    }
+                    return toResponse(doc);
+                });
+
+                log.info("Found {} messages from MongoDB for sessionId={}",
+                    mongoPage.getTotalElements(), sessionId);
+                return result;
             }
+            log.info("No messages found in MongoDB for sessionId={}, falling back to Aurora MySQL", sessionId);
         } catch (Exception e) {
-            log.warn("Failed to get messages from MongoDB, falling back to Aurora MySQL: sessionId={}", 
+            log.warn("Failed to get messages from MongoDB, falling back to Aurora MySQL: sessionId={}",
                 sessionId, e);
         }
-        
+
         Long sessionIdLong = Long.parseLong(sessionId);
         List<ConversationMessageEntity> messages = conversationMessageWriterJpaRepository
             .findBySessionIdOrderBySequenceNumberAsc(sessionIdLong);
-        
+
+        log.info("Found {} messages from Aurora MySQL for sessionId={}", messages.size(), sessionId);
+
+        // 방어적 검증: Aurora MySQL 조회 결과의 sessionId가 요청한 것과 일치하는지 확인
+        for (ConversationMessageEntity msg : messages) {
+            Long actualSessionId = msg.getSession().getId();
+            if (!sessionIdLong.equals(actualSessionId)) {
+                log.error("Aurora MySQL Session ID mismatch! Requested: {}, Found: {}, MessageId: {}",
+                    sessionId, actualSessionId, msg.getMessageId());
+            }
+        }
+
         int start = (int) pageable.getOffset();
+        if (start >= messages.size()) {
+            return new PageImpl<>(List.of(), pageable, messages.size());
+        }
         int end = Math.min(start + pageable.getPageSize(), messages.size());
         List<ConversationMessageEntity> pagedMessages = messages.subList(start, end);
-        
+
         List<MessageResponse> responses = pagedMessages.stream()
             .map(this::toResponseFromEntity)
             .collect(Collectors.toList());
-        
+
         return new PageImpl<>(responses, pageable, messages.size());
     }
     

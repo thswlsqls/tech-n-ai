@@ -18,7 +18,7 @@ public class IntentClassificationServiceImpl implements IntentClassificationServ
     );
 
     private static final Set<String> RAG_KEYWORDS = Set.of(
-        "대회", "contest", "뉴스", "news", "기사", "아카이브", "archive",
+        "대회", "contest", "뉴스", "news", "기사", "북마크", "bookmark",
         "검색", "찾아", "알려", "정보", "어떤", "무엇",
         "kaggle", "codeforces", "leetcode", "hackathon"
     );
@@ -43,24 +43,24 @@ public class IntentClassificationServiceImpl implements IntentClassificationServ
 
         // 1. Web 검색 키워드 체크 (최우선)
         if (containsWebSearchKeywords(lowerInput)) {
-            log.debug("Intent: WEB_SEARCH_REQUIRED - {}", truncateForLog(preprocessedInput));
+            log.info("Intent: WEB_SEARCH_REQUIRED - {}", truncateForLog(preprocessedInput));
             return Intent.WEB_SEARCH_REQUIRED;
         }
 
         // 2. RAG 키워드 체크
         if (containsRagKeywords(lowerInput)) {
-            log.debug("Intent: RAG_REQUIRED - {}", truncateForLog(preprocessedInput));
+            log.info("Intent: RAG_REQUIRED - {}", truncateForLog(preprocessedInput));
             return Intent.RAG_REQUIRED;
         }
 
         // 3. 질문 형태 체크 (RAG 관련 질문일 가능성)
         if (isQuestion(lowerInput) && !containsLlmDirectKeywords(lowerInput)) {
-            log.debug("Intent: RAG_REQUIRED (question) - {}", truncateForLog(preprocessedInput));
+            log.info("Intent: RAG_REQUIRED (question) - {}", truncateForLog(preprocessedInput));
             return Intent.RAG_REQUIRED;
         }
 
         // 4. 기본값: LLM 직접 처리
-        log.debug("Intent: LLM_DIRECT - {}", truncateForLog(preprocessedInput));
+        log.info("Intent: LLM_DIRECT - {}", truncateForLog(preprocessedInput));
         return Intent.LLM_DIRECT;
     }
 

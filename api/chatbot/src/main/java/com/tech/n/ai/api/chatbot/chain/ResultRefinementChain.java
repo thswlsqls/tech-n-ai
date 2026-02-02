@@ -36,7 +36,7 @@ public class ResultRefinementChain {
 
         // 2. Re-Ranking 적용 (활성화된 경우)
         if (reRankingService.isEnabled()) {
-            log.debug("Applying Re-Ranking for query: {}", query);
+            log.info("Applying Re-Ranking for query: {}", query);
             return reRankingService.rerank(query, deduplicated, maxSearchResults);
         }
 

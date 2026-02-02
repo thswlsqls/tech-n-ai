@@ -1,10 +1,10 @@
 package com.tech.n.ai.api.chatbot.config;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiTokenizer;
+import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +42,7 @@ public class LangChain4jConfig {
      */
     @Bean
     @Primary
-    public ChatLanguageModel chatLanguageModel() {
+    public ChatModel chatModel() {
         return OpenAiChatModel.builder()
             .apiKey(openAiApiKey)
             .modelName(chatModelName)
@@ -73,11 +73,11 @@ public class LangChain4jConfig {
     }
     
     /**
-     * OpenAiTokenizer Bean (TokenService용)
+     * OpenAiTokenCountEstimator Bean (TokenService용)
      * OpenAI 모델의 토큰 수를 정확하게 추정합니다.
      */
     @Bean
-    public OpenAiTokenizer openAiTokenizer() {
-        return new OpenAiTokenizer(chatModelName);
+    public OpenAiTokenCountEstimator openAiTokenCountEstimator() {
+        return new OpenAiTokenCountEstimator(chatModelName);
     }
 }

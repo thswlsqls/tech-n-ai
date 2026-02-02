@@ -64,7 +64,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
 
         Intent intent = intentService.classifyIntent(request.message());
-        log.debug("Intent classified: {} for message: {}", intent, request.message());
+        log.info("Intent classified: {} for message: {}", intent, request.message());
 
         String response;
         List<SourceResponse> sources;
@@ -151,9 +151,8 @@ public class ChatbotServiceImpl implements ChatbotService {
     
     private SearchOptions buildSearchOptions(SearchQuery searchQuery) {
         return SearchOptions.builder()
-            .includeContests(searchQuery.context().includesContests())
-            .includeNews(searchQuery.context().includesNews())
-            .includeArchives(searchQuery.context().includesArchives())
+            .includeBookmarks(searchQuery.context().includesBookmarks())
+            .includeEmergingTechs(searchQuery.context().includesEmergingTechs())
             .maxResults(maxSearchResults)
             .minSimilarityScore(minSimilarityScore)
             .build();

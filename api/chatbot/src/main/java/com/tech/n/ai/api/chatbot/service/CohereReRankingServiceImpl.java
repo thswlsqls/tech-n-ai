@@ -56,7 +56,7 @@ public class CohereReRankingServiceImpl implements ReRankingService {
     @Override
     public List<SearchResult> rerank(String query, List<SearchResult> documents, int topK) {
         if (!isEnabled() || documents.isEmpty()) {
-            log.debug("Re-Ranking skipped: enabled={}, documents={}", isEnabled(), documents.size());
+            log.info("Re-Ranking skipped: enabled={}, documents={}", isEnabled(), documents.size());
             return fallbackSort(documents, topK);
         }
 
@@ -88,7 +88,7 @@ public class CohereReRankingServiceImpl implements ReRankingService {
                 .limit(topK)
                 .toList();
 
-            log.debug("Re-Ranking: {} -> {} documents", documents.size(), rerankedResults.size());
+            log.info("Re-Ranking: {} -> {} documents", documents.size(), rerankedResults.size());
             return rerankedResults;
 
         } catch (Exception e) {

@@ -1,6 +1,6 @@
 package com.tech.n.ai.api.chatbot.service;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LLMServiceImpl implements LLMService {
     
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatModel;
     
     @Override
     public String generate(String prompt) {
         try {
-            return chatLanguageModel.generate(prompt);
+            return chatModel.chat(prompt);
         } catch (Exception e) {
             log.error("Failed to generate LLM response", e);
             throw new RuntimeException("LLM 응답 생성 실패", e);

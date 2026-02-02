@@ -1,15 +1,16 @@
 package com.tech.n.ai.api.chatbot.service;
 
 import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundException;
+import com.tech.n.ai.api.chatbot.common.exception.InvalidInputException;
 import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import com.tech.n.ai.common.kafka.event.ConversationSessionCreatedEvent;
 import com.tech.n.ai.common.kafka.event.ConversationSessionDeletedEvent;
 import com.tech.n.ai.common.kafka.event.ConversationSessionUpdatedEvent;
 import com.tech.n.ai.common.kafka.publisher.EventPublisher;
-import com.tech.n.ai.datasource.mariadb.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.chatbot.ConversationSessionReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,9 +32,11 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class ConversationSessionServiceImpl implements ConversationSessionService {
-    
-    private static final String KAFKA_TOPIC_CONVERSATION_EVENTS = "conversation-events";
-    
+
+    private static final String TOPIC_SESSION_CREATED = "shrimp-tm.conversation.session.created";
+    private static final String TOPIC_SESSION_UPDATED = "shrimp-tm.conversation.session.updated";
+    private static final String TOPIC_SESSION_DELETED = "shrimp-tm.conversation.session.deleted";
+
     private final ConversationSessionWriterRepository conversationSessionWriterRepository;
     private final ConversationSessionReaderRepository conversationSessionReaderRepository;
     private final EventPublisher eventPublisher;
@@ -61,9 +64,9 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
             );
         
         ConversationSessionCreatedEvent event = new ConversationSessionCreatedEvent(payload);
-        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, savedSession.getId().toString());
+        eventPublisher.publish(TOPIC_SESSION_CREATED, event, savedSession.getId().toString());
         
-        log.debug("Session created: sessionId={}, userId={}", savedSession.getId(), userId);
+        log.info("Session created: sessionId={}, userId={}", savedSession.getId(), userId);
         
         return savedSession.getId().toString();
     }
@@ -71,7 +74,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     @Override
     @Transactional(readOnly = true)
     public SessionResponse getSession(String sessionId, Long userId) {
-        Long sessionIdLong = Long.parseLong(sessionId);
+        Long sessionIdLong = parseSessionId(sessionId);
         ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
             .orElseThrow(() -> new ConversationSessionNotFoundException("세션을 찾을 수 없습니다: " + sessionId));
         
@@ -93,7 +96,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     @Override
     @Transactional
     public void updateLastMessageAt(String sessionId) {
-        Long sessionIdLong = Long.parseLong(sessionId);
+        Long sessionIdLong = parseSessionId(sessionId);
         conversationSessionReaderRepository.findById(sessionIdLong).ifPresent(session -> {
             LocalDateTime now = LocalDateTime.now();
             session.setLastMessageAt(now);
@@ -123,7 +126,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
                 );
             
             ConversationSessionUpdatedEvent updateEvent = new ConversationSessionUpdatedEvent(updatePayload);
-            eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, updateEvent, sessionId);
+            eventPublisher.publish(TOPIC_SESSION_UPDATED, updateEvent, sessionId);
         });
     }
     
@@ -178,7 +181,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     @Override
     @Transactional
     public void deleteSession(String sessionId, Long userId) {
-        Long sessionIdLong = Long.parseLong(sessionId);
+        Long sessionIdLong = parseSessionId(sessionId);
         ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
             .orElseThrow(() -> new ConversationSessionNotFoundException("세션을 찾을 수 없습니다: " + sessionId));
         
@@ -204,9 +207,9 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
             );
         
         ConversationSessionDeletedEvent event = new ConversationSessionDeletedEvent(payload);
-        eventPublisher.publish(KAFKA_TOPIC_CONVERSATION_EVENTS, event, sessionId);
+        eventPublisher.publish(TOPIC_SESSION_DELETED, event, sessionId);
         
-        log.debug("Session deleted: sessionId={}, userId={}", sessionId, userId);
+        log.info("Session deleted: sessionId={}, userId={}", sessionId, userId);
     }
     
     private SessionResponse toResponse(ConversationSessionEntity entity) {
@@ -217,5 +220,13 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
             .lastMessageAt(entity.getLastMessageAt())
             .isActive(entity.getIsActive())
             .build();
+    }
+
+    private Long parseSessionId(String sessionId) {
+        try {
+            return Long.parseLong(sessionId);
+        } catch (NumberFormatException e) {
+            throw new InvalidInputException("유효하지 않은 세션 ID 형식입니다: " + sessionId);
+        }
     }
 }

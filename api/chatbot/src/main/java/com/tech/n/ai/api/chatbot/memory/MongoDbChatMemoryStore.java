@@ -1,7 +1,7 @@
 package com.tech.n.ai.api.chatbot.memory;
 
-import com.tech.n.ai.datasource.mongodb.document.ConversationMessageDocument;
-import com.tech.n.ai.datasource.mongodb.repository.ConversationMessageRepository;
+import com.tech.n.ai.domain.mongodb.document.ConversationMessageDocument;
+import com.tech.n.ai.domain.mongodb.repository.ConversationMessageRepository;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;

@@ -3,7 +3,7 @@ package com.tech.n.ai.api.chatbot.service;
 import com.tech.n.ai.api.chatbot.common.exception.TokenLimitExceededException;
 import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
 import com.tech.n.ai.api.chatbot.service.dto.TokenUsage;
-import dev.langchain4j.model.openai.OpenAiTokenizer;
+import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 public class TokenServiceImpl implements TokenService {
 
-    private final OpenAiTokenizer tokenizer;
+    private final OpenAiTokenCountEstimator tokenCountEstimator;
 
     @Value("${chatbot.token.max-input-tokens:4000}")
     private int maxInputTokens;
@@ -31,8 +31,8 @@ public class TokenServiceImpl implements TokenService {
     @Value("${chatbot.token.warning-threshold:0.8}")
     private double warningThreshold;
 
-    public TokenServiceImpl(@Autowired(required = false) OpenAiTokenizer tokenizer) {
-        this.tokenizer = tokenizer;
+    public TokenServiceImpl(@Autowired(required = false) OpenAiTokenCountEstimator tokenCountEstimator) {
+        this.tokenCountEstimator = tokenCountEstimator;
     }
     
     @Override
@@ -41,12 +41,12 @@ public class TokenServiceImpl implements TokenService {
             return 0;
         }
 
-        // OpenAiTokenizer가 있으면 사용, 없으면 fallback
-        if (tokenizer != null) {
+        // OpenAiTokenCountEstimator가 있으면 사용, 없으면 fallback
+        if (tokenCountEstimator != null) {
             try {
-                return tokenizer.estimateTokenCountInText(text);
+                return tokenCountEstimator.estimateTokenCountInText(text);
             } catch (Exception e) {
-                log.warn("OpenAiTokenizer failed, falling back to heuristic: {}", e.getMessage());
+                log.warn("OpenAiTokenCountEstimator failed, falling back to heuristic: {}", e.getMessage());
                 return estimateTokensHeuristic(text);
             }
         }
