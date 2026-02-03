@@ -15,8 +15,6 @@ dependencies {
 	implementation project(':common-exception')
 	implementation project(':datasource-aurora')
 	implementation project(':datasource-mongodb')
-	implementation project(':api-contest')
-	implementation project(':api-news')
 
 	api 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
