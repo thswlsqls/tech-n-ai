@@ -17,8 +17,6 @@ dependencies {
 	implementation project(':client-feign')
 	implementation project(':client-rss')
 	implementation project(':client-scraper')
-	implementation project(':api-contest')
-	implementation project(':api-news')
 	implementation project(':api-emerging-tech')
 
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
