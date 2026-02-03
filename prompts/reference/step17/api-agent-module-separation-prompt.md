@@ -63,7 +63,7 @@ dependencies {
 api/agent/
 ├── build.gradle
 └── src/main/
-    ├── java/com/ebson/shrimp/tm/demo/api/agent/
+    ├── java/com/tech/n/ai/api/agent/
     │   ├── ApiAgentApplication.java
     │   ├── config/
     │   │   ├── ServerConfig.java

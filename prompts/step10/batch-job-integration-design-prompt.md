@@ -47,13 +47,13 @@
 
 ### 3-1. DTO 독립성 원칙 (중요)
 - **각 모듈은 독립적으로 DTO를 정의해야 함**: 필드가 동일하더라도 각 모듈에서 별도로 정의
-- **batch-source 모듈의 DTO**: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/dto/`
+- **batch-source 모듈의 DTO**: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/dto/`
   - `ContestCreateRequest`, `ContestBatchRequest` 등
-- **api-contest 모듈의 DTO**: `api/contest/src/main/java/com/ebson/shrimp/tm/demo/api/contest/dto/`
+- **api-contest 모듈의 DTO**: `api/contest/src/main/java/com/tech/n/ai/api/contest/dto/`
   - `ContestCreateRequest`, `ContestBatchRequest` 등 (batch-source와 별도 정의)
-- **api-news 모듈의 DTO**: `api/news/src/main/java/com/ebson/shrimp/tm/demo/api/news/dto/`
+- **api-news 모듈의 DTO**: `api/news/src/main/java/com/tech/n/ai/api/news/dto/`
   - `NewsCreateRequest`, `NewsBatchRequest` 등
-- **client-feign 모듈의 내부 API DTO**: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/`
+- **client-feign 모듈의 내부 API DTO**: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/`
   - `ContestCreateRequest`, `ContestBatchRequest` 등 (api-contest와 별도 정의)
   - `NewsCreateRequest`, `NewsBatchRequest` 등 (api-news와 별도 정의)
 - **Item Processor에서 DTO 변환**: Client DTO → batch-source DTO → API DTO 변환
@@ -106,22 +106,22 @@
 
 ### 기존 모듈 구조 참고
 1. **ContestCodeforcesApiJobConfig 구조** (기존 ContestCodeforcesJobConfig, 이름 변경 필요):
-   - `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java`
+   - `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java`
    - Job, Step, Reader, Processor, Writer 구조
    - Incrementer, JobParameter 패턴
    - **명명 규칙**: client-feign 클라이언트는 `*ApiJobConfig` 사용
 
 2. **CodeforcesApiPagingItemReader 구조**:
-   - `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java`
+   - `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java`
    - `AbstractPagingItemReader` 상속
    - Service를 통한 데이터 수집
 
 3. **CodeforcesStep1Writer 구조**:
-   - `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java`
+   - `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java`
    - 내부 API 호출 (현재 미완성, Feign Client 필요)
 
 4. **client-feign 모듈 구조**:
-   - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/{source}/contract/`
+   - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/{source}/contract/`
    - Contract 인터페이스 패턴
    - Feign Client 설정 패턴
 
@@ -132,7 +132,7 @@
 #### 패키지 구조
 ```
 client-feign/
-  src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/
+  src/main/java/com/tech/n/ai/client/feign/domain/
     internal/
       api/
         ContestInternalApi.java
@@ -155,7 +155,7 @@ client-feign/
 - **Request/Response DTO는 client-feign 모듈에서 독립적으로 정의**
   - `ContestCreateRequest`, `ContestBatchRequest` 등은 api-contest 모듈의 DTO와 필드가 같아도 별도 정의
   - `NewsCreateRequest`, `NewsBatchRequest` 등은 api-news 모듈의 DTO와 필드가 같아도 별도 정의
-  - DTO 위치: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/InternalApiDto.java`
+  - DTO 위치: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/InternalApiDto.java`
 
 #### Feign Client 설정
 - `InternalApiFeignConfig`: 내부 API 호출을 위한 Feign Client 설정
@@ -238,7 +238,7 @@ public interface ContestInternalContract {
 **Contest 배치 잡**:
 ```
 batch-source/
-  src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/
+  src/main/java/com/tech/n/ai/batch/source/domain/
     contest/
       codeforces/ (기존, client-feign)
         jobconfig/ContestCodeforcesApiJobConfig.java
@@ -873,13 +873,13 @@ public class Constants {
 ### DTO 독립성 원칙 (중요)
 - **모듈 간 DTO 공유 금지**: 필드가 동일하더라도 각 모듈에서 독립적으로 DTO 정의
 - **batch-source 모듈의 DTO**: 
-  - 위치: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/dto/`
+  - 위치: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/dto/`
   - api-contest/api-news 모듈의 DTO와 필드가 같아도 별도 정의
 - **client-feign 모듈의 내부 API DTO**:
-  - 위치: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/InternalApiDto.java`
+  - 위치: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/InternalApiDto.java`
   - api-contest/api-news 모듈의 DTO와 필드가 같아도 별도 정의
 - **api-contest/api-news 모듈의 DTO**:
-  - 위치: `api/{contest|news}/src/main/java/com/ebson/shrimp/tm/demo/api/{contest|news}/dto/`
+  - 위치: `api/{contest|news}/src/main/java/com/tech/n/ai/api/{contest|news}/dto/`
   - batch-source, client-feign 모듈의 DTO와 필드가 같아도 별도 정의
 - **DTO 변환 필수**: Item Processor와 Item Writer에서 DTO 변환 수행
 - **공통 모듈에 DTO 정의 금지**: common 모듈 등에 DTO를 정의하여 공유하지 않음
@@ -929,14 +929,14 @@ public class Constants {
 batch-source 모듈의 배치 잡 통합 및 client-feign 모듈의 내부 API 호출을 위한 종합 설계 문서 작성을 시작하세요.
 
 참고 파일:
-- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java` (JobConfig 패턴 참고, 이름은 `ContestCodeforcesApiJobConfig`로 변경 필요)
-- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java` (Reader 패턴 참고)
-- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/processor/CodeforcesStep1Processor.java` (Processor 패턴 참고, 필드 매핑 미완성 상태)
-- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java` (Writer 패턴 참고)
-- `api/contest/src/main/java/com/ebson/shrimp/tm/demo/api/contest/controller/ContestController.java` (내부 API 엔드포인트 참고)
-- `api/news/src/main/java/com/ebson/shrimp/tm/demo/api/news/controller/NewsController.java` (내부 API 엔드포인트 참고)
-- `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/codeforces/contract/CodeforcesContract.java` (Contract 패턴 참고)
-- `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/codeforces/contract/CodeforcesDto.java` (Client DTO 구조 참고)
+- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java` (JobConfig 패턴 참고, 이름은 `ContestCodeforcesApiJobConfig`로 변경 필요)
+- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java` (Reader 패턴 참고)
+- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/processor/CodeforcesStep1Processor.java` (Processor 패턴 참고, 필드 매핑 미완성 상태)
+- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java` (Writer 패턴 참고)
+- `api/contest/src/main/java/com/tech/n/ai/api/contest/controller/ContestController.java` (내부 API 엔드포인트 참고)
+- `api/news/src/main/java/com/tech/n/ai/api/news/controller/NewsController.java` (내부 API 엔드포인트 참고)
+- `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/codeforces/contract/CodeforcesContract.java` (Contract 패턴 참고)
+- `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/codeforces/contract/CodeforcesDto.java` (Client DTO 구조 참고)
 - `json/sources.json` (각 출처의 documentation_url 참고, 필수)
 - `docs/step9/contest-news-api-design.md` (API 설계 참고)
 - `docs/step8/rss-scraper-modules-analysis.md` (RSS/Scraper 모듈 분석 참고)

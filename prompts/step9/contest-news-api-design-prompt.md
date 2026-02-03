@@ -95,7 +95,7 @@
 #### 패키지 구조
 ```
 api-contest/
-  src/main/java/com/ebson/shrimp/tm/demo/api/contest/
+  src/main/java/com/tech/n/ai/api/contest/
     ContestApplication.java
     controller/
       ContestController.java

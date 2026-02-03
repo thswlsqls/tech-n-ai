@@ -343,7 +343,7 @@ sequenceDiagram
 
 ```
 api/chatbot/
-├── src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/
+├── src/main/java/com/tech/n/ai/api/chatbot/
 │   ├── ChatbotApplication.java
 │   ├── config/
 │   │   ├── LangChain4jConfig.java
@@ -623,7 +623,7 @@ public class LangChain4jConfig {
 
 **방법 1: common/core 모듈의 RedisConfig 확장 (권장)**:
 
-`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`에 추가:
+`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`에 추가:
 
 ```java
 package com.tech.n.ai.common.core.config;
@@ -679,7 +679,7 @@ public class RedisConfig {
 
 **방법 2: 챗봇 모듈에 별도 Config 추가**:
 
-`api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/config/ChatbotRedisConfig.java` 생성:
+`api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/config/ChatbotRedisConfig.java` 생성:
 
 ```java
 package com.tech.n.ai.api.chatbot.config;
@@ -4142,7 +4142,7 @@ public class ChatbotExceptionHandler {
 
 1. **모듈 생성**
    ```bash
-   mkdir -p api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot
+   mkdir -p api/chatbot/src/main/java/com/tech/n/ai/api/chatbot
    mkdir -p api/chatbot/src/main/resources
    ```
 

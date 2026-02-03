@@ -142,7 +142,7 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 
 #### 1.1 EventPublisher 구현 상태
 
-**위치**: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java`
+**위치**: `common/kafka/src/main/java/com/tech/n/ai/common/kafka/publisher/EventPublisher.java`
 
 **구현 내용**:
 - ✅ `publish(String topic, BaseEvent event, String partitionKey)`: Partition Key 지정 이벤트 발행
@@ -158,10 +158,10 @@ CQRS 패턴을 적용하여 읽기와 쓰기 작업을 분리함으로써 성능
 #### 1.2 EventConsumer 및 EventHandler 패턴 구현 상태
 
 **위치**: 
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventHandlerRegistry.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventHandler.java`
-- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/IdempotencyService.java`
+- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
+- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventHandlerRegistry.java`
+- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventHandler.java`
+- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/IdempotencyService.java`
 
 **EventConsumer 구현 내용**:
 - ✅ `@KafkaListener` 설정: Conversation 관련 토픽 수신
@@ -475,7 +475,7 @@ spring:
 
 #### 2. MongoClientSettings 최적화 Config 클래스
 
-**파일 위치**: `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/config/MongoClientConfig.java`
+**파일 위치**: `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/config/MongoClientConfig.java`
 
 **설정 내용**:
 
@@ -1703,7 +1703,7 @@ sequenceDiagram
 
 ### 1. 동기화 서비스 인터페이스 생성
 
-**패키지 구조**: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/`
+**패키지 구조**: `common/kafka/src/main/java/com/tech/n/ai/common/kafka/sync/`
 
 **파일 생성**:
 1. `UserSyncService.java` (인터페이스)
@@ -1747,7 +1747,7 @@ repository.save(document);
 
 ### 3. EventConsumer.processEvent 구현
 
-**수정 파일**: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
+**수정 파일**: `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
 
 **수정 내용**:
 1. 동기화 서비스 의존성 주입 추가

@@ -36,25 +36,25 @@
 
 ### 2. 기존 구현 코드 참고
 
-- **`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AuthController.java`**
+- **`api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AuthController.java`**
   - 기존 API 엔드포인트 구조 및 패턴
   - 요청/응답 처리 방식
   - 인증 정보 추출 방법 (`Authentication` 객체 활용)
 
-- **`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/UserAuthenticationService.java`**
+- **`api/auth/src/main/java/com/tech/n/ai/api/auth/service/UserAuthenticationService.java`**
   - 로그아웃 구현 패턴 (RefreshToken 처리 방식)
   - 사용자 검증 로직
   - 트랜잭션 관리 방식
 
-- **`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/RefreshTokenService.java`**
+- **`api/auth/src/main/java/com/tech/n/ai/api/auth/service/RefreshTokenService.java`**
   - RefreshToken 조회 및 삭제 메서드
   - Soft Delete 처리 방식
 
-- **`domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/repository/writer/BaseWriterRepository.java`**
+- **`domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/repository/writer/BaseWriterRepository.java`**
   - Soft Delete 자동 처리 메커니즘
   - 히스토리 자동 저장 로직 (`delete()` 메서드)
 
-- **`domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/service/history/HistoryServiceImpl.java`**
+- **`domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/service/history/HistoryServiceImpl.java`**
   - 히스토리 저장 서비스 구현
   - OperationType (INSERT, UPDATE, DELETE) 처리 방식
 

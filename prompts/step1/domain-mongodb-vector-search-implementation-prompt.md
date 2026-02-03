@@ -33,7 +33,7 @@
 
 **프로젝트 내 참고 문서**:
 - `docs/step12/rag-chatbot-design.md`: Vector Search 설계 및 예제
-- `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/VectorSearchServiceImpl.java`: 실제 사용 패턴
+- `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/VectorSearchServiceImpl.java`: 실제 사용 패턴
 
 ---
 
@@ -45,7 +45,7 @@
 
 #### 1.1 Vector Search Index 생성 스크립트 클래스
 
-**파일 위치**: `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/config/VectorSearchIndexConfig.java`
+**파일 위치**: `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/config/VectorSearchIndexConfig.java`
 
 **역할**: Vector Search Index 생성 스크립트를 제공하는 유틸리티 클래스
 
@@ -127,7 +127,7 @@
 
 ### 2. Vector Search 쿼리 유틸리티 클래스
 
-**파일 위치**: `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/util/VectorSearchUtil.java`
+**파일 위치**: `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/util/VectorSearchUtil.java`
 
 **역할**: `$vectorSearch` aggregation pipeline 생성 유틸리티
 
@@ -632,7 +632,7 @@ VectorSearchOptions options = VectorSearchOptions.builder()
 
 ### 현재 상태
 
-**파일 위치**: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/`
+**파일 위치**: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/`
 
 **현재 구현 상태**:
 - ❌ `VectorSearchServiceImpl.java`: TODO 상태, 실제 Vector Search 미구현
@@ -641,7 +641,7 @@ VectorSearchOptions options = VectorSearchOptions.builder()
 
 ### 1. SearchOptions 보완
 
-**파일**: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/dto/SearchOptions.java`
+**파일**: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/dto/SearchOptions.java`
 
 **추가 필요 필드**:
 ```java
@@ -671,7 +671,7 @@ public record SearchOptions(
 
 ### 2. VectorSearchServiceImpl 구현
 
-**파일**: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/VectorSearchServiceImpl.java`
+**파일**: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/VectorSearchServiceImpl.java`
 
 **구현 방향**:
 1. `domain/mongodb` 모듈의 `VectorSearchUtil` 활용

@@ -142,7 +142,7 @@ public interface KakaoOAuthFeignClient { ... }
 #### 파일 구조
 
 ```
-client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/
+client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/
 ├── contract/
 │   ├── OAuthProviderContract.java
 │   └── OAuthDto.java

@@ -471,14 +471,14 @@ POST /api/v1/auth/refresh
 ### 8.6 프로젝트 내 코드 참조
 
 **common/security 모듈:**
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java`
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/filter/JwtAuthenticationFilter.java`
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/config/SecurityConfig.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/filter/JwtAuthenticationFilter.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java`
 
 **api/auth 모듈:**
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AuthController.java`
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthProvider.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AuthController.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthProvider.java`
 
 ---
 

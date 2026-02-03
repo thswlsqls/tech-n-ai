@@ -326,7 +326,7 @@ spring:
 
 `common/kafka` 모듈에는 Kafka 설정을 위한 Configuration 클래스가 포함되어 있습니다:
 
-`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/config/KafkaConfig.java`
+`common/kafka/src/main/java/com/tech/n/ai/common/kafka/config/KafkaConfig.java`
 
 이 클래스는 다음 Bean들을 제공합니다:
 - `ProducerFactory<String, Object>`: Kafka Producer 팩토리
@@ -446,7 +446,7 @@ spring:
 
 #### 인터페이스
 
-`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/IdempotencyService.java`
+`common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/IdempotencyService.java`
 
 ```java
 public interface IdempotencyService {
@@ -468,7 +468,7 @@ public interface IdempotencyService {
 
 #### 구현체
 
-`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/IdempotencyServiceImpl.java`
+`common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/IdempotencyServiceImpl.java`
 
 ```java
 @Slf4j
@@ -514,7 +514,7 @@ public class IdempotencyServiceImpl implements IdempotencyService {
 
 ### 5.5 EventConsumer에서 멱등성 보장 사용
 
-`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
+`common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
 
 ```java
 @Slf4j

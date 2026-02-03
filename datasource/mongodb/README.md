@@ -37,7 +37,7 @@
 
 ```
 domain/mongodb/
-├── src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/
+├── src/main/java/com/tech/n/ai/domain/mongodb/
 │   ├── config/
 │   │   ├── MongoClientConfig.java      # MongoDB 클라이언트 설정 및 최적화
 │   │   └── MongoIndexConfig.java       # 인덱스 자동 생성 설정

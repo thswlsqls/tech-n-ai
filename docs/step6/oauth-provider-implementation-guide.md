@@ -53,7 +53,7 @@ OAuth 로그인은 기존 JWT 토큰 기반 인증 시스템과 완전히 통합
 
 #### AuthController OAuth 엔드포인트
 
-```94:113:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AuthController.java
+```94:113:api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AuthController.java
     /**
      * OAuth 로그인 시작
      */
@@ -90,7 +90,7 @@ OAuth 로그인은 기존 JWT 토큰 기반 인증 시스템과 완전히 통합
 
 #### AuthService OAuth 메서드
 
-```385:407:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```385:407:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     /**
      * OAuth 로그인 시작
      */
@@ -122,7 +122,7 @@ OAuth 로그인은 기존 JWT 토큰 기반 인증 시스템과 완전히 통합
 - State 파라미터 생성: ✅ 구현됨
 - OAuth 인증 URL 생성: ❌ 예시 코드만 존재 (Provider별 구현 필요)
 
-```409:506:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```409:506:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     /**
      * OAuth 로그인 콜백
      */
@@ -234,7 +234,7 @@ OAuth 로그인은 기존 JWT 토큰 기반 인증 시스템과 완전히 통합
 
 ### 2.2 ProviderEntity 구조 분석
 
-```8:28:domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/auth/ProviderEntity.java
+```8:28:domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/ProviderEntity.java
 @Entity
 @Table(name = "providers")
 @Getter
@@ -268,7 +268,7 @@ public class ProviderEntity extends BaseEntity {
 
 ### 2.3 UserEntity OAuth 관련 필드 분석
 
-```27:35:domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/auth/UserEntity.java
+```27:35:domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/UserEntity.java
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "provider_id")
     private ProviderEntity provider;
@@ -288,7 +288,7 @@ public class ProviderEntity extends BaseEntity {
 
 **사용자 조회 메서드:**
 
-```24:30:domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/repository/reader/auth/UserReaderRepository.java
+```24:30:domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/repository/reader/auth/UserReaderRepository.java
     /**
      * Provider ID와 Provider User ID로 조회 (OAuth 사용자 조회)
      * 
@@ -888,7 +888,7 @@ dependencies {
 
 #### Step 1: OAuth Provider 인터페이스 정의
 
-**파일 위치**: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthProvider.java`
+**파일 위치**: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthProvider.java`
 
 ```java
 package com.tech.n.ai.api.auth.oauth;
@@ -918,7 +918,7 @@ public interface OAuthProvider {
 
 #### Step 8: Google OAuth Provider 구현 (api/auth 모듈)
 
-**파일 위치**: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/GoogleOAuthProvider.java`
+**파일 위치**: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/GoogleOAuthProvider.java`
 
 **구현 예시:**
 
@@ -993,7 +993,7 @@ public class GoogleOAuthProvider implements OAuthProvider {
 
 #### Step 9: Naver OAuth Provider 구현 (api/auth 모듈)
 
-**파일 위치**: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/NaverOAuthProvider.java`
+**파일 위치**: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/NaverOAuthProvider.java`
 
 **구현 예시:**
 
@@ -1066,7 +1066,7 @@ public class NaverOAuthProvider implements OAuthProvider {
 
 #### Step 10: Kakao OAuth Provider 구현 (api/auth 모듈)
 
-**파일 위치**: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/KakaoOAuthProvider.java`
+**파일 위치**: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/KakaoOAuthProvider.java`
 
 **구현 예시:**
 
@@ -1389,7 +1389,7 @@ OAuth 2.0 인증 플로우에서 `state` 파라미터는 **CSRF(Cross-Site Reque
 **구현 설계:**
 
 1. **OAuthStateService 클래스 생성**
-   - 위치: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`
+   - 위치: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`
    - 역할: State 파라미터 저장/검증/삭제 담당
    - 의존성: `RedisTemplate<String, String>`
 
@@ -1612,14 +1612,14 @@ spring:
 
 ### 7.4 프로젝트 내 코드 참조
 
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AuthController.java`
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/facade/AuthFacade.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AuthController.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/facade/AuthFacade.java`
 - `client/feign/src/main/java/.../domain/oauth/contract/OAuthProviderContract.java`
 - `client/feign/src/main/java/.../domain/oauth/client/*OAuthFeignClient.java`
 - `client/feign/src/main/java/.../domain/oauth/api/*OAuthApi.java`
-- `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/auth/ProviderEntity.java`
-- `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/auth/UserEntity.java`
+- `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/ProviderEntity.java`
+- `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/UserEntity.java`
 - `docs/spring-security-auth-design-guide.md`
 - `docs/oauth-feign-client-migration-analysis.md`: OpenFeign 클라이언트 전환 검토 및 구현 가이드
 

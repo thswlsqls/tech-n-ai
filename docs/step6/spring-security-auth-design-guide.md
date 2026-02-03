@@ -206,7 +206,7 @@ sequenceDiagram
 
 ### 3.1 SecurityConfig 분석
 
-```25:53:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java
+```25:53:common/security/src/main/java/com/tech/n/ai/common/security/config/SecurityConfig.java
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -251,7 +251,7 @@ public class SecurityConfig {
 
 ### 3.2 PasswordEncoderConfig 분석
 
-```14:27:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/PasswordEncoderConfig.java
+```14:27:common/security/src/main/java/com/tech/n/ai/common/security/config/PasswordEncoderConfig.java
 @Configuration
 public class PasswordEncoderConfig {
     
@@ -282,7 +282,7 @@ public class PasswordEncoderConfig {
 
 ### 3.3 CORS 설정 분석
 
-```63:81:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java
+```63:81:common/security/src/main/java/com/tech/n/ai/common/security/config/SecurityConfig.java
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -325,7 +325,7 @@ public class PasswordEncoderConfig {
 
 ### 4.1 JwtAuthenticationFilter 동작 원리
 
-```37:89:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/filter/JwtAuthenticationFilter.java
+```37:89:common/security/src/main/java/com/tech/n/ai/common/security/filter/JwtAuthenticationFilter.java
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -398,7 +398,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 ### 4.2 JwtTokenProvider 구현 분석
 
-```24:127:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java
+```24:127:common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java
 @Component
 public class JwtTokenProvider {
     
@@ -524,7 +524,7 @@ public class JwtTokenProvider {
 
 ### 4.3 SecurityContext 설정 방법
 
-```71:74:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/filter/JwtAuthenticationFilter.java
+```71:74:common/security/src/main/java/com/tech/n/ai/common/security/filter/JwtAuthenticationFilter.java
                 // SecurityContext 설정 (공식 문서 권장 방식: 빈 컨텍스트 생성 후 설정)
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(authentication);
@@ -545,7 +545,7 @@ public class JwtTokenProvider {
 
 ### 5.1 회원가입 플로우
 
-```65:117:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```65:117:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public AuthResponse signup(SignupRequest request) {
         // 이메일 중복 검증
@@ -648,7 +648,7 @@ sequenceDiagram
 
 ### 5.2 로그인 플로우
 
-```122:170:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```122:170:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public TokenResponse login(LoginRequest request) {
         // 이메일로 User 조회
@@ -751,7 +751,7 @@ sequenceDiagram
 
 #### 토큰 생성
 
-```46:58:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java
+```46:58:common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java
     public String generateAccessToken(JwtTokenPayload payload) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + Duration.ofMinutes(accessTokenValidityInMinutes).toMillis());
@@ -769,7 +769,7 @@ sequenceDiagram
 
 #### 토큰 검증
 
-```106:117:common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java
+```106:117:common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -824,7 +824,7 @@ sequenceDiagram
     end
 ```
 
-```198:243:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```198:243:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         // Refresh Token 검증
@@ -875,7 +875,7 @@ sequenceDiagram
 
 ### 5.4 Refresh Token 관리 전략
 
-```36:103:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/RefreshTokenService.java
+```36:103:api/auth/src/main/java/com/tech/n/ai/api/auth/service/RefreshTokenService.java
     @Transactional
     public RefreshTokenEntity saveRefreshToken(Long userId, String token, LocalDateTime expiresAt) {
         RefreshTokenEntity refreshTokenEntity = new RefreshTokenEntity();
@@ -999,7 +999,7 @@ sequenceDiagram
 
 **관련 코드 참조:**
 
-```248:290:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```248:290:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public void verifyEmail(String token) {
         // EmailVerification 조회
@@ -1049,7 +1049,7 @@ sequenceDiagram
 
 로그인 시 이메일 인증 완료 여부를 확인하는 로직:
 
-```122:141:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```122:141:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public TokenResponse login(LoginRequest request) {
         // 이메일로 User 조회
@@ -1330,7 +1330,7 @@ async function handlePasswordReset(newPassword) {
 
 **관련 코드 참조:**
 
-```292:326:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```292:326:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     /**
      * 비밀번호 재설정 요청
      */
@@ -1501,7 +1501,7 @@ sequenceDiagram
 
 **비밀번호 재설정 확인 코드:**
 
-```331:383:api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java
+```331:383:api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java
     @Transactional
     public void confirmPasswordReset(ResetPasswordConfirmRequest request) {
         // EmailVerification 조회
@@ -1637,7 +1637,7 @@ OAuth 2.0 인증 플로우에서 `state` 파라미터는 **CSRF(Cross-Site Reque
 **설계 개요:**
 
 1. **OAuthStateService 구현**
-   - 위치: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`
+   - 위치: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`
    - Redis를 사용하여 state 파라미터 저장/검증/삭제
 
 2. **Redis Key 설계**
@@ -2043,10 +2043,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
 ### 8.3 프로젝트 내 코드 참조
 
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java`
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/filter/JwtAuthenticationFilter.java`
-- `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java`
-- `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/config/SecurityConfig.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/filter/JwtAuthenticationFilter.java`
+- `common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java`
+- `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`
 
 ---
 

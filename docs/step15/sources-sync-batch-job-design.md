@@ -279,7 +279,7 @@ END FOR
 ### 4.1 패키지 구조
 
 ```
-batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/
+batch/source/src/main/java/com/tech/n/ai/batch/source/
 ├── common/
 │   └── Constants.java                    # [수정] SOURCES_SYNC 상수 추가
 └── domain/

@@ -139,7 +139,7 @@ Gateway 서버는 다음 컴포넌트로 구성됩니다:
 
 ```
 api/gateway/
-├── src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
+├── src/main/java/com/tech/n/ai/api/gateway/
 │   ├── GatewayApplication.java                    # Spring Boot 메인 클래스
 │   ├── config/
 │   │   ├── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정

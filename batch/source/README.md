@@ -100,7 +100,7 @@ MongoDB Atlas (ContestDocument / NewsArticleDocument)
 
 ```
 batch-source/
-  src/main/java/com/ebson/shrimp/tm/demo/batch/source/
+  src/main/java/com/tech/n/ai/batch/source/
     BatchSourceApplication.java
     config/
       BatchConfig.java

@@ -541,7 +541,7 @@
 **TSID 커스텀 어노테이션 구현**:
 
 ```java
-// domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/annotation/Tsid.java
+// domain/aurora/src/main/java/com/tech/n/ai/domain/aurora/annotation/Tsid.java
 package com.tech.n.ai.domain.aurora.annotation;
 
 import java.lang.annotation.ElementType;
@@ -576,7 +576,7 @@ public @interface Tsid {
 **TSID 생성기 구현**:
 
 ```java
-// domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/generator/TsidGenerator.java
+// domain/aurora/src/main/java/com/tech/n/ai/domain/aurora/generator/TsidGenerator.java
 package com.tech.n.ai.domain.aurora.generator;
 
 import com.tech.n.ai.domain.aurora.annotation.Tsid;
@@ -602,7 +602,7 @@ public class TsidGenerator implements IdentifierGenerator {
 **JPA Entity에 TSID 적용 예시**:
 
 ```java
-// domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/entity/User.java
+// domain/aurora/src/main/java/com/tech/n/ai/domain/aurora/entity/User.java
 package com.tech.n.ai.domain.aurora.entity;
 
 import com.tech.n.ai.domain.aurora.annotation.Tsid;

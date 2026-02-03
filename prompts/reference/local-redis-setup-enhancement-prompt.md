@@ -61,7 +61,7 @@
    - `docs/step6/oauth-state-storage-research-result.md`: OAuth State 저장 패턴
 
 2. **소스 코드**
-   - `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`: Redis 설정 클래스
+   - `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`: Redis 설정 클래스
    - `common/core/src/main/resources/application-common-core.yml`: Redis 연결 설정
 
 3. **프로젝트의 Redis 사용 패턴** (현재 문서에서 확인)
@@ -172,7 +172,7 @@
    ```
    - docs/step7/redis-optimization-best-practices.md 읽기
    - docs/step6/oauth-state-storage-research-result.md 읽기
-   - common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java 읽기
+   - common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java 읽기
    - common/core/src/main/resources/application-common-core.yml 읽기
    ```
 

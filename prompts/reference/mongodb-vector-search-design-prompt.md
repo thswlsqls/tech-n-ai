@@ -36,8 +36,8 @@
 다음 파일들을 분석하여 현재 구현 상태를 파악하세요:
 
 **API Server 모듈**:
-- `api/news/src/main/java/com/ebson/shrimp/tm/demo/api/news/service/NewsServiceImpl.java`
-- `api/contest/src/main/java/com/ebson/shrimp/tm/demo/api/contest/service/ContestServiceImpl.java`
+- `api/news/src/main/java/com/tech/n/ai/api/news/service/NewsServiceImpl.java`
+- `api/contest/src/main/java/com/tech/n/ai/api/contest/service/ContestServiceImpl.java`
 - `api/` 아래의 모든 API Server 모듈에서 MongoDB Atlas 연동 구현
 
 **Domain MongoDB 모듈**:

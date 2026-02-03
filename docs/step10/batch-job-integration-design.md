@@ -56,7 +56,7 @@
 
 #### 1. batch-source 모듈의 DTO
 
-**위치**: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/dto/`
+**위치**: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/dto/`
 
 **DTO 목록**:
 - `ContestCreateRequest` (api-contest 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -71,7 +71,7 @@
 
 #### 2. client-feign 모듈의 내부 API DTO
 
-**위치**: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/InternalApiDto.java`
+**위치**: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/InternalApiDto.java`
 
 **DTO 목록**:
 - `InternalApiDto.ContestCreateRequest` (api-contest 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -86,7 +86,7 @@
 
 #### 3. api-contest/api-news 모듈의 DTO
 
-**위치**: `api/{contest|news}/src/main/java/com/ebson/shrimp/tm/demo/api/{contest|news}/dto/`
+**위치**: `api/{contest|news}/src/main/java/com/tech/n/ai/api/{contest|news}/dto/`
 
 **DTO 목록**:
 - `ContestCreateRequest` (batch-source, client-feign 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -197,7 +197,7 @@ public void write(Chunk<? extends ContestCreateRequest> chunk) throws Exception 
 
 ```
 client-feign/
-  src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/
+  src/main/java/com/tech/n/ai/client/feign/domain/
     internal/
       contract/
         ContestInternalContract.java
@@ -209,7 +209,7 @@ client-feign/
       api/
         ContestInternalApi.java
         NewsInternalApi.java
-  src/main/java/com/ebson/shrimp/tm/demo/client/feign/config/
+  src/main/java/com/tech/n/ai/client/feign/config/
     ContestInternalFeignConfig.java
     NewsInternalFeignConfig.java
 ```
@@ -586,7 +586,7 @@ public class NewsInternalApi implements NewsInternalContract {
 
 ```
 batch-source/
-  src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/
+  src/main/java/com/tech/n/ai/batch/source/domain/
     contest/
       codeforces/ (기존, client-feign)
         jobconfig/ContestCodeforcesApiJobConfig.java

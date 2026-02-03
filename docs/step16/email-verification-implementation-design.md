@@ -208,7 +208,7 @@ shrimp-tm-demo/
 │   ├── mail/                          # 신규 모듈
 │   │   ├── build.gradle
 │   │   └── src/main/
-│   │       ├── java/com/ebson/shrimp/tm/demo/client/mail/
+│   │       ├── java/com/tech/n/ai/client/mail/
 │   │       │   ├── config/
 │   │       │   │   ├── MailConfig.java
 │   │       │   │   └── MailProperties.java
@@ -1654,7 +1654,7 @@ private void searchModules(final File moduleDir, final String parentStr = "") {
 client/mail/
 ├── build.gradle
 └── src/main/
-    ├── java/com/ebson/shrimp/tm/demo/client/mail/
+    ├── java/com/tech/n/ai/client/mail/
     │   ├── config/
     │   │   ├── MailConfig.java
     │   │   └── MailProperties.java

@@ -442,7 +442,7 @@ dependencies {
 
 ```
 api/chatbot/
-├── src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/
+├── src/main/java/com/tech/n/ai/api/chatbot/
 │   ├── ApiChatbotApplication.java
 │   ├── config/
 │   │   ├── LangChain4jConfig.java

@@ -565,7 +565,7 @@ public interface SlackNotificationService {
 
 ### 6-1. 테스트 작성 가이드 (상세)
 
-**참고 파일**: `client/feign/src/test/java/com/ebson/shrimp/tm/demo/client/feign/SampleFeignTest.java`
+**참고 파일**: `client/feign/src/test/java/com/tech/n/ai/client/feign/SampleFeignTest.java`
 
 **테스트 작성 패턴:**
 

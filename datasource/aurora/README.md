@@ -36,7 +36,7 @@
 
 ```
 domain/aurora/
-├── src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/
+├── src/main/java/com/tech/n/ai/domain/mariadb/
 │   ├── annotation/
 │   │   └── Tsid.java                    # TSID 어노테이션
 │   ├── config/

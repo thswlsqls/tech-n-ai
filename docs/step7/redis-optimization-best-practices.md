@@ -4,7 +4,7 @@
 
 ### 1.1. 현재 Redis 설정의 문제점
 
-**RedisConfig (`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`)**:
+**RedisConfig (`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`)**:
 
 1. **연결 풀 설정 없음**
    - Lettuce 기본 설정만 사용
@@ -829,7 +829,7 @@ spring:
 #### 2단계: RedisConfig 최적화
 
 **작업 내용**:
-1. `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java` 수정
+1. `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java` 수정
 2. `setEnableDefaultSerializer(false)` 추가
 3. `setEnableTransactionSupport(false)` 명시
 

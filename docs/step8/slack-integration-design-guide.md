@@ -1244,7 +1244,7 @@ public class SlackConfig {
 
 #### 테스트 클래스 구조
 
-**참고 파일**: `client/feign/src/test/java/com/ebson/shrimp/tm/demo/client/feign/SampleFeignTest.java`
+**참고 파일**: `client/feign/src/test/java/com/tech/n/ai/client/feign/SampleFeignTest.java`
 
 ```java
 package com.tech.n.ai.client.slack;
