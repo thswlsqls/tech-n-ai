@@ -128,7 +128,7 @@ JpaRepository (Spring Data JPA)
 ### 2.3 패키지 구조
 
 ```
-domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/
+domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/
 ├── entity/
 │   ├── BaseEntity.java
 │   ├── auth/
