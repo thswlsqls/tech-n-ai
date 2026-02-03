@@ -9,13 +9,13 @@ import jakarta.validation.constraints.Min;
 public record BookmarkListRequest(
     @Min(value = 1, message = "페이지 번호는 1 이상이어야 합니다.")
     Integer page,
-    
+
     @Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.")
     @Max(value = 100, message = "페이지 크기는 100 이하여야 합니다.")
     Integer size,
-    
+
     String sort,
-    String itemType
+    String provider
 ) {
     public BookmarkListRequest {
         if (page == null) {
@@ -25,7 +25,7 @@ public record BookmarkListRequest(
             size = 10;
         }
         if (sort == null) {
-            sort = "bookmarkedAt,desc";
+            sort = "createdAt,desc";
         }
     }
 }

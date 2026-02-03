@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -44,8 +45,8 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
     
     @Override
     public Page<BookmarkHistoryEntity> findHistory(String userId, String entityId, BookmarkHistoryListRequest request) {
-        Long bookmarkId = Long.parseLong(entityId);
-        Long currentUserId = Long.parseLong(userId);
+        Long bookmarkId = parseEntityId(entityId);
+        Long currentUserId = parseUserId(userId);
         
         validateBookmarkOwnership(bookmarkId, currentUserId);
         
@@ -61,8 +62,8 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
             // operationType 필터링
             if (request.startDate() != null && request.endDate() != null) {
                 // 날짜 범위 필터링
-                LocalDateTime startDate = LocalDateTime.parse(request.startDate(), ISO_FORMATTER);
-                LocalDateTime endDate = LocalDateTime.parse(request.endDate(), ISO_FORMATTER);
+                LocalDateTime startDate = parseDateTime(request.startDate(), "startDate");
+                LocalDateTime endDate = parseDateTime(request.endDate(), "endDate");
                 return bookmarkHistoryReaderRepository.findByBookmarkIdAndChangedAtBetween(
                     bookmarkId, startDate, endDate, pageable
                 );
@@ -74,8 +75,8 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
             }
         } else if (request.startDate() != null && request.endDate() != null) {
             // 날짜 범위만 필터링
-            LocalDateTime startDate = LocalDateTime.parse(request.startDate(), ISO_FORMATTER);
-            LocalDateTime endDate = LocalDateTime.parse(request.endDate(), ISO_FORMATTER);
+            LocalDateTime startDate = parseDateTime(request.startDate(), "startDate");
+            LocalDateTime endDate = parseDateTime(request.endDate(), "endDate");
             return bookmarkHistoryReaderRepository.findByBookmarkIdAndChangedAtBetween(
                 bookmarkId, startDate, endDate, pageable
             );
@@ -87,13 +88,13 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
     
     @Override
     public BookmarkHistoryEntity findHistoryAt(String userId, String entityId, String timestamp) {
-        Long bookmarkId = Long.parseLong(entityId);
-        Long currentUserId = Long.parseLong(userId);
-        
+        Long bookmarkId = parseEntityId(entityId);
+        Long currentUserId = parseUserId(userId);
+
         validateBookmarkOwnership(bookmarkId, currentUserId);
-        
+
         // 2. 시점 파싱
-        LocalDateTime targetTime = LocalDateTime.parse(timestamp, ISO_FORMATTER);
+        LocalDateTime targetTime = parseDateTime(timestamp, "timestamp");
         
         // 3. 특정 시점 이전의 가장 최근 히스토리 조회
         List<BookmarkHistoryEntity> histories = bookmarkHistoryReaderRepository
@@ -109,8 +110,8 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
     @Transactional
     @Override
     public BookmarkEntity restoreFromHistory(String userId, String entityId, String historyId) {
-        Long historyIdLong = Long.parseLong(historyId);
-        Long bookmarkId = Long.parseLong(entityId);
+        Long historyIdLong = parseHistoryId(historyId);
+        Long bookmarkId = parseEntityId(entityId);
         
         BookmarkHistoryEntity history = findHistoryById(historyIdLong);
         BookmarkEntity bookmark = findBookmarkById(bookmarkId);
@@ -120,7 +121,7 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
         
         BookmarkEntity updatedBookmark = bookmarkWriterRepository.save( bookmark);
         
-        log.debug("Bookmark restored from history: bookmarkId={}, historyId={}, userId={}", 
+        log.info("Bookmark restored from history: bookmarkId={}, historyId={}, userId={}", 
             entityId, historyId, userId);
         
         return updatedBookmark;
@@ -161,8 +162,85 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
     }
     
     private void updateBookmarkFromHistory(BookmarkEntity bookmark, Map<String, Object> afterDataMap) {
-        String tag = afterDataMap.containsKey("tag") ? (String) afterDataMap.get("tag") : bookmark.getTag();
-        String memo = afterDataMap.containsKey("memo") ? (String) afterDataMap.get("memo") : bookmark.getMemo();
-        bookmark.updateContent(tag, memo);
+        // UNIQUE 제약조건(user_id, emerging_tech_id)에 포함된 필드는 복원하지 않음
+        // 나머지 필드들은 모두 복원
+        // 키가 있으면 해당 값(null 포함)으로 복원, 키가 없으면 기존 값 유지
+
+        // 사용자 편집 필드 복구 (null 복원 지원)
+        if (afterDataMap.containsKey("tag")) {
+            bookmark.setTag((String) afterDataMap.get("tag"));
+        }
+        if (afterDataMap.containsKey("memo")) {
+            bookmark.setMemo((String) afterDataMap.get("memo"));
+        }
+
+        // EmergingTech 비정규화 필드 복구 (emergingTechId 제외)
+        if (afterDataMap.containsKey("title")) {
+            bookmark.setTitle((String) afterDataMap.get("title"));
+        }
+        if (afterDataMap.containsKey("url")) {
+            bookmark.setUrl((String) afterDataMap.get("url"));
+        }
+        if (afterDataMap.containsKey("provider")) {
+            bookmark.setProvider((String) afterDataMap.get("provider"));
+        }
+        if (afterDataMap.containsKey("summary")) {
+            bookmark.setSummary((String) afterDataMap.get("summary"));
+        }
+        if (afterDataMap.containsKey("publishedAt")) {
+            Object publishedAtValue = afterDataMap.get("publishedAt");
+            if (publishedAtValue != null) {
+                try {
+                    bookmark.setPublishedAt(
+                        LocalDateTime.parse(publishedAtValue.toString(), ISO_FORMATTER));
+                } catch (DateTimeParseException e) {
+                    log.warn("History publishedAt 파싱 실패: {}", publishedAtValue, e);
+                }
+            } else {
+                bookmark.setPublishedAt(null);
+            }
+        }
+    }
+
+    private Long parseEntityId(String entityId) {
+        try {
+            return Long.parseLong(entityId);
+        } catch (NumberFormatException e) {
+            throw new BookmarkValidationException("유효하지 않은 엔티티 ID 형식입니다: " + entityId);
+        }
+    }
+
+    private Long parseUserId(String userId) {
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            throw new BookmarkValidationException("유효하지 않은 사용자 ID 형식입니다: " + userId);
+        }
+    }
+
+    private Long parseHistoryId(String historyId) {
+        try {
+            return Long.parseLong(historyId);
+        } catch (NumberFormatException e) {
+            throw new BookmarkValidationException("유효하지 않은 히스토리 ID 형식입니다: " + historyId);
+        }
+    }
+
+    private LocalDateTime parseDateTime(String dateTimeStr, String fieldName) {
+        // Try ISO_DATE_TIME format first (e.g., 2024-01-15T10:30:00)
+        try {
+            return LocalDateTime.parse(dateTimeStr, ISO_FORMATTER);
+        } catch (DateTimeParseException e1) {
+            // Try ISO_DATE format (e.g., 2024-01-15) and convert to LocalDateTime
+            try {
+                return java.time.LocalDate.parse(dateTimeStr, DateTimeFormatter.ISO_DATE)
+                    .atStartOfDay();
+            } catch (DateTimeParseException e2) {
+                throw new BookmarkValidationException(
+                    String.format("%s 날짜 형식이 유효하지 않습니다: %s (지원 형식: yyyy-MM-dd 또는 yyyy-MM-ddTHH:mm:ss)",
+                        fieldName, dateTimeStr)
+                );
+            }
+        }
     }
 }

@@ -10,8 +10,12 @@ import java.time.LocalDateTime;
 public record BookmarkDetailResponse(
     String bookmarkTsid,
     String userId,
-    String itemType,
-    String itemId,
+    String emergingTechId,
+    String title,
+    String url,
+    String provider,
+    String summary,
+    LocalDateTime publishedAt,
     String tag,
     String memo,
     LocalDateTime createdAt,
@@ -23,12 +27,16 @@ public record BookmarkDetailResponse(
         if (entity == null) {
             return null;
         }
-        
+
         return new BookmarkDetailResponse(
             entity.getId() != null ? entity.getId().toString() : null,
             entity.getUserId() != null ? entity.getUserId().toString() : null,
-            entity.getItemType(),
-            entity.getItemId(),
+            entity.getEmergingTechId(),
+            entity.getTitle(),
+            entity.getUrl(),
+            entity.getProvider(),
+            entity.getSummary(),
+            entity.getPublishedAt(),
             entity.getTag(),
             entity.getMemo(),
             entity.getCreatedAt(),

@@ -17,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.tech.n.ai.api.bookmark.common.exception.BookmarkValidationException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -57,14 +59,14 @@ public class BookmarkFacade {
     }
     
     public BookmarkDetailResponse getBookmarkDetail(Long userId, String id) {
-        Long bookmarkId = Long.parseLong(id);
+        Long bookmarkId = parseBookmarkId(id);
         BookmarkEntity entity = bookmarkQueryService.findBookmarkById(userId, bookmarkId);
         return BookmarkDetailResponse.from(entity);
     }
     
     public BookmarkDetailResponse updateBookmark(Long userId, String id, BookmarkUpdateRequest request) {
         bookmarkCommandService.updateBookmark(userId, id, request);
-        Long bookmarkId = Long.parseLong(id);
+        Long bookmarkId = parseBookmarkId(id);
         BookmarkEntity entity = bookmarkQueryService.findBookmarkById(userId, bookmarkId);
         return BookmarkDetailResponse.from(entity);
     }
@@ -105,7 +107,7 @@ public class BookmarkFacade {
     
     public BookmarkDetailResponse restoreBookmark(Long userId, String id) {
         bookmarkCommandService.restoreBookmark(userId, id);
-        Long bookmarkId = Long.parseLong(id);
+        Long bookmarkId = parseBookmarkId(id);
         BookmarkEntity entity = bookmarkQueryService.findBookmarkById(userId, bookmarkId);
         return BookmarkDetailResponse.from(entity);
     }
@@ -151,8 +153,16 @@ public class BookmarkFacade {
     
     public BookmarkDetailResponse restoreFromHistory(Long userId, String entityId, String historyId) {
         bookmarkHistoryService.restoreFromHistory(userId.toString(), entityId, historyId);
-        Long bookmarkId = Long.parseLong(entityId);
+        Long bookmarkId = parseBookmarkId(entityId);
         BookmarkEntity entity = bookmarkQueryService.findBookmarkById(userId, bookmarkId);
         return BookmarkDetailResponse.from(entity);
+    }
+
+    private Long parseBookmarkId(String id) {
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException e) {
+            throw new BookmarkValidationException("유효하지 않은 북마크 ID 형식입니다: " + id);
+        }
     }
 }
