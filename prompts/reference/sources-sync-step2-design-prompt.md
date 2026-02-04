@@ -18,7 +18,7 @@ SourcesSyncJob (배치 잡)
 
 ### 기존 구현 파일 (Step1 참고용)
 
-**위치**: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/`
+**위치**: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/`
 
 ```
 jobconfig/SourcesSyncJobConfig.java  (Step1 구현됨, Step2 추가 필요)

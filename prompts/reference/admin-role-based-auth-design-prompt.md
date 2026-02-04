@@ -8,11 +8,11 @@
 
 ## 설계서 작성 목표
 
-1. **users 테이블에 role 컬럼 추가 및 역할 기반 접근 제어 구현**
-2. **관리자 계정 CRUD API 설계 및 구현 가이드 제공**
-3. **api-gateway에서 사용자 정보(id, email, role) 전달 메커니즘 설계**
+1. **기존 `AdminEntity`(`admins` 테이블)를 활용한 관리자 계정 CRUD API 설계**
+2. **관리자 로그인 엔드포인트 설계 (`TokenService` role 파라미터 추가)**
+3. **api-gateway에서 역할 기반 라우팅 검증 추가 설계**
 4. **chatbot/agent 모듈의 역할 기반 접근 제어 설계**
-5. **일반 채팅과 AI Agent 작업 지시 구분 메커니즘 설계**
+5. **일반 채팅과 AI Agent 작업 지시(`@agent` 프리픽스) 구분 메커니즘 설계**
 
 ---
 
@@ -29,22 +29,93 @@
 
 ### 2. 기존 구현 코드 참고
 
+#### 인증/인가 핵심
+
+| 코드 경로 | 참고 내용 | 핵심 확인 사항 |
+|-----------|-----------|----------------|
+| `domain/aurora/.../entity/auth/AdminEntity.java` | `admins` 테이블 엔티티 | role(String, 50), isActive(Boolean), email, username, password, lastLoginAt 필드 |
+| `domain/aurora/.../entity/auth/UserEntity.java` | `users` 테이블 엔티티 | role 필드 없음 (수정 불필요) |
+| `domain/aurora/.../repository/reader/auth/AdminReaderRepository.java` | 관리자 조회 Repository | JpaRepository 상속, 조회 메서드 추가 필요 |
+| `domain/aurora/.../repository/writer/auth/AdminWriterRepository.java` | 관리자 저장 Repository | BaseWriterRepository 상속, 히스토리 자동 추적 |
+| `api/auth/.../service/TokenService.java` | JWT 토큰 생성 | `generateTokens(Long userId, String email)` - role을 `USER_ROLE`로 하드코딩, role 파라미터 추가 필요 |
+| `api/auth/.../service/TokenConstants.java` | 토큰 관련 상수 | `USER_ROLE = "USER"` |
+| `api/auth/.../service/UserAuthenticationService.java` | 일반 회원 로그인 | TokenService 호출부 수정 필요 |
+
+#### 보안/필터
+
+| 코드 경로 | 참고 내용 | 핵심 확인 사항 |
+|-----------|-----------|----------------|
+| `common/security/.../jwt/JwtTokenPayload.java` | JWT 페이로드 record | `userId`, `email`, `role` 필드 (수정 불필요) |
+| `common/security/.../filter/JwtAuthenticationFilter.java` | Spring Security 필터 | `ROLE_` 접두사로 권한 부여 → `hasRole("ADMIN")` 사용 가능 |
+| `common/security/.../principal/UserPrincipal.java` | 사용자 Principal record | `userId`, `email`, `role` (수정 불필요) |
+| `common/security/.../config/SecurityConfig.java` | Spring Security 설정 | `/api/v1/auth/**` 전체 permitAll → admin 경로 분리 필요 |
+| `api/gateway/.../filter/JwtAuthenticationGatewayFilter.java` | Gateway JWT 필터 | `x-user-id/email/role` 헤더 주입, `/api/v1/agent`를 공개 경로로 처리 중 (수정 필요) |
+
+#### 예외 처리 (이미 존재)
+
+| 코드 경로 | 참고 내용 | 핵심 확인 사항 |
+|-----------|-----------|----------------|
+| `common/exception/.../exception/ForbiddenException.java` | 403 예외 | `ErrorCodeConstants.FORBIDDEN("4003")` 사용 (새로 만들지 말 것) |
+| `common/core/.../constants/ErrorCodeConstants.java` | 에러 코드 상수 | `FORBIDDEN = "4003"`, `MESSAGE_CODE_FORBIDDEN` 이미 정의됨 |
+| `common/exception/.../handler/GlobalExceptionHandler.java` | 전역 예외 핸들러 | ForbiddenException 핸들러 이미 존재, **ConflictException은 400/4006 반환 (409 아님)** |
+
+#### Chatbot/Agent
+
+| 코드 경로 | 참고 내용 | 핵심 확인 사항 |
+|-----------|-----------|----------------|
+| `api/chatbot/.../service/dto/Intent.java` | Intent enum | LLM_DIRECT, RAG_REQUIRED, WEB_SEARCH_REQUIRED (AGENT_COMMAND 추가 필요) |
+| `api/chatbot/.../service/IntentClassificationServiceImpl.java` | 의도 분류 서비스 | 키워드 기반 분류, `@agent` 프리픽스 감지 추가 필요 |
+| `api/chatbot/.../service/ChatbotServiceImpl.java` | Chatbot 서비스 | AGENT_COMMAND case 추가 필요 |
+| `api/agent/.../controller/AgentController.java` | Agent 컨트롤러 | 현재 `X-Internal-Api-Key` 인증 → JWT 역할 기반으로 변경 |
+
+### 3. 기존 패턴 참고
+
 | 코드 경로 | 참고 내용 |
 |-----------|-----------|
-| `api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AuthController.java` | 기존 API 엔드포인트 구조 및 패턴 |
-| `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java` | 회원가입, 로그인 비즈니스 로직 |
-| `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/UserEntity.java` | User 엔티티 구조 |
-| `common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java` | JWT 토큰 생성/검증 |
-| `common/security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenPayload.java` | JWT 페이로드 구조 (userId, email, role) |
-| `api/gateway/src/main/java/com/tech/n/ai/api/gateway/filter/JwtAuthenticationGatewayFilter.java` | Gateway JWT 필터, x-user-id/email/role 헤더 주입 |
-| `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/ChatbotServiceImpl.java` | Intent 분류 파이프라인 (LLM_DIRECT, WEB_SEARCH_REQUIRED, RAG_REQUIRED) |
-| `api/agent/src/main/java/com/tech/n/ai/api/agent/controller/AgentController.java` | 현재 내부 API Key 인증 방식 |
-
-### 3. 테스트 코드 패턴 참고
-
-| 코드 경로 | 참고 내용 |
-|-----------|-----------|
+| `api/auth/.../controller/AuthController.java` | Controller 패턴 (Controller → Facade → Service) |
+| `api/auth/.../facade/AuthFacade.java` | Facade 패턴 |
+| `api/auth/.../service/AuthService.java` | Service 패턴 |
 | `api/bookmark/src/test/http/*.http` | IntelliJ HTTP Client 테스트 패턴 |
+
+---
+
+## 기존 시스템 현황 (필수 반영)
+
+### 이미 존재하는 인프라 (새로 만들지 말 것)
+
+| 컴포넌트 | 현황 |
+|----------|------|
+| `AdminEntity` | `admins` 테이블, role(String), isActive 필드 포함 |
+| `AdminReaderRepository` | JpaRepository 상속 (조회 메서드만 추가 필요) |
+| `AdminWriterRepository` | BaseWriterRepository 상속, 히스토리 자동 추적 |
+| `AdminHistoryEntity` / `AdminHistoryEntityFactory` | 관리자 변경 이력 추적 |
+| `JwtTokenPayload` | `userId`, `email`, `role` 필드 포함 |
+| `JwtAuthenticationGatewayFilter` | `x-user-id`, `x-user-email`, `x-user-role` 헤더 주입 |
+| `UserPrincipal` | `userId`, `email`, `role` 필드 포함 |
+| `JwtAuthenticationFilter` | `ROLE_` 접두사로 Spring Security 권한 부여 |
+| `ForbiddenException` | BaseException 상속, 403/4003 코드 |
+| `ErrorCodeConstants.FORBIDDEN` / `MESSAGE_CODE_FORBIDDEN` | 상수 정의 완료 |
+| `GlobalExceptionHandler` | ForbiddenException 핸들러 존재 |
+
+### 초기 관리자 계정 (Bootstrap)
+
+관리자 계정 생성 API는 ADMIN 역할의 JWT 토큰이 필요하므로, **최초 관리자**는 Flyway 마이그레이션 스크립트로 `admins` 테이블에 직접 삽입합니다.
+
+- Flyway 마이그레이션: `V{version}__seed_initial_admin.sql`
+- BCrypt 인코딩된 비밀번호 사용
+- 운영 절차: 시드 관리자 로그인 → JWT 발급 → 추가 관리자 생성
+
+> **참고**: 테스트에서 사용하는 `adminAccessToken`은 관리자 로그인(`POST /api/v1/auth/admin/login`) 후 발급받은 JWT accessToken을 의미합니다.
+
+### 수정이 필요한 부분
+
+| 컴포넌트 | 현황 | 변경 필요 |
+|----------|------|-----------|
+| `TokenService.generateTokens()` | role을 `USER_ROLE` 상수로 하드코딩 | role 파라미터 추가, 기존 호출부도 수정 |
+| `JwtAuthenticationGatewayFilter.isPublicPath()` | `/api/v1/agent`를 공개 경로로 처리 | 관리자 전용으로 변경 |
+| `SecurityConfig` | `/api/v1/auth/**` 전체 permitAll | `/api/v1/auth/admin/login` permitAll + `/api/v1/auth/admin/**` hasRole("ADMIN") |
+| `AgentController` | `X-Internal-Api-Key` 인증 | JWT 역할 기반으로 변경 |
+| `RefreshTokenEntity` / `RefreshTokenService` | `user_id` NOT NULL, UserEntity만 지원 | `admin_id` 컬럼 추가, `user_id` NULL 허용, 관리자 토큰 저장 지원 |
 
 ---
 
@@ -54,405 +125,216 @@
 
 다음 내용을 포함:
 - 역할 기반 접근 제어(RBAC) 도입 목적 및 범위
-- 기존 인증 시스템과의 관계
+- 기존 시스템 현황 (이미 존재하는 인프라 vs 수정 필요 부분)
 - 주요 요구사항 요약
+- 초기 관리자 계정 Bootstrap 전략 (Flyway 시드 + 관리자 로그인 → JWT 발급 → 추가 관리자 생성)
 
-### 2. 역할(Role) 설계
+### 2. 관리자 계정 관리 API 설계
 
-#### 2.1 역할 정의
-
-| 역할 | 설명 | 권한 범위 |
-|------|------|-----------|
-| `USER` | 일반 회원 | chatbot API 접근 가능 |
-| `ADMIN` | 관리자 | chatbot, agent API 접근 가능 + 관리자 계정 관리 |
-
-#### 2.2 데이터베이스 스키마 변경
-
-```sql
--- users 테이블에 role 컬럼 추가
-ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER';
-
--- role 값 제약조건
-ALTER TABLE users ADD CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN'));
-```
-
-#### 2.3 UserEntity 수정
-
-```java
-@Column(name = "role", length = 20, nullable = false)
-@Enumerated(EnumType.STRING)
-private Role role = Role.USER;
-```
-
-### 3. 관리자 계정 관리 API 설계
-
-#### 3.1 엔드포인트 명세
+#### 2.1 엔드포인트 명세
 
 | HTTP Method | URL | 설명 | 권한 |
 |-------------|-----|------|------|
-| POST | `/api/v1/auth/admin/users` | 관리자 계정 생성 | ADMIN |
-| GET | `/api/v1/auth/admin/users` | 관리자 목록 조회 | ADMIN |
-| GET | `/api/v1/auth/admin/users/{userId}` | 관리자 상세 조회 | ADMIN |
-| PUT | `/api/v1/auth/admin/users/{userId}` | 관리자 정보 수정 | ADMIN |
-| DELETE | `/api/v1/auth/admin/users/{userId}` | 관리자 계정 삭제 (Soft Delete) | ADMIN |
+| POST | `/api/v1/auth/admin/login` | 관리자 로그인 | 공개 |
+| POST | `/api/v1/auth/admin/accounts` | 관리자 계정 생성 | ADMIN |
+| GET | `/api/v1/auth/admin/accounts` | 관리자 목록 조회 | ADMIN |
+| GET | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 상세 조회 | ADMIN |
+| PUT | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 정보 수정 | ADMIN |
+| DELETE | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 계정 삭제 (Soft Delete) | ADMIN |
 
-#### 3.2 요청/응답 DTO 설계
+#### 2.2 요청/응답 DTO 설계
 
-**AdminCreateRequest**
-```java
-public record AdminCreateRequest(
-    @NotBlank String email,
-    @NotBlank String username,
-    @NotBlank @Size(min = 8) String password
-) {}
-```
+- `AdminCreateRequest`: email, username, password (유효성 검증 포함)
+- `AdminUpdateRequest`: username, password (선택적)
+- `AdminResponse`: id, email, username, role, isActive, createdAt, lastLoginAt + `from(AdminEntity)` 팩토리 메서드
 
-**AdminUpdateRequest**
-```java
-public record AdminUpdateRequest(
-    String username,
-    String password
-) {}
-```
+#### 2.3 계층 구조
 
-**AdminResponse**
-```java
-public record AdminResponse(
-    Long id,
-    String email,
-    String username,
-    String role,
-    LocalDateTime createdAt,
-    LocalDateTime lastLoginAt
-) {}
-```
+기존 패턴을 따라 Controller → Facade → Service 구조:
+- `AdminController`: `@AuthenticationPrincipal UserPrincipal` 사용 (x-user-role 헤더 직접 사용 금지)
+- `AdminFacade`: 서비스 오케스트레이션
+- `AdminService`: 비즈니스 로직
 
-#### 3.3 비즈니스 로직
+> **중요**: Gateway에서 `/api/v1/auth/admin` 경로에 대해 ADMIN 역할을 이미 검증하므로, Controller에서 별도 역할 검사를 중복하지 않습니다.
 
-1. **관리자 생성**
-   - 이메일 중복 검사
-   - 비밀번호 암호화 (BCrypt)
-   - role = ADMIN 설정
-   - Kafka 이벤트 발행 (UserCreatedEvent)
+#### 2.4 비즈니스 로직
 
-2. **관리자 수정**
-   - 존재 여부 확인
-   - 비밀번호 변경 시 암호화
-   - 히스토리 자동 저장
+1. **관리자 생성**: 이메일/사용자명 중복 검사, 비밀번호 암호화 (BCrypt), role = "ADMIN"
+2. **관리자 수정**: 사용자명 변경 시 중복 검사, 비밀번호 변경 시 암호화
+3. **관리자 삭제**: Soft Delete (BaseWriterRepository.delete()), 자기 자신 삭제 방지
+4. **관리자 로그인**: `admins` 테이블에서 조회, JWT 생성 시 role="ADMIN" 전달
 
-3. **관리자 삭제**
-   - Soft Delete 처리
-   - 관련 RefreshToken 무효화
-   - Kafka 이벤트 발행 (UserDeletedEvent)
+#### 2.5 AdminReaderRepository 확장
 
-### 4. API Gateway 역할 정보 전달 설계
+기존 빈 Repository에 다음 메서드 추가:
+- `findByEmail(String email)`: Optional
+- `findByUsername(String username)`: Optional
+- `findByIsActiveTrue()`: List
+- `findByEmailAndIsActiveTrue(String email)`: Optional
 
-#### 4.1 현재 구현 분석
+### 3. 관리자 로그인 설계
 
-현재 `JwtAuthenticationGatewayFilter`에서 다음 헤더를 주입:
-- `x-user-id`: 사용자 ID
-- `x-user-email`: 사용자 이메일
-- `x-user-role`: 사용자 역할
-
-#### 4.2 JWT 토큰 페이로드 확인
-
-`JwtTokenPayload` record가 이미 `userId`, `email`, `role` 필드를 포함하고 있으므로 추가 수정 불필요.
-
-#### 4.3 백엔드 서비스에서 역할 정보 활용
-
-각 백엔드 서비스에서 `x-user-role` 헤더를 읽어 권한 검증:
+#### 3.1 TokenService 수정
 
 ```java
-@GetMapping("/admin-only")
-public ResponseEntity<?> adminOnly(
-    @RequestHeader("x-user-role") String role
-) {
-    if (!"ADMIN".equals(role)) {
-        throw new ForbiddenException("관리자 권한이 필요합니다.");
-    }
-    // ...
+// 현재 (role 하드코딩)
+public TokenResponse generateTokens(Long userId, String email) {
+    JwtTokenPayload payload = new JwtTokenPayload(String.valueOf(userId), email, USER_ROLE);
+}
+
+// 수정 (role 파라미터 추가)
+public TokenResponse generateTokens(Long userId, String email, String role) {
+    JwtTokenPayload payload = new JwtTokenPayload(String.valueOf(userId), email, role);
 }
 ```
 
-### 5. Chatbot 모듈 접근 제어 설계
+#### 3.2 기존 호출부 수정
 
-#### 5.1 접근 권한
+`UserAuthenticationService`, `OAuthService` 등에서:
+```java
+tokenService.generateTokens(userId, email, TokenConstants.USER_ROLE);
+```
 
-- `USER`: 접근 가능
-- `ADMIN`: 접근 가능
+#### 3.3 관리자 로그인
 
-#### 5.2 구현 방식
+```java
+// AdminService.login()
+tokenService.generateTokens(admin.getId(), admin.getEmail(), admin.getRole());
+```
 
-현재 `/api/v1/chatbot` 경로는 JWT 인증 필요. Gateway 필터에서 토큰 검증 후 통과하므로 별도 역할 검사 불필요.
+#### 3.4 RefreshToken 관리자 지원
+
+`refresh_tokens` 테이블에 `admin_id` 컬럼 추가, `user_id`를 NULL 허용으로 변경:
+
+```sql
+ALTER TABLE refresh_tokens
+    MODIFY COLUMN user_id BIGINT UNSIGNED NULL COMMENT '사용자 ID (일반 회원)',
+    ADD COLUMN admin_id BIGINT UNSIGNED NULL COMMENT '관리자 ID' AFTER user_id,
+    ADD INDEX idx_refresh_token_admin_id (admin_id);
+```
+
+- `RefreshTokenEntity`: `AdminEntity` 관계 추가, `createForUser`/`createForAdmin` 팩토리 메서드
+- `RefreshTokenService`: `saveAdminRefreshToken()` 메서드 추가
+- `TokenService`: role 기반으로 `saveRefreshToken` / `saveAdminRefreshToken` 분기
+
+### 4. API Gateway 역할 검증 설계
+
+#### 4.1 isPublicPath 수정
+
+- `/api/v1/auth/admin/login`: 공개 (관리자 로그인)
+- `/api/v1/auth/admin/**`: 인증 필요 (공개에서 제외)
+- `/api/v1/agent`: 공개 경로에서 제거
+
+#### 4.2 isAdminOnlyPath 추가
+
+```java
+private boolean isAdminOnlyPath(String path) {
+    return path.startsWith("/api/v1/agent") ||
+           path.startsWith("/api/v1/auth/admin");
+}
+```
+
+#### 4.3 handleForbidden 추가
+
+- 기존 `handleUnauthorized` 패턴과 동일한 구조
+- `ErrorCodeConstants.FORBIDDEN` / `MESSAGE_CODE_FORBIDDEN` 사용
+
+### 5. SecurityConfig 수정
+
+```java
+// 순서 중요: 더 구체적인 매처가 앞에 와야 함
+.requestMatchers("/api/v1/auth/admin/login").permitAll()
+.requestMatchers("/api/v1/auth/admin/**").hasRole("ADMIN")
+.requestMatchers("/api/v1/auth/**").permitAll()
+```
+
+> `JwtAuthenticationFilter`가 `ROLE_` + role로 권한을 부여하므로 `hasRole("ADMIN")`은 `ROLE_ADMIN` 권한을 확인합니다.
 
 ### 6. Agent 모듈 접근 제어 설계
 
-#### 6.1 현재 구현 분석
+- `X-Internal-Api-Key` 인증 제거, JWT 역할 기반으로 변경
+- Gateway 레벨에서 ADMIN 역할 검증 (중앙 집중식)
+- `AgentController`는 `x-user-id` 헤더만 활용
+- `EmergingTechAgentScheduler`의 자동 실행은 내부 호출이므로 변경 없음
 
-현재 `AgentController`는 내부 API Key (`X-Internal-Api-Key`) 인증 사용:
-```java
-@PostMapping("/run")
-public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
-    @Valid @RequestBody AgentRunRequest request,
-    @RequestHeader("X-Internal-Api-Key") String requestApiKey
-) {
-    validateApiKey(requestApiKey);
-    // ...
-}
-```
+### 7. Chatbot Intent 확장 설계
 
-#### 6.2 역할 기반 인증으로 변경
+#### 7.1 Intent.AGENT_COMMAND 추가
 
-**옵션 A: Gateway 레벨 역할 검증 (권장)**
-```java
-// JwtAuthenticationGatewayFilter 수정
-private boolean isAdminOnlyPath(String path) {
-    return path.startsWith("/api/v1/agent");
-}
+#### 7.2 IntentClassificationServiceImpl 수정
+- `@agent` 프리픽스 감지를 **최우선** 으로 체크 (다른 키워드 매칭보다 먼저)
+- 키워드 기반 감지 사용 금지 ("에이전트", "수집해줘" 등은 오분류 위험)
 
-// 관리자 전용 경로 검증
-if (isAdminOnlyPath(path) && !"ADMIN".equals(payload.role())) {
-    return handleForbidden(exchange);
-}
-```
+#### 7.3 ChatbotServiceImpl 수정
+- `AGENT_COMMAND` case 추가
+- 일반 사용자가 `@agent` 명령 사용 시 403 에러 대신 **안내 메시지** 반환 (채팅 UX 고려)
 
-**옵션 B: Controller 레벨 역할 검증**
-```java
-@PostMapping("/run")
-public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
-    @Valid @RequestBody AgentRunRequest request,
-    @RequestHeader("x-user-role") String role
-) {
-    if (!"ADMIN".equals(role)) {
-        throw new ForbiddenException("관리자 권한이 필요합니다.");
-    }
-    // ...
-}
-```
-
-#### 6.3 권장 방식
-
-**옵션 A (Gateway 레벨)** 권장:
-- 중앙 집중식 권한 관리
-- 백엔드 서비스 코드 간소화
-- 일관된 보안 정책 적용
-
-### 7. 채팅 유형 구분 설계
-
-#### 7.1 요구사항
-
-일반 채팅과 AI Agent 작업 지시를 구분해야 함.
-
-#### 7.2 현재 Intent 분류 시스템
-
-`IntentClassificationService`에서 다음 Intent로 분류:
-- `LLM_DIRECT`: 일반 대화
-- `WEB_SEARCH_REQUIRED`: 웹 검색 필요
-- `RAG_REQUIRED`: 지식 베이스 검색 필요
-
-#### 7.3 새로운 Intent 추가
-
-```java
-public enum Intent {
-    LLM_DIRECT,           // 일반 대화
-    WEB_SEARCH_REQUIRED,  // 웹 검색 필요
-    RAG_REQUIRED,         // 지식 베이스 검색
-    AGENT_COMMAND         // AI Agent 작업 지시 (신규)
-}
-```
-
-#### 7.4 Agent 명령 감지 로직
-
-```java
-// IntentClassificationService 수정
-public Intent classifyIntent(String message) {
-    // Agent 명령 패턴 감지
-    if (isAgentCommand(message)) {
-        return Intent.AGENT_COMMAND;
-    }
-    // 기존 로직...
-}
-
-private boolean isAgentCommand(String message) {
-    String lowerMessage = message.toLowerCase();
-    return lowerMessage.startsWith("@agent") ||
-           lowerMessage.contains("작업 지시") ||
-           lowerMessage.contains("에이전트") ||
-           // LLM 기반 분류도 고려
-           classifyWithLLM(message) == Intent.AGENT_COMMAND;
-}
-```
-
-#### 7.5 ChatbotServiceImpl 수정
-
-```java
-switch (intent) {
-    case LLM_DIRECT -> {
-        response = handleGeneralConversation(request, sessionId, chatMemory);
-        sources = Collections.emptyList();
-    }
-    case AGENT_COMMAND -> {
-        // 관리자 권한 확인
-        if (!isAdmin(userId)) {
-            throw new ForbiddenException("Agent 명령은 관리자만 사용할 수 있습니다.");
-        }
-        response = delegateToAgent(request, userId);
-        sources = Collections.emptyList();
-    }
-    // ...
-}
-```
+#### 7.4 AgentDelegationService 생성
+- Chatbot → Agent 모듈 내부 호출 서비스
+- 기존 Feign Client 패턴 활용
 
 ### 8. 시퀀스 다이어그램
 
-#### 8.1 관리자 계정 생성 흐름
-
-```mermaid
-sequenceDiagram
-    participant Admin as Admin Client
-    participant Gateway as API Gateway
-    participant Auth as Auth Service
-    participant DB as Aurora MySQL
-    participant Kafka as Kafka
-
-    Admin->>Gateway: POST /api/v1/auth/admin/users
-    Gateway->>Gateway: JWT 검증
-    Gateway->>Gateway: role == ADMIN 확인
-    Gateway->>Auth: Forward (x-user-id, x-user-email, x-user-role)
-    Auth->>Auth: 이메일 중복 검사
-    Auth->>Auth: 비밀번호 암호화
-    Auth->>DB: INSERT users (role=ADMIN)
-    Auth->>Kafka: UserCreatedEvent 발행
-    Auth-->>Gateway: AdminResponse
-    Gateway-->>Admin: 200 OK
-```
-
-#### 8.2 Agent 명령 처리 흐름
-
-```mermaid
-sequenceDiagram
-    participant User as Admin User
-    participant Gateway as API Gateway
-    participant Chatbot as Chatbot Service
-    participant Agent as Agent Service
-
-    User->>Gateway: POST /api/v1/chatbot (message: "@agent 작업 지시")
-    Gateway->>Gateway: JWT 검증
-    Gateway->>Chatbot: Forward (x-user-role=ADMIN)
-    Chatbot->>Chatbot: Intent 분류 (AGENT_COMMAND)
-    Chatbot->>Chatbot: 관리자 권한 확인
-    Chatbot->>Agent: Internal API 호출
-    Agent->>Agent: 작업 실행
-    Agent-->>Chatbot: AgentExecutionResult
-    Chatbot-->>Gateway: ChatResponse
-    Gateway-->>User: 200 OK
-```
+다음 흐름에 대한 다이어그램 포함:
+1. 관리자 계정 생성 (Gateway → Auth → DB)
+2. 관리자 로그인 (공개 경로, JWT role=ADMIN 생성)
+3. Agent 명령 처리 (Chatbot → Intent 분류 → 역할 확인 → Agent 위임)
 
 ### 9. 에러 처리
 
-#### 9.1 예외 시나리오
-
-| 상황 | 예외 클래스 | HTTP 상태 | 에러 코드 |
-|------|------------|-----------|-----------|
-| 권한 없음 | `ForbiddenException` | 403 | 4003 |
-| 이메일 중복 | `ConflictException` | 409 | 4005 |
-| 사용자 미존재 | `ResourceNotFoundException` | 404 | 4004 |
-| 인증 실패 | `UnauthorizedException` | 401 | 4001 |
+| 상황 | 예외 클래스 | HTTP 상태 | 에러 코드 | 비고 |
+|------|------------|-----------|-----------|------|
+| 권한 없음 | `ForbiddenException` | 403 | 4003 | 이미 존재 |
+| 이메일/사용자명 중복 | `ConflictException` | **400** | **4006** | **409가 아님** (VALIDATION_ERROR 형식) |
+| 관리자 미존재 | `ResourceNotFoundException` | 404 | 4004 | 이미 존재 |
+| 인증 실패 | `UnauthorizedException` | 401 | 4001 | 이미 존재 |
+| 자기 자신 삭제 | `ForbiddenException` | 403 | 4003 | |
 
 ### 10. 테스트 전략
 
-#### 10.1 HTTP 테스트 파일
+IntelliJ HTTP Client 테스트 파일 (`api/bookmark/src/test/http/` 패턴 참고):
+- 관리자 로그인 테스트 (시드 관리자로 로그인 → `adminAccessToken` 발급)
+- 관리자 계정 생성 테스트 (성공, 권한 없음, 이메일 중복, 유효성 실패)
+- 관리자 관리 테스트 (목록, 상세, 수정, 삭제)
+- Agent 명령 테스트 (관리자 성공, 일반 사용자 안내 메시지, 일반 채팅)
 
-`api/bookmark/src/test/http/` 디렉토리에 다음 테스트 파일 추가:
-
-**12-admin-create.http**
-```http
-### 1. 관리자 계정 생성 성공
-POST {{gatewayUrl}}/api/v1/auth/admin/users
-Content-Type: application/json
-Authorization: Bearer {{adminAccessToken}}
-
-{
-  "email": "newadmin@example.com",
-  "username": "newadmin",
-  "password": "Admin123!"
-}
-
-> {%
-    client.test("관리자 생성 성공", function() {
-        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.data.role === "ADMIN", "role이 ADMIN이어야 합니다");
-    });
-%}
-
-### 2. 실패 케이스 - 일반 사용자 권한으로 시도
-POST {{gatewayUrl}}/api/v1/auth/admin/users
-Content-Type: application/json
-Authorization: Bearer {{userAccessToken}}
-
-{
-  "email": "test@example.com",
-  "username": "test",
-  "password": "Test123!"
-}
-
-> {%
-    client.test("권한 없음 오류", function() {
-        client.assert(response.status === 403, "응답 상태 코드가 403이어야 합니다");
-    });
-%}
-```
-
-#### 10.2 단위 테스트
-
-- `AdminServiceTest`: 관리자 CRUD 비즈니스 로직 테스트
-- `IntentClassificationServiceTest`: Agent 명령 감지 테스트
-- `JwtAuthenticationGatewayFilterTest`: 역할 기반 라우팅 테스트
+> **주의**: `adminAccessToken`은 관리자 로그인 후 발급받은 JWT accessToken입니다. 별도의 시크릿 키가 아닙니다.
+> **주의**: ConflictException 테스트 시 HTTP 400 + code "4006" 확인 (409 아님)
 
 ### 11. 구현 순서
 
-1. **Phase 1: 데이터베이스 스키마 변경**
-   - users 테이블에 role 컬럼 추가
-   - Flyway 마이그레이션 스크립트 작성
-
-2. **Phase 2: 엔티티 및 DTO 수정**
-   - UserEntity에 role 필드 추가
-   - Role enum 생성
-   - 관리자 관련 DTO 생성
-
-3. **Phase 3: 관리자 관리 API 구현**
-   - AdminController 생성
-   - AdminService 구현
-   - Repository 메서드 추가
-
-4. **Phase 4: Gateway 역할 검증 구현**
-   - JwtAuthenticationGatewayFilter 수정
-   - 관리자 전용 경로 검증 추가
-
-5. **Phase 5: Intent 분류 확장**
-   - AGENT_COMMAND Intent 추가
-   - IntentClassificationService 수정
-   - ChatbotServiceImpl 수정
-
-6. **Phase 6: 테스트 작성**
-   - HTTP 테스트 파일 작성
-   - 단위 테스트 작성
+0. 초기 관리자 시드 데이터 (Flyway 마이그레이션)
+1. RefreshToken 관리자 지원 (refresh_tokens 스키마 변경, Entity/Service 수정)
+2. TokenService role 파라미터 추가 + role 기반 RefreshToken 분기 + 기존 호출부 수정
+3. AdminReaderRepository 확장
+4. 관리자 관리 API 구현 (DTO → Service → Facade → Controller)
+5. Gateway 역할 검증 (isPublicPath, isAdminOnlyPath, handleForbidden)
+6. SecurityConfig 수정
+7. Agent 모듈 인증 변경
+8. Chatbot Intent 확장 + AgentDelegationService
+9. 테스트 작성
 
 ---
 
 ## 검증 기준
 
-설계서가 다음 기준을 모두 만족해야 합니다:
+설계서가 다음 기준을 **모두** 만족해야 합니다:
 
 ### 1. 정합성 검증
 
-- [ ] 기존 인증 시스템과의 정합성
-- [ ] JWT 토큰 페이로드 구조 유지
+- [ ] 기존 `AdminEntity`(`admins` 테이블)를 활용 (UserEntity에 role 추가 금지)
+- [ ] 기존 `AdminReaderRepository`, `AdminWriterRepository` 활용 (새로 만들지 않음)
+- [ ] 기존 `ForbiddenException`, `ErrorCodeConstants.FORBIDDEN` 활용 (새로 만들지 않음)
+- [ ] 기존 `GlobalExceptionHandler` ForbiddenException 핸들러 활용 (수정 불필요)
+- [ ] `ConflictException`이 **400/4006** 반환하는 기존 동작 반영 (409 아님)
+- [ ] JWT 토큰 페이로드 구조 유지 (userId, email, role)
 - [ ] Gateway 필터 로직과의 일관성
-- [ ] Soft Delete 원칙 준수
+- [ ] Soft Delete 원칙 준수 (BaseWriterRepository + HistoryService)
 
 ### 2. 완전성 검증
 
+- [ ] 관리자 로그인 엔드포인트 설계 포함
+- [ ] TokenService role 파라미터 추가 설계 포함
 - [ ] 모든 API 엔드포인트 명세 포함
 - [ ] 시퀀스 다이어그램 포함
 - [ ] 에러 처리 시나리오 명시
@@ -461,15 +343,25 @@ Authorization: Bearer {{userAccessToken}}
 ### 3. 설계 원칙 준수
 
 - [ ] SOLID 원칙 적용
-- [ ] 객체지향 설계 기법 적용
-- [ ] 클린코드 원칙 준수
-- [ ] 최소한의 한글 주석
+- [ ] Controller에서 `@AuthenticationPrincipal UserPrincipal` 사용 (x-user-role 헤더 직접 사용 금지)
+- [ ] 기존 Controller → Facade → Service 패턴 준수
+- [ ] Reader/Writer Repository 분리 패턴 준수
+- [ ] ApiResponse 형식 유지
 
-### 4. 보안 검증
+### 4. 오버엔지니어링 방지
 
-- [ ] 역할 기반 접근 제어 구현
-- [ ] 권한 검증 로직 포함
-- [ ] 관리자 전용 API 보호
+- [ ] Role enum 생성 금지 (AdminEntity.role은 String 타입)
+- [ ] Agent 명령 감지는 `@agent` 프리픽스만 사용 (키워드 기반 감지 금지)
+- [ ] 불필요한 예외 클래스 생성 금지 (기존 예외 재사용)
+- [ ] 불필요한 추상화 계층 추가 금지
+- [ ] 요구사항에 명시되지 않은 기능 추가 금지
+
+### 5. 보안 검증
+
+- [ ] Gateway 레벨에서 관리자 전용 경로 검증
+- [ ] SecurityConfig에서 `hasRole("ADMIN")` 적용
+- [ ] Admin 로그인 경로는 공개 (permitAll)
+- [ ] 관리자 전용 API는 ADMIN 역할만 접근 가능
 
 ---
 
@@ -477,25 +369,27 @@ Authorization: Bearer {{userAccessToken}}
 
 1. **외부 자료 참고 시 공식 문서만 사용**
    - Spring Security: https://docs.spring.io/spring-security/reference/
-   - Spring Cloud Gateway: https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/
+   - Spring Cloud Gateway: https://docs.spring.io/spring-cloud-gateway/reference/
    - JWT (RFC 7519): https://tools.ietf.org/html/rfc7519
 
 2. **오버엔지니어링 금지**
    - 불필요한 추상화 계층 추가 금지
    - 요구사항에 명시되지 않은 기능 추가 금지
    - 복잡한 디자인 패턴 남용 금지
+   - LLM이 임의로 생성하는 것 방지: 기존 코드 반드시 확인 후 설계
 
 3. **기존 코드 패턴 준수**
-   - Facade 패턴 유지
+   - Controller → Facade → Service 구조
    - Reader/Writer Repository 분리 유지
    - ApiResponse 형식 유지
+   - Soft Delete 패턴 유지
 
 ---
 
 ## 설계서 출력 위치
 
 ```
-api/auth/docs/admin-role-based-auth-design.md
+docs/reference/admin-role-based-auth-design.md
 ```
 
 ---
@@ -506,10 +400,11 @@ api/auth/docs/admin-role-based-auth-design.md
 
 ```
 위의 모든 요구사항과 검증 기준을 충족하는 관리자 권한 기반 인증/인가 시스템 상세 설계서를 작성하세요.
+반드시 기존 코드베이스를 확인하여 이미 존재하는 컴포넌트를 파악하고, 중복 생성하지 마세요.
 ```
 
 ---
 
-**작성일**: 2026-02-03
-**버전**: 1.0
-**대상 모듈**: api/auth
+**작성일**: 2026-02-04
+**버전**: 2.0 (v1.0 대비 기존 코드베이스 정합성 전면 개정)
+**대상 모듈**: api/auth, api/gateway, api/chatbot, api/agent
