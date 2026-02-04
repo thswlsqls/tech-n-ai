@@ -955,6 +955,7 @@ Authorization: Bearer {access_token}
   - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
   - [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
   - [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](docs/reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md)
+  - [Phase 5: 데이터 수집 Agent 설계서](docs/reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md)
 - [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
 - [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
 
