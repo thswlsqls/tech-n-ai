@@ -20,12 +20,13 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 이 프로젝트는 **RAG(Retrieval-Augmented Generation)** 기반 아키텍처와 **AI Agent 자동화 시스템**을 통해 이러한 문제를 해결합니다:
 
-1. **🤖 AI Agent 기반 자동 정보 수집 시스템**
+1. **🤖 AI Agent 기반 자동 정보 수집 및 분석 시스템**
    - **LangChain4j 기반 자율 Agent**: 자연어 목표만 입력하면 필요한 작업을 자동으로 판단하고 실행
-   - **GitHub API 통합**: OpenAI, Anthropic, Google, Meta의 SDK 릴리스를 자동 추적
+   - **GitHub API 통합**: OpenAI, Anthropic, Google, Meta, xAI의 SDK 릴리스를 자동 추적
    - **웹 스크래핑**: 공식 블로그의 최신 AI 업데이트 자동 수집
+   - **데이터 분석**: Provider/SourceType/UpdateType별 통계 집계 및 키워드 빈도 분석
+   - **시각화**: Mermaid pie/bar 차트 및 Markdown 표로 분석 결과 시각화
    - **중복 방지 및 검증**: 기존 데이터와 비교하여 중복 없이 새로운 정보만 저장
-   - **자동 승인 워크플로우**: Draft → Review → Publish 프로세스 자동화
    - **6시간 주기 스케줄링**: 정기적으로 최신 AI 업데이트 자동 확인 및 저장
 
 2. **최신 정보 수집 서버 구축**
@@ -48,9 +49,9 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ### 핵심 기능
 
-- **🤖 LangChain4j 기반 자율 AI Agent 시스템**: 자연어 목표 입력만으로 빅테크 AI 서비스 업데이트를 자동 추적하고 수집하는 완전 자율 Agent
+- **🤖 LangChain4j 기반 자율 AI Agent 시스템**: 자연어 목표 입력만으로 빅테크 AI 서비스 업데이트를 자동 추적, 수집하고 데이터 분석 및 시각화하는 완전 자율 Agent
 - **🌟 langchain4j RAG 기반 멀티턴 챗봇**: MongoDB Atlas Vector Search와 OpenAI GPT-4o-mini를 활용한 지식 검색 챗봇
-- **AI 업데이트 자동화 파이프라인**: GitHub Release 추적, 웹 스크래핑, 중복 검증, 포스팅 자동화 (6시간 주기)
+- **AI 업데이트 자동화 파이프라인**: GitHub Release 추적, 웹 스크래핑, 중복 검증, 데이터 분석 자동화 (6시간 주기)
 - **CQRS 패턴 기반 아키텍처**: Command Side (Aurora MySQL)와 Query Side (MongoDB Atlas) 분리
 - **Kafka 기반 실시간 동기화**: 이벤트 기반 CQRS 동기화 (1초 이내 목표)
 - **OAuth 2.0 인증**: Google, Naver, Kakao 소셜 로그인 지원
@@ -229,7 +230,7 @@ Command Side(Aurora)의 쓰기 작업이 Kafka 이벤트로 발행되고, Query 
 
 ### 개요
 
-**AI Agent 자동화 시스템**은 LangChain4j를 기반으로 설계된 완전 자율 Agent로, 빅테크 AI 서비스(OpenAI, Anthropic, Google, Meta)의 최신 업데이트를 자동으로 추적하고 수집합니다. 인간의 개입 없이 자연어 목표(Goal)만 입력하면 필요한 작업을 자동으로 판단하고 실행하는 혁신적인 시스템입니다.
+**AI Agent 자동화 시스템**은 LangChain4j를 기반으로 설계된 완전 자율 Agent로, 빅테크 AI 서비스(OpenAI, Anthropic, Google, Meta, xAI)의 최신 업데이트를 자동으로 추적, 수집하고 데이터를 분석합니다. 인간의 개입 없이 자연어 목표(Goal)만 입력하면 필요한 작업을 자동으로 판단하고 실행하며, MongoDB Aggregation 기반 통계 집계와 키워드 빈도 분석 결과를 Mermaid 차트와 Markdown 표로 시각화합니다.
 
 ### 3단계 자동화 파이프라인
 
@@ -244,10 +245,12 @@ AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 �
 - REST API를 통한 목록/상세 조회, 검색, 상태 관리
 - Draft/Published 상태 관리
 
-**Phase 3: AI Agent (api-agent)**
+**Phase 3~4: AI Agent (api-agent)**
 - LangChain4j Agent의 자율 실행
 - Tool 선택 및 중복 검증
-- GitHub API, Web Scraper, Search, Create/Publish 기능 통합
+- GitHub API, Web Scraper, Search, 통계 분석, 키워드 빈도 분석 기능 통합
+- MongoDB Aggregation 기반 서버사이드 데이터 분석
+- Mermaid 차트 및 Markdown 표 시각화
 - 자연어 목표 기반 자율 의사결정
 
 전체 시스템 아키텍처는 [시스템 아키텍처](#시스템-아키텍처) 섹션을 참고하세요.
@@ -256,27 +259,27 @@ AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 �
 
 #### 입력: 자연어 목표 (Goal)
 ```
-"OpenAI와 Anthropic의 최신 업데이트를 확인하고 중요한 것만 포스팅해줘"
+"최근 AI 업데이트 현황을 수집해주세요"
 ```
 
 #### Agent의 자율 추론 및 실행
 ```
-1. Tool 선택: fetchGitHubReleases("openai", "openai-python")
-   → 결과: v1.50.0 릴리스 발견
+1. Tool 선택: get_emerging_tech_statistics("provider", "", "")
+   → 결과: { totalCount: 179, groups: [{name:"ANTHROPIC", count:72}, {name:"OPENAI", count:45}, ...] }
 
-2. Tool 선택: searchAiUpdates("openai-python v1.50.0", "OPENAI")
-   → 결과: 기존 데이터 없음 (중복 아님)
+2. Tool 선택: get_emerging_tech_statistics("source_type", "", "")
+   → 결과: { totalCount: 179, groups: [{name:"WEB_SCRAPING", count:115}, {name:"GITHUB_RELEASE", count:64}] }
 
-3. Tool 선택: createDraftPost(...)
-   → 결과: Draft 포스트 생성 (ID: 12345)
+3. Tool 선택: fetch_github_releases("openai", "openai-python")
+   → 결과: 최신 릴리스 확인
 
-4. Tool 선택: sendSlackNotification(...)
+4. Tool 선택: scrape_web_page("https://www.anthropic.com/news")
+   → 결과: 최신 블로그 포스트 수집
+
+5. Tool 선택: send_slack_notification("데이터 수집 완료: ...")
    → 결과: Slack 알림 전송 완료
 
-5. Tool 선택: fetchGitHubReleases("anthropics", "anthropic-sdk-python")
-   → 결과: 새 릴리스 없음
-
-최종 결과: "OpenAI SDK v1.50.0 초안 생성 완료, Anthropic 업데이트 없음"
+최종 결과: Provider별/SourceType별 통계 Markdown 표 + 신규 데이터 수집 결과 요약
 ```
 
 ### 주요 특징
@@ -291,12 +294,12 @@ Agent가 사용할 수 있는 6가지 Tool:
 
 | Tool | 설명 |
 |------|------|
-| `fetchGitHubReleases` | GitHub 저장소의 최신 릴리스 목록 조회 |
-| `scrapeWebPage` | 웹 페이지 크롤링 (robots.txt 준수) |
-| `searchAiUpdates` | 저장된 AI 업데이트 검색 (중복 확인) |
-| `createDraftPost` | DRAFT 상태 포스트 생성 |
-| `publishPost` | 포스트 승인 (PUBLISHED) |
-| `sendSlackNotification` | Slack 알림 전송 |
+| `fetch_github_releases` | GitHub 저장소의 최신 릴리스 목록 조회 |
+| `scrape_web_page` | 웹 페이지 크롤링 (robots.txt 준수) |
+| `search_emerging_techs` | 저장된 Emerging Tech 데이터 검색 (중복 확인) |
+| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 |
+| `analyze_text_frequency` | 키워드 빈도 분석 (서버사이드 MongoDB Aggregation) |
+| `send_slack_notification` | Slack 알림 전송 |
 
 #### 3. 스케줄 자동 실행
 - **주기**: 6시간마다 자동 실행
@@ -311,14 +314,15 @@ Agent가 사용할 수 있는 6가지 Tool:
 | Anthropic | anthropics/anthropic-sdk-python | https://www.anthropic.com/news |
 | Google | google/generative-ai-python | https://blog.google/technology/ai/ |
 | Meta | facebookresearch/llama | https://ai.meta.com/blog/ |
+| xAI | xai-org/grok-1 | - |
 
 ### 시스템 아키텍처
 
 ![AI Agent System Architecture](contents/api-agent/sytem-architecture.png)
 
-AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-emerging-tech API, Slack과 상호작용하며, 최종적으로 MongoDB에 데이터를 저장합니다.
+AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, AgentFacade를 거쳐 LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-emerging-tech API, MongoDB Atlas(Aggregation 기반 통계/빈도 분석), Slack과 상호작용합니다.
 
-emerging-tech API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Slack 알림 기능도 통합되어 있습니다.
+emerging-tech API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Agent는 MongoDB Aggregation Pipeline을 통해 서버사이드에서 통계 집계 및 텍스트 빈도 분석을 수행하고, 결과를 Mermaid 차트와 Markdown 표로 시각화합니다.
 
 ### API 엔드포인트
 
@@ -329,7 +333,7 @@ X-Internal-Api-Key: {api-key}
 Content-Type: application/json
 
 {
-  "goal": "OpenAI, Anthropic, Google, Meta의 최신 업데이트를 확인하고 중요한 것만 포스팅해줘"
+  "goal": "최근 AI 업데이트 현황을 수집해주세요"
 }
 ```
 
@@ -340,10 +344,10 @@ Content-Type: application/json
   "message": "성공",
   "data": {
     "success": true,
-    "summary": "OpenAI SDK v1.50.0 초안 포스트 생성 완료...",
+    "summary": "최근 AI 업데이트 데이터 수집 및 분석 완료...",
     "toolCallCount": 8,
-    "postsCreated": 1,
-    "executionTimeMs": 15234,
+    "analyticsCallCount": 2,
+    "executionTimeMs": 48612,
     "errors": []
   }
 }
@@ -365,10 +369,10 @@ POST /api/v1/emerging-tech/{id}/reject       # 거부
 
 ### 기술 스택
 
-- **LangChain4j**: 0.35.0 (AI Agent 프레임워크)
+- **LangChain4j**: 1.10.0 (AI Agent 프레임워크)
 - **OpenAI GPT-4o-mini**: Agent의 LLM (temperature: 0.3, max-tokens: 4096)
+- **MongoDB Atlas Aggregation**: 서버사이드 통계 집계 및 텍스트 빈도 분석
 - **Spring Batch**: GitHub Release 및 Web Scraping Job
-- **MongoDB**: AI 업데이트 저장소
 - **Jsoup**: HTML 파싱 및 웹 스크래핑
 - **OpenFeign**: GitHub API 및 내부 API 클라이언트
 
@@ -387,21 +391,31 @@ POST /api/v1/emerging-tech/{id}/reject       # 거부
 api/
 ├── agent/                    # AI Agent 모듈 (Port 8087)
 │   ├── agent/
-│   │   ├── AiUpdateAgent.java
-│   │   ├── AiUpdateAgentImpl.java
+│   │   ├── EmergingTechAgent.java
+│   │   ├── EmergingTechAgentImpl.java
 │   │   ├── AgentAssistant.java
 │   │   └── AgentExecutionResult.java
-│   ├── tool/
-│   │   ├── AiUpdateAgentTools.java
-│   │   └── adapter/
-│   │       ├── GitHubToolAdapter.java
-│   │       ├── ScraperToolAdapter.java
-│   │       ├── AiUpdateToolAdapter.java
-│   │       └── SlackToolAdapter.java
+│   ├── config/
+│   │   ├── AiAgentConfig.java
+│   │   ├── AgentPromptConfig.java
+│   │   ├── AnalyticsConfig.java
+│   │   └── ServerConfig.java
 │   ├── controller/
 │   │   └── AgentController.java
-│   └── scheduler/
-│       └── AiUpdateAgentScheduler.java
+│   ├── facade/
+│   │   └── AgentFacade.java
+│   ├── metrics/
+│   │   └── ToolExecutionMetrics.java
+│   ├── scheduler/
+│   │   └── EmergingTechAgentScheduler.java
+│   └── tool/
+│       ├── EmergingTechAgentTools.java
+│       └── adapter/
+│           ├── AnalyticsToolAdapter.java
+│           ├── EmergingTechToolAdapter.java
+│           ├── GitHubToolAdapter.java
+│           ├── ScraperToolAdapter.java
+│           └── SlackToolAdapter.java
 │
 └── emerging-tech/            # Emerging Tech API 모듈 (Port 8087)
     ├── controller/
@@ -412,6 +426,63 @@ api/
         ├── EmergingTechService.java
         └── EmergingTechServiceImpl.java
 ```
+
+### 현재 개발 상황
+
+#### Agent 실행 테스트 결과
+
+EmergingTech Agent의 로컬 환경 테스트가 성공적으로 완료되었습니다.
+
+##### 1. Agent 실행 요청 및 응답
+
+자연어 목표를 입력하면 Agent가 자율적으로 Tool을 선택하여 데이터 수집 및 분석을 수행합니다.
+
+![Agent 실행 요청 및 응답](contents/api-agent/api-agent%20250204_1-실행로그.png)
+
+##### 2. LLM Function Calling - 통계 분석 Tool 호출
+
+Agent가 `get_emerging_tech_statistics` Tool을 호출하여 Provider/SourceType별 통계를 집계하는 과정입니다.
+
+![통계 분석 Tool 호출](contents/api-agent/api-agent%20250204_2-실행로그.png)
+
+##### 3. GitHub Release 수집 및 LLM 자율 추론
+
+`fetch_github_releases` Tool을 통한 GitHub SDK 릴리스 자동 수집과 LLM의 자율적 Tool 선택 과정입니다.
+
+![GitHub Release 수집](contents/api-agent/api-agent%20250204_3-실행로그.png)
+
+![LLM 자율 추론](contents/api-agent/api-agent%20250204_4-실행로그.png)
+
+##### 4. 웹 스크래핑 및 데이터 수집
+
+`scrape_web_page` Tool을 통한 빅테크 블로그 최신 포스트 수집 과정입니다.
+
+![웹 스크래핑](contents/api-agent/api-agent%20250204_5-실행로그.png)
+
+##### 5. 통계 결과 시각화 및 Slack 알림
+
+Agent가 수집/분석 결과를 Markdown 표로 정리하고 Slack 알림을 전송하는 과정입니다.
+
+![통계 시각화 및 Slack 알림](contents/api-agent/api-agent%20250204_6-실행로그.png)
+
+##### 6. 최종 실행 결과
+
+전체 데이터 수집 및 분석 작업의 최종 결과 응답입니다.
+
+![최종 실행 결과](contents/api-agent/api-agent%20250204_7-실행로그.png)
+
+##### 7. MongoDB Atlas 데이터 확인
+
+수집된 Emerging Tech 데이터가 MongoDB Atlas `emerging_techs` 컬렉션에 정상 저장된 모습입니다.
+
+![MongoDB Atlas 데이터](contents/api-agent/api-agent%20250204_8-실행로그.png)
+
+**테스트 결론**:
+- Agent 실행 API 정상 동작 (REST API, Scheduler 양방향 트리거)
+- LLM Function Calling을 통한 자율적 Tool 선택 및 실행
+- MongoDB Aggregation 기반 통계 집계 및 Markdown 표 시각화
+- GitHub Release 수집, 웹 스크래핑, Slack 알림 정상 동작
+- 수집된 데이터 MongoDB Atlas 정상 저장 확인
 
 자세한 AI Agent 설계는 [참고 문서](#참고-문서) 섹션의 "AI Agent 자동화 파이프라인 설계서"를 참고하세요.
 
@@ -883,6 +954,7 @@ Authorization: Bearer {access_token}
   - [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
   - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
   - [Phase 3: AI Agent 통합 설계서](docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
+  - [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](docs/reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md)
 - [MongoDB Atlas 도큐먼트 설계서](docs/step1/2.%20mongodb-schema-design.md)
 - [Amazon Aurora MySQL 테이블 설계서](docs/step1/3.%20aurora-schema-design.md)
 
