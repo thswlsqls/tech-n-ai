@@ -4,149 +4,104 @@
 
 ### 1.1 목적
 
-본 설계서는 Shrimp Task Manager 시스템에 **역할 기반 접근 제어(RBAC, Role-Based Access Control)**를 도입하여 일반 회원과 관리자를 구분하고, 각 역할에 따른 API 접근 권한을 제어하기 위한 상세 설계를 제공합니다.
+Shrimp Task Manager 시스템에 **역할 기반 접근 제어(RBAC)**를 활성화하여, 기존 `admins` 테이블의 관리자와 `users` 테이블의 일반 회원을 구분하고 각 역할에 따른 API 접근 권한을 제어합니다.
 
 ### 1.2 범위
 
-- users 테이블에 role 컬럼 추가
-- 관리자 계정 CRUD API 설계 및 구현
-- API Gateway에서 역할 정보 전달 메커니즘
+- 기존 `AdminEntity`(`admins` 테이블)를 활용한 관리자 계정 CRUD API 구현
+- API Gateway에서 역할 기반 라우팅 검증 추가
 - chatbot/agent 모듈의 역할 기반 접근 제어
 - 일반 채팅과 AI Agent 작업 지시 구분
 
-### 1.3 기존 시스템과의 관계
+### 1.3 기존 시스템 현황
 
-현재 시스템은 JWT 기반 인증을 사용하며, `JwtTokenPayload`에 이미 `role` 필드가 포함되어 있습니다. Gateway의 `JwtAuthenticationGatewayFilter`는 `x-user-role` 헤더를 주입하지만, 실제 역할 기반 접근 제어는 구현되어 있지 않습니다.
+#### 이미 존재하는 인프라 (수정 불필요)
 
-### 1.4 주요 요구사항 요약
+| 컴포넌트 | 현황 |
+|----------|------|
+| `AdminEntity` | `admins` 테이블, role(String), isActive 필드 포함 |
+| `AdminReaderRepository` | JpaRepository 상속, 조회 기능 |
+| `AdminWriterRepository` | BaseWriterRepository 상속, 히스토리 자동 추적 |
+| `AdminHistoryEntity` / `AdminHistoryEntityFactory` | 관리자 변경 이력 추적 |
+| `JwtTokenPayload` | `userId`, `email`, `role` 필드 포함 |
+| `JwtAuthenticationGatewayFilter` | `x-user-id`, `x-user-email`, `x-user-role` 헤더 주입 |
+| `UserPrincipal` | `userId`, `email`, `role` 필드 포함 |
+| `JwtAuthenticationFilter` | `ROLE_` 접두사로 Spring Security 권한 부여 |
+| `ForbiddenException` | BaseException 상속, 403/4003 코드 |
+| `ErrorCodeConstants.FORBIDDEN` / `MESSAGE_CODE_FORBIDDEN` | 상수 정의 완료 |
+| `GlobalExceptionHandler` | ForbiddenException 핸들러 존재 |
+
+#### 수정이 필요한 부분
+
+| 컴포넌트 | 현황 | 변경 필요 |
+|----------|------|-----------|
+| `TokenService.generateTokens()` | role을 `USER_ROLE` 상수로 하드코딩 | 관리자 로그인 시 `ADMIN` role 전달 |
+| `JwtAuthenticationGatewayFilter.isPublicPath()` | `/api/v1/agent`를 공개 경로로 처리 | 관리자 전용으로 변경 |
+| `SecurityConfig` | `/api/v1/auth/**` 전체 permitAll | `/api/v1/auth/admin/**` 인증 필요로 변경 |
+| `AgentController` | `X-Internal-Api-Key` 인증 | JWT 역할 기반으로 변경 |
+| `RefreshTokenEntity` / `RefreshTokenService` | `user_id` NOT NULL, UserEntity만 지원 | `admin_id` 컬럼 추가, 관리자 토큰 저장 지원 |
+
+### 1.4 주요 요구사항
 
 | 요구사항 | 설명 |
 |----------|------|
-| 역할 구분 | USER(일반 회원), ADMIN(관리자) |
+| 역할 구분 | `users` 테이블 = USER, `admins` 테이블 = ADMIN |
 | 관리자 API | 관리자 계정 추가/수정/삭제 (ADMIN 권한 필요) |
 | Chatbot 접근 | USER, ADMIN 모두 가능 |
 | Agent 접근 | ADMIN만 가능 |
-| Agent 명령 구분 | Chatbot에서 일반 채팅과 Agent 작업 지시 구분 |
+| Agent 명령 구분 | Chatbot에서 `@agent` 프리픽스로 Agent 작업 지시 구분 |
 
----
+### 1.5 초기 관리자 계정 (Bootstrap)
 
-## 2. 역할(Role) 설계
+관리자 계정 생성 API(`POST /api/v1/auth/admin/accounts`)는 ADMIN 역할의 JWT 토큰이 필요합니다. 이로 인해 **최초 관리자 계정**은 API가 아닌 별도 방법으로 생성해야 합니다.
 
-### 2.1 역할 정의
+#### 초기 시드 관리자 생성 방법
 
-| 역할 | 코드 | 설명 | 권한 범위 |
-|------|------|------|-----------|
-| 일반 회원 | `USER` | 기본 회원 | chatbot API 접근 가능 |
-| 관리자 | `ADMIN` | 시스템 관리자 | chatbot, agent API 접근 + 관리자 계정 관리 |
-
-### 2.2 데이터베이스 스키마 변경
-
-#### 2.2.1 Flyway 마이그레이션 스크립트
-
-파일: `domain/aurora/src/main/resources/db/migration/V{version}__add_role_column_to_users.sql`
+Flyway 마이그레이션 스크립트를 통해 시스템 배포 시 최초 관리자를 `admins` 테이블에 직접 삽입합니다.
 
 ```sql
--- users 테이블에 role 컬럼 추가
-ALTER TABLE users
-ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER'
-AFTER provider_user_id;
-
--- role 값 제약조건
-ALTER TABLE users
-ADD CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN'));
-
--- role 컬럼 인덱스 추가 (역할별 조회 성능 향상)
-CREATE INDEX idx_users_role ON users(role);
-
--- 기존 사용자는 모두 USER 역할 유지 (DEFAULT 'USER')
+-- Flyway migration: V{version}__seed_initial_admin.sql
+INSERT INTO admins (email, username, password, role, is_active, created_at, updated_at)
+VALUES (
+    'admin@shrimp-tm.com',
+    'system-admin',
+    '{bcrypt 해시값}',  -- BCryptPasswordEncoder로 사전 인코딩한 비밀번호
+    'ADMIN',
+    true,
+    NOW(),
+    NOW()
+);
 ```
 
-### 2.3 Role Enum 생성
+#### 운영 절차
 
-파일: `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/Role.java`
+1. **초기 배포**: Flyway 마이그레이션으로 시드 관리자 생성
+2. **관리자 로그인**: `POST /api/v1/auth/admin/login` → JWT 토큰(accessToken) 발급
+3. **추가 관리자 생성**: 발급받은 JWT 토큰을 `Authorization: Bearer {accessToken}` 헤더에 포함하여 `POST /api/v1/auth/admin/accounts` 호출
 
-```java
-package com.tech.n.ai.domain.mariadb.entity.auth;
-
-/**
- * 사용자 역할
- */
-public enum Role {
-    /** 일반 회원 */
-    USER,
-    /** 관리자 */
-    ADMIN
-}
-```
-
-### 2.4 UserEntity 수정
-
-파일: `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/auth/UserEntity.java`
-
-```java
-// 기존 필드 아래에 추가
-@Column(name = "role", length = 20, nullable = false)
-@Enumerated(EnumType.STRING)
-private Role role = Role.USER;
-
-// 팩토리 메서드 수정
-public static UserEntity createNewUser(String email, String username, String encodedPassword) {
-    UserEntity user = new UserEntity();
-    user.email = email;
-    user.username = username;
-    user.password = encodedPassword;
-    user.role = Role.USER;  // 기본값
-    user.isEmailVerified = false;
-    return user;
-}
-
-// 관리자 생성 팩토리 메서드 추가
-public static UserEntity createAdmin(String email, String username, String encodedPassword) {
-    UserEntity user = new UserEntity();
-    user.email = email;
-    user.username = username;
-    user.password = encodedPassword;
-    user.role = Role.ADMIN;
-    user.isEmailVerified = true;  // 관리자는 이메일 인증 불필요
-    return user;
-}
-
-// 역할 확인 메서드
-public boolean isAdmin() {
-    return this.role == Role.ADMIN;
-}
-```
+> **참고**: 테스트 파일에서 사용하는 `{{adminAccessToken}}`은 관리자 로그인(`POST /api/v1/auth/admin/login`) 후 발급받은 JWT accessToken을 의미합니다. 별도의 시크릿 키가 아닙니다.
 
 ---
 
-## 3. 관리자 계정 관리 API 설계
+## 2. 관리자 계정 관리 API 설계
 
-### 3.1 엔드포인트 명세
+### 2.1 엔드포인트 명세
 
 | HTTP Method | URL | 설명 | 권한 |
 |-------------|-----|------|------|
-| POST | `/api/v1/auth/admin/users` | 관리자 계정 생성 | ADMIN |
-| GET | `/api/v1/auth/admin/users` | 관리자 목록 조회 | ADMIN |
-| GET | `/api/v1/auth/admin/users/{userId}` | 관리자 상세 조회 | ADMIN |
-| PUT | `/api/v1/auth/admin/users/{userId}` | 관리자 정보 수정 | ADMIN |
-| DELETE | `/api/v1/auth/admin/users/{userId}` | 관리자 계정 삭제 | ADMIN |
+| POST | `/api/v1/auth/admin/accounts` | 관리자 계정 생성 | ADMIN |
+| GET | `/api/v1/auth/admin/accounts` | 관리자 목록 조회 | ADMIN |
+| GET | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 상세 조회 | ADMIN |
+| PUT | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 정보 수정 | ADMIN |
+| DELETE | `/api/v1/auth/admin/accounts/{adminId}` | 관리자 계정 삭제 | ADMIN |
 
-### 3.2 요청/응답 DTO 설계
+### 2.2 요청/응답 DTO
 
-#### 3.2.1 AdminCreateRequest
+#### AdminCreateRequest
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/dto/admin/AdminCreateRequest.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/dto/admin/AdminCreateRequest.java`
 
 ```java
-package com.tech.n.ai.api.auth.dto.admin;
-
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
-/**
- * 관리자 계정 생성 요청
- */
 public record AdminCreateRequest(
     @NotBlank(message = "이메일은 필수입니다.")
     @Email(message = "올바른 이메일 형식이 아닙니다.")
@@ -162,18 +117,11 @@ public record AdminCreateRequest(
 ) {}
 ```
 
-#### 3.2.2 AdminUpdateRequest
+#### AdminUpdateRequest
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/dto/admin/AdminUpdateRequest.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/dto/admin/AdminUpdateRequest.java`
 
 ```java
-package com.tech.n.ai.api.auth.dto.admin;
-
-import jakarta.validation.constraints.Size;
-
-/**
- * 관리자 정보 수정 요청
- */
 public record AdminUpdateRequest(
     @Size(min = 2, max = 50, message = "사용자명은 2-50자 사이여야 합니다.")
     String username,
@@ -183,34 +131,27 @@ public record AdminUpdateRequest(
 ) {}
 ```
 
-#### 3.2.3 AdminResponse
+#### AdminResponse
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/dto/admin/AdminResponse.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/dto/admin/AdminResponse.java`
 
 ```java
-package com.tech.n.ai.api.auth.dto.admin;
-
-import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
-
-import java.time.LocalDateTime;
-
-/**
- * 관리자 정보 응답
- */
 public record AdminResponse(
     Long id,
     String email,
     String username,
     String role,
+    Boolean isActive,
     LocalDateTime createdAt,
     LocalDateTime lastLoginAt
 ) {
-    public static AdminResponse from(UserEntity entity) {
+    public static AdminResponse from(AdminEntity entity) {
         return new AdminResponse(
             entity.getId(),
             entity.getEmail(),
             entity.getUsername(),
-            entity.getRole().name(),
+            entity.getRole(),
+            entity.getIsActive(),
             entity.getCreatedAt(),
             entity.getLastLoginAt()
         );
@@ -218,40 +159,11 @@ public record AdminResponse(
 }
 ```
 
-#### 3.2.4 AdminListResponse
+### 2.3 Controller
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/dto/admin/AdminListResponse.java`
-
-```java
-package com.tech.n.ai.api.auth.dto.admin;
-
-import java.util.List;
-
-/**
- * 관리자 목록 응답
- */
-public record AdminListResponse(
-    List<AdminResponse> admins,
-    int totalCount
-) {}
-```
-
-### 3.3 Controller 설계
-
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/controller/AdminController.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AdminController.java`
 
 ```java
-package com.tech.n.ai.api.auth.controller;
-
-import com.tech.n.ai.api.auth.dto.admin.*;
-import com.tech.n.ai.api.auth.facade.AdminFacade;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.exception.exception.ForbiddenException;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 @RestController
 @RequestMapping("/api/v1/auth/admin")
 @RequiredArgsConstructor
@@ -259,68 +171,51 @@ public class AdminController {
 
     private final AdminFacade adminFacade;
 
-    @PostMapping("/users")
+    @PostMapping("/accounts")
     public ResponseEntity<ApiResponse<AdminResponse>> createAdmin(
             @Valid @RequestBody AdminCreateRequest request,
-            @RequestHeader("x-user-role") String role) {
-        validateAdminRole(role);
+            @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(ApiResponse.success(adminFacade.createAdmin(request)));
     }
 
-    @GetMapping("/users")
-    public ResponseEntity<ApiResponse<AdminListResponse>> listAdmins(
-            @RequestHeader("x-user-role") String role) {
-        validateAdminRole(role);
+    @GetMapping("/accounts")
+    public ResponseEntity<ApiResponse<List<AdminResponse>>> listAdmins(
+            @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(ApiResponse.success(adminFacade.listAdmins()));
     }
 
-    @GetMapping("/users/{userId}")
+    @GetMapping("/accounts/{adminId}")
     public ResponseEntity<ApiResponse<AdminResponse>> getAdmin(
-            @PathVariable Long userId,
-            @RequestHeader("x-user-role") String role) {
-        validateAdminRole(role);
-        return ResponseEntity.ok(ApiResponse.success(adminFacade.getAdmin(userId)));
+            @PathVariable Long adminId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.success(adminFacade.getAdmin(adminId)));
     }
 
-    @PutMapping("/users/{userId}")
+    @PutMapping("/accounts/{adminId}")
     public ResponseEntity<ApiResponse<AdminResponse>> updateAdmin(
-            @PathVariable Long userId,
+            @PathVariable Long adminId,
             @Valid @RequestBody AdminUpdateRequest request,
-            @RequestHeader("x-user-role") String role) {
-        validateAdminRole(role);
-        return ResponseEntity.ok(ApiResponse.success(adminFacade.updateAdmin(userId, request)));
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.success(adminFacade.updateAdmin(adminId, request)));
     }
 
-    @DeleteMapping("/users/{userId}")
+    @DeleteMapping("/accounts/{adminId}")
     public ResponseEntity<ApiResponse<Void>> deleteAdmin(
-            @PathVariable Long userId,
-            @RequestHeader("x-user-role") String role,
-            @RequestHeader("x-user-id") String currentUserId) {
-        validateAdminRole(role);
-        adminFacade.deleteAdmin(userId, Long.parseLong(currentUserId));
+            @PathVariable Long adminId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminFacade.deleteAdmin(adminId, principal.userId());
         return ResponseEntity.ok(ApiResponse.success());
-    }
-
-    private void validateAdminRole(String role) {
-        if (!"ADMIN".equals(role)) {
-            throw new ForbiddenException("관리자 권한이 필요합니다.");
-        }
     }
 }
 ```
 
-### 3.4 Facade 설계
+> **설계 결정**: Gateway에서 `/api/v1/auth/admin` 경로에 대해 ADMIN 역할을 이미 검증하므로, Controller에서 별도 역할 검사를 중복하지 않습니다. `@AuthenticationPrincipal`로 현재 사용자 정보만 추출합니다.
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/facade/AdminFacade.java`
+### 2.4 Facade
+
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/facade/AdminFacade.java`
 
 ```java
-package com.tech.n.ai.api.auth.facade;
-
-import com.tech.n.ai.api.auth.dto.admin.*;
-import com.tech.n.ai.api.auth.service.AdminService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 @Component
 @RequiredArgsConstructor
 public class AdminFacade {
@@ -331,184 +226,403 @@ public class AdminFacade {
         return adminService.createAdmin(request);
     }
 
-    public AdminListResponse listAdmins() {
+    public List<AdminResponse> listAdmins() {
         return adminService.listAdmins();
     }
 
-    public AdminResponse getAdmin(Long userId) {
-        return adminService.getAdmin(userId);
+    public AdminResponse getAdmin(Long adminId) {
+        return adminService.getAdmin(adminId);
     }
 
-    public AdminResponse updateAdmin(Long userId, AdminUpdateRequest request) {
-        return adminService.updateAdmin(userId, request);
+    public AdminResponse updateAdmin(Long adminId, AdminUpdateRequest request) {
+        return adminService.updateAdmin(adminId, request);
     }
 
-    public void deleteAdmin(Long userId, Long currentUserId) {
-        adminService.deleteAdmin(userId, currentUserId);
+    public void deleteAdmin(Long adminId, Long currentAdminId) {
+        adminService.deleteAdmin(adminId, currentAdminId);
     }
 }
 ```
 
-### 3.5 Service 설계
+### 2.5 Service
 
-파일: `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AdminService.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AdminService.java`
 
 ```java
-package com.tech.n.ai.api.auth.service;
-
-import com.tech.n.ai.api.auth.dto.admin.*;
-import com.tech.n.ai.common.exception.exception.ConflictException;
-import com.tech.n.ai.common.exception.exception.ForbiddenException;
-import com.tech.n.ai.common.exception.exception.ResourceNotFoundException;
-import com.tech.n.ai.domain.mariadb.entity.auth.Role;
-import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
-import com.tech.n.ai.domain.mariadb.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.domain.mariadb.repository.writer.auth.UserWriterRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminService {
 
-    private final UserReaderRepository userReaderRepository;
-    private final UserWriterRepository userWriterRepository;
+    private static final String ADMIN_ROLE = "ADMIN";
+
+    private final AdminReaderRepository adminReaderRepository;
+    private final AdminWriterRepository adminWriterRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserValidator userValidator;
-    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public AdminResponse createAdmin(AdminCreateRequest request) {
-        userValidator.validateEmailNotExists(request.email());
-        userValidator.validateUsernameNotExists(request.username());
+        // 이메일 중복 검사
+        adminReaderRepository.findByEmail(request.email())
+            .ifPresent(a -> { throw new ConflictException("email", "이미 등록된 이메일입니다."); });
 
-        UserEntity admin = UserEntity.createAdmin(
-            request.email(),
-            request.username(),
-            passwordEncoder.encode(request.password())
-        );
-        userWriterRepository.save(admin);
+        // 사용자명 중복 검사
+        adminReaderRepository.findByUsername(request.username())
+            .ifPresent(a -> { throw new ConflictException("username", "이미 등록된 사용자명입니다."); });
 
+        AdminEntity admin = new AdminEntity();
+        admin.setEmail(request.email());
+        admin.setUsername(request.username());
+        admin.setPassword(passwordEncoder.encode(request.password()));
+        admin.setRole(ADMIN_ROLE);
+        admin.setIsActive(true);
+
+        adminWriterRepository.save(admin);
         log.info("Admin created: email={}", request.email());
         return AdminResponse.from(admin);
     }
 
     @Transactional(readOnly = true)
-    public AdminListResponse listAdmins() {
-        List<UserEntity> admins = userReaderRepository.findByRole(Role.ADMIN);
-        List<AdminResponse> responses = admins.stream()
+    public List<AdminResponse> listAdmins() {
+        return adminReaderRepository.findByIsActiveTrue().stream()
             .map(AdminResponse::from)
             .toList();
-        return new AdminListResponse(responses, responses.size());
     }
 
     @Transactional(readOnly = true)
-    public AdminResponse getAdmin(Long userId) {
-        UserEntity admin = findAdminById(userId);
+    public AdminResponse getAdmin(Long adminId) {
+        AdminEntity admin = findActiveAdmin(adminId);
         return AdminResponse.from(admin);
     }
 
     @Transactional
-    public AdminResponse updateAdmin(Long userId, AdminUpdateRequest request) {
-        UserEntity admin = findAdminById(userId);
+    public AdminResponse updateAdmin(Long adminId, AdminUpdateRequest request) {
+        AdminEntity admin = findActiveAdmin(adminId);
 
-        if (request.username() != null && !request.username().isBlank()) {
-            if (!admin.getUsername().equals(request.username())) {
-                userValidator.validateUsernameNotExists(request.username());
-                admin.setUsername(request.username());
-            }
+        if (request.username() != null && !request.username().isBlank()
+                && !admin.getUsername().equals(request.username())) {
+            adminReaderRepository.findByUsername(request.username())
+                .ifPresent(a -> { throw new ConflictException("username", "이미 등록된 사용자명입니다."); });
+            admin.setUsername(request.username());
         }
 
         if (request.password() != null && !request.password().isBlank()) {
             admin.setPassword(passwordEncoder.encode(request.password()));
         }
 
-        userWriterRepository.save(admin);
-        log.info("Admin updated: userId={}", userId);
+        adminWriterRepository.save(admin);
+        log.info("Admin updated: adminId={}", adminId);
         return AdminResponse.from(admin);
     }
 
     @Transactional
-    public void deleteAdmin(Long userId, Long currentUserId) {
-        if (userId.equals(currentUserId)) {
+    public void deleteAdmin(Long adminId, Long currentAdminId) {
+        if (adminId.equals(currentAdminId)) {
             throw new ForbiddenException("자기 자신은 삭제할 수 없습니다.");
         }
 
-        UserEntity admin = findAdminById(userId);
+        AdminEntity admin = findActiveAdmin(adminId);
+        admin.setDeletedBy(currentAdminId);
+        adminWriterRepository.delete(admin);
 
-        // RefreshToken 삭제
-        refreshTokenService.deleteAllByUserId(userId);
-
-        // Soft Delete
-        admin.setDeletedBy(currentUserId);
-        userWriterRepository.delete(admin);
-
-        log.info("Admin deleted: userId={}, deletedBy={}", userId, currentUserId);
+        log.info("Admin deleted: adminId={}, deletedBy={}", adminId, currentAdminId);
     }
 
-    private UserEntity findAdminById(Long userId) {
-        UserEntity user = userReaderRepository.findById(userId)
+    private AdminEntity findActiveAdmin(Long adminId) {
+        AdminEntity admin = adminReaderRepository.findById(adminId)
             .orElseThrow(() -> new ResourceNotFoundException("관리자를 찾을 수 없습니다."));
 
-        if (!user.isAdmin()) {
+        if (Boolean.TRUE.equals(admin.getIsDeleted())) {
             throw new ResourceNotFoundException("관리자를 찾을 수 없습니다.");
         }
 
-        if (!user.isActive()) {
-            throw new ConflictException("이미 삭제된 관리자입니다.");
-        }
-
-        return user;
+        return admin;
     }
 }
 ```
 
-### 3.6 Repository 수정
+### 2.6 AdminReaderRepository 확장
 
-파일: `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/repository/reader/auth/UserReaderRepository.java`
+파일: `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/repository/reader/auth/AdminReaderRepository.java`
 
 ```java
-// 기존 메서드에 추가
-List<UserEntity> findByRole(Role role);
+@Repository
+public interface AdminReaderRepository extends JpaRepository<AdminEntity, Long> {
+    // 기존 메서드에 추가
+    Optional<AdminEntity> findByEmail(String email);
+    Optional<AdminEntity> findByUsername(String username);
+    List<AdminEntity> findByIsActiveTrue();
+    Optional<AdminEntity> findByEmailAndIsActiveTrue(String email);
+}
 ```
 
 ---
 
-## 4. API Gateway 역할 정보 전달 설계
+## 3. 관리자 로그인 설계
 
-### 4.1 현재 구현 분석
+### 3.1 현재 문제
 
-현재 `JwtAuthenticationGatewayFilter`는 이미 다음 헤더를 주입하고 있습니다:
-- `x-user-id`: 사용자 ID
-- `x-user-email`: 사용자 이메일
-- `x-user-role`: 사용자 역할
+`TokenService.generateTokens()`가 role을 `USER_ROLE` 상수("USER")로 하드코딩하고 있어, 관리자 로그인 시에도 JWT에 `role=USER`가 설정됩니다.
 
-`JwtTokenPayload` record도 이미 `userId`, `email`, `role` 필드를 포함하고 있어 추가 수정이 불필요합니다.
+### 3.2 TokenService 수정
 
-### 4.2 Gateway 역할 검증 추가
-
-파일: `api/gateway/src/main/java/com/tech/n/ai/api/gateway/filter/JwtAuthenticationGatewayFilter.java`
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/TokenService.java`
 
 ```java
-// 기존 filter 메서드에서 사용자 정보 추출 및 헤더 주입 후, 역할 검증 추가
+// 기존: role 하드코딩
+public TokenResponse generateTokens(Long userId, String email) {
+    JwtTokenPayload payload = new JwtTokenPayload(
+        String.valueOf(userId),
+        email,
+        USER_ROLE  // 항상 "USER"
+    );
+    // ...
+}
 
+// 수정: role 파라미터 추가
+public TokenResponse generateTokens(Long userId, String email, String role) {
+    JwtTokenPayload payload = new JwtTokenPayload(
+        String.valueOf(userId),
+        email,
+        role
+    );
+
+    String accessToken = jwtTokenProvider.generateAccessToken(payload);
+    String refreshToken = jwtTokenProvider.generateRefreshToken(payload);
+
+    refreshTokenService.saveRefreshToken(
+        userId,
+        refreshToken,
+        jwtTokenProvider.getRefreshTokenExpiresAt()
+    );
+
+    return new TokenResponse(
+        accessToken,
+        refreshToken,
+        TOKEN_TYPE,
+        ACCESS_TOKEN_EXPIRY_SECONDS,
+        REFRESH_TOKEN_EXPIRY_SECONDS
+    );
+}
+```
+
+### 3.3 관리자 로그인 엔드포인트
+
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/controller/AdminController.java`
+
+```java
+// AdminController에 로그인 엔드포인트 추가
+@PostMapping("/login")
+public ResponseEntity<ApiResponse<TokenResponse>> adminLogin(
+        @Valid @RequestBody LoginRequest request) {
+    return ResponseEntity.ok(ApiResponse.success(adminFacade.login(request)));
+}
+```
+
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AdminService.java`
+
+```java
+// AdminService에 로그인 메서드 추가
+public TokenResponse login(LoginRequest request) {
+    AdminEntity admin = adminReaderRepository.findByEmailAndIsActiveTrue(request.email())
+        .orElseThrow(() -> new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다."));
+
+    if (!passwordEncoder.matches(request.password(), admin.getPassword())) {
+        throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
+    }
+
+    admin.setLastLoginAt(LocalDateTime.now());
+    adminWriterRepository.save(admin);
+
+    return tokenService.generateTokens(admin.getId(), admin.getEmail(), admin.getRole());
+}
+```
+
+### 3.4 RefreshToken 관리자 지원
+
+#### 3.4.1 문제
+
+현재 `refresh_tokens` 테이블의 `user_id` 컬럼은 `NOT NULL`이며, `RefreshTokenEntity`가 `UserEntity`에 `@ManyToOne`으로 매핑되어 있습니다. 관리자 로그인 시 `TokenService.generateTokens()`가 호출되면 `RefreshTokenService.saveRefreshToken()`에서 admin ID로 `users` 테이블을 조회하여 `User not found` 예외가 발생합니다.
+
+#### 3.4.2 refresh_tokens 테이블 스키마 변경
+
+```sql
+ALTER TABLE refresh_tokens
+    MODIFY COLUMN user_id BIGINT UNSIGNED NULL COMMENT '사용자 ID (일반 회원)',
+    ADD COLUMN admin_id BIGINT UNSIGNED NULL COMMENT '관리자 ID' AFTER user_id,
+    ADD INDEX idx_refresh_token_admin_id (admin_id);
+```
+
+- `user_id`: `NOT NULL` → `NULL`로 변경 (관리자 토큰은 user_id가 없음)
+- `admin_id`: 신규 컬럼 추가 (일반 회원 토큰은 admin_id가 없음)
+- 토큰 1개당 `user_id` 또는 `admin_id` 중 하나만 값이 존재
+
+#### 3.4.3 RefreshTokenEntity 수정
+
+파일: `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/auth/RefreshTokenEntity.java`
+
+```java
+@Entity
+@Table(name = "refresh_tokens")
+@Getter
+@Setter
+public class RefreshTokenEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+
+    @Column(name = "user_id", insertable = false, updatable = false)
+    private Long userId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id")
+    private AdminEntity admin;
+
+    @Column(name = "admin_id", insertable = false, updatable = false)
+    private Long adminId;
+
+    @Column(name = "token", length = 500, nullable = false, unique = true)
+    private String token;
+
+    @Column(name = "expires_at", nullable = false, precision = 6)
+    private LocalDateTime expiresAt;
+
+    public static RefreshTokenEntity createForUser(Long userId, String token, LocalDateTime expiresAt) {
+        RefreshTokenEntity entity = new RefreshTokenEntity();
+        entity.userId = userId;
+        entity.token = token;
+        entity.expiresAt = expiresAt;
+        return entity;
+    }
+
+    public static RefreshTokenEntity createForAdmin(Long adminId, String token, LocalDateTime expiresAt) {
+        RefreshTokenEntity entity = new RefreshTokenEntity();
+        entity.adminId = adminId;
+        entity.token = token;
+        entity.expiresAt = expiresAt;
+        return entity;
+    }
+}
+```
+
+#### 3.4.4 RefreshTokenService 수정
+
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/RefreshTokenService.java`
+
+```java
+@Transactional
+public RefreshTokenEntity saveRefreshToken(Long userId, String token, LocalDateTime expiresAt) {
+    UserEntity user = userReaderRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+    RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.createForUser(userId, token, expiresAt);
+    refreshTokenEntity.setUser(user);
+    return refreshTokenWriterRepository.save(refreshTokenEntity);
+}
+
+@Transactional
+public RefreshTokenEntity saveAdminRefreshToken(Long adminId, String token, LocalDateTime expiresAt) {
+    AdminEntity admin = adminReaderRepository.findById(adminId)
+        .orElseThrow(() -> new IllegalArgumentException("Admin not found with id: " + adminId));
+
+    RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.createForAdmin(adminId, token, expiresAt);
+    refreshTokenEntity.setAdmin(admin);
+    return refreshTokenWriterRepository.save(refreshTokenEntity);
+}
+```
+
+#### 3.4.5 TokenService 수정
+
+파일: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/TokenService.java`
+
+```java
+public TokenResponse generateTokens(Long userId, String email, String role) {
+    JwtTokenPayload payload = new JwtTokenPayload(
+        String.valueOf(userId),
+        email,
+        role
+    );
+
+    String accessToken = jwtTokenProvider.generateAccessToken(payload);
+    String refreshToken = jwtTokenProvider.generateRefreshToken(payload);
+
+    if ("ADMIN".equals(role)) {
+        refreshTokenService.saveAdminRefreshToken(
+            userId, refreshToken, jwtTokenProvider.getRefreshTokenExpiresAt()
+        );
+    } else {
+        refreshTokenService.saveRefreshToken(
+            userId, refreshToken, jwtTokenProvider.getRefreshTokenExpiresAt()
+        );
+    }
+
+    return new TokenResponse(
+        accessToken, refreshToken, TOKEN_TYPE,
+        ACCESS_TOKEN_EXPIRY_SECONDS, REFRESH_TOKEN_EXPIRY_SECONDS
+    );
+}
+```
+
+### 3.5 기존 UserAuthenticationService 수정
+
+기존 일반 회원 로그인도 role 파라미터를 전달하도록 수정:
+
+```java
+// 기존 호출부
+tokenService.generateTokens(user.getId(), user.getEmail());
+
+// 수정
+tokenService.generateTokens(user.getId(), user.getEmail(), TokenConstants.USER_ROLE);
+```
+
+---
+
+## 4. API Gateway 역할 검증 설계
+
+### 4.1 JwtAuthenticationGatewayFilter 수정
+
+파일: `api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/filter/JwtAuthenticationGatewayFilter.java`
+
+#### 4.1.1 isPublicPath 수정
+
+```java
+// 변경 전
+private boolean isPublicPath(String path) {
+    return path.startsWith("/api/v1/auth") ||
+           path.startsWith("/api/v1/agent") ||          // 내부 API Key 인증 사용
+           path.startsWith("/api/v1/emerging-tech") ||
+           path.startsWith("/actuator");
+}
+
+// 변경 후
+private boolean isPublicPath(String path) {
+    // /api/v1/auth/admin은 인증 필요
+    if (path.startsWith("/api/v1/auth/admin")) {
+        return false;
+    }
+    // /api/v1/auth/admin/login은 공개 (관리자 로그인)
+    if (path.equals("/api/v1/auth/admin/login")) {
+        return true;
+    }
+    return path.startsWith("/api/v1/auth") ||
+           path.startsWith("/api/v1/emerging-tech") ||
+           path.startsWith("/actuator");
+}
+```
+
+#### 4.1.2 역할 검증 추가
+
+```java
 @Override
 public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     ServerHttpRequest request = exchange.getRequest();
     String path = request.getURI().getPath();
 
-    // 인증 불필요 경로 확인
     if (isPublicPath(path)) {
         return chain.filter(exchange);
     }
 
-    // JWT 토큰 추출 및 검증 (기존 로직)
     String token = extractToken(request);
     if (token == null || !jwtTokenProvider.validateToken(token)) {
         return handleUnauthorized(exchange);
@@ -522,7 +636,6 @@ public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
             return handleForbidden(exchange);
         }
 
-        // 헤더 주입 (기존 로직)
         ServerHttpRequest modifiedRequest = request.mutate()
             .header(USER_ID_HEADER, payload.userId())
             .header(USER_EMAIL_HEADER, payload.email())
@@ -543,23 +656,11 @@ private boolean isAdminOnlyPath(String path) {
     return path.startsWith("/api/v1/agent") ||
            path.startsWith("/api/v1/auth/admin");
 }
+```
 
-/**
- * 인증 불필요 경로 확인 (수정)
- */
-private boolean isPublicPath(String path) {
-    // /api/v1/auth/admin은 인증 필요 (관리자 API)
-    if (path.startsWith("/api/v1/auth/admin")) {
-        return false;
-    }
-    return path.startsWith("/api/v1/auth") ||
-           path.startsWith("/api/v1/emerging-tech") ||
-           path.startsWith("/actuator");
-}
+#### 4.1.3 handleForbidden 메서드 추가
 
-/**
- * 권한 없음 시 403 Forbidden 응답 반환
- */
+```java
 private Mono<Void> handleForbidden(ServerWebExchange exchange) {
     ServerHttpResponse response = exchange.getResponse();
     response.setStatusCode(HttpStatus.FORBIDDEN);
@@ -585,57 +686,57 @@ private Mono<Void> handleForbidden(ServerWebExchange exchange) {
 }
 ```
 
-### 4.3 ErrorCodeConstants 추가
+### 4.2 SecurityConfig 수정
 
-파일: `common/core/src/main/java/com/tech/n/ai/common/core/constants/ErrorCodeConstants.java`
+파일: `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java`
 
 ```java
-// 기존 상수에 추가
-public static final String FORBIDDEN = "4003";
-public static final String MESSAGE_CODE_FORBIDDEN = "E4003";
+// 변경 전
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/v1/auth/me").authenticated()
+    .requestMatchers("/api/v1/auth/**").permitAll()
+    .requestMatchers("/actuator/health").permitAll()
+    .anyRequest().authenticated()
+)
+
+// 변경 후
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/v1/auth/me").authenticated()
+    .requestMatchers("/api/v1/auth/admin/login").permitAll()
+    .requestMatchers("/api/v1/auth/admin/**").hasRole("ADMIN")
+    .requestMatchers("/api/v1/auth/**").permitAll()
+    .requestMatchers("/actuator/health").permitAll()
+    .anyRequest().authenticated()
+)
 ```
 
----
-
-## 5. Chatbot 모듈 접근 제어 설계
-
-### 5.1 접근 권한
-
-| 역할 | 접근 가능 여부 |
-|------|---------------|
-| USER | O |
-| ADMIN | O |
-
-### 5.2 구현 방식
-
-현재 `/api/v1/chatbot` 경로는 Gateway의 `isPublicPath()`에 포함되지 않으므로 JWT 인증이 필요합니다. USER와 ADMIN 모두 접근 가능해야 하므로 별도의 역할 검사는 불필요합니다.
+> **참고**: `JwtAuthenticationFilter`가 `ROLE_` + role로 권한을 부여하므로(`new SimpleGrantedAuthority("ROLE_" + payload.role())`), `hasRole("ADMIN")`은 `ROLE_ADMIN` 권한을 확인합니다. (Spring Security 공식 문서: [Authorize HttpServletRequests](https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html))
 
 ---
 
-## 6. Agent 모듈 접근 제어 설계
+## 5. Agent 모듈 접근 제어 설계
 
-### 6.1 현재 구현 분석
+### 5.1 접근 권한 변경
 
-현재 `AgentController`는 내부 API Key (`X-Internal-Api-Key`) 인증을 사용합니다. 이를 역할 기반 인증으로 변경합니다.
+| 변경 전 | 변경 후 |
+|---------|---------|
+| `X-Internal-Api-Key` 헤더 인증 | JWT 기반 ADMIN 역할 검증 (Gateway) |
 
-### 6.2 접근 권한
+### 5.2 AgentController 수정
 
-| 역할 | 접근 가능 여부 |
-|------|---------------|
-| USER | X |
-| ADMIN | O |
-
-### 6.3 구현 방식
-
-Gateway 레벨에서 `/api/v1/agent` 경로에 대해 ADMIN 역할을 검증합니다. (4.2절 참조)
-
-### 6.4 AgentController 수정
-
-파일: `api/agent/src/main/java/com/tech/n/ai/api/agent/controller/AgentController.java`
+파일: `api/agent/src/main/java/com/ebson/shrimp/tm/demo/api/agent/controller/AgentController.java`
 
 ```java
-// 기존 X-Internal-Api-Key 인증 제거, Gateway에서 역할 검증됨
+// 변경 전
+@PostMapping("/run")
+public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
+        @Valid @RequestBody AgentRunRequest request,
+        @RequestHeader("X-Internal-Api-Key") String requestApiKey) {
+    validateApiKey(requestApiKey);
+    // ...
+}
 
+// 변경 후
 @PostMapping("/run")
 public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
         @Valid @RequestBody AgentRunRequest request,
@@ -658,215 +759,101 @@ public ResponseEntity<ApiResponse<AgentExecutionResult>> runAgent(
 }
 ```
 
+### 5.3 스케줄러 유지
+
+`EmergingTechAgentScheduler`의 자동 실행은 내부 호출이므로 별도 인증 불필요. 변경 없음.
+
 ---
 
-## 7. 채팅 유형 구분 설계
+## 6. Chatbot 모듈 접근 제어 설계
 
-### 7.1 요구사항
+### 6.1 Chatbot 접근 권한
 
-일반 채팅과 AI Agent 작업 지시를 구분해야 합니다.
+USER, ADMIN 모두 접근 가능. 현재 구현 유지. 변경 없음.
 
-### 7.2 Intent 확장
+### 6.2 Intent 확장
 
-파일: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/dto/Intent.java`
+파일: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/dto/Intent.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service.dto;
-
-/**
- * 의도 분류 결과
- */
 public enum Intent {
-    /** LLM 직접 요청 (일반 대화, 창작, 번역 등) */
     LLM_DIRECT,
-
-    /** RAG 요청 (내부 데이터 검색 필요) */
     RAG_REQUIRED,
-
-    /** Web 검색 요청 (최신/실시간 정보 필요) */
     WEB_SEARCH_REQUIRED,
-
     /** AI Agent 작업 지시 */
     AGENT_COMMAND
 }
 ```
 
-### 7.3 IntentClassificationService 수정
+### 6.3 IntentClassificationServiceImpl 수정
 
-파일: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/IntentClassificationServiceImpl.java`
+파일: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/IntentClassificationServiceImpl.java`
 
 ```java
-// Agent 명령 키워드 추가
-private static final Set<String> AGENT_COMMAND_KEYWORDS = Set.of(
-    "@agent", "에이전트", "agent",
-    "작업 지시", "작업 실행", "수집해줘", "크롤링해줘",
-    "github 확인", "릴리즈 확인", "새 기술 수집"
-);
-
 // Agent 명령 프리픽스
 private static final String AGENT_COMMAND_PREFIX = "@agent";
 
 @Override
 public Intent classifyIntent(String preprocessedInput) {
-    String lowerInput = preprocessedInput.toLowerCase();
+    String lowerInput = preprocessedInput.toLowerCase().trim();
 
-    // 0. Agent 명령 체크 (최우선)
-    if (isAgentCommand(lowerInput)) {
+    // 0. @agent 프리픽스 감지 (명시적 명령만)
+    if (lowerInput.startsWith(AGENT_COMMAND_PREFIX)) {
         log.info("Intent: AGENT_COMMAND - {}", truncateForLog(preprocessedInput));
         return Intent.AGENT_COMMAND;
     }
 
-    // 1. Web 검색 키워드 체크
-    if (containsWebSearchKeywords(lowerInput)) {
-        log.info("Intent: WEB_SEARCH_REQUIRED - {}", truncateForLog(preprocessedInput));
-        return Intent.WEB_SEARCH_REQUIRED;
-    }
-
-    // 2. RAG 키워드 체크
-    if (containsRagKeywords(lowerInput)) {
-        log.info("Intent: RAG_REQUIRED - {}", truncateForLog(preprocessedInput));
-        return Intent.RAG_REQUIRED;
-    }
-
-    // 3. 질문 형태 체크
-    if (isQuestion(lowerInput) && !containsLlmDirectKeywords(lowerInput)) {
-        log.info("Intent: RAG_REQUIRED (question) - {}", truncateForLog(preprocessedInput));
-        return Intent.RAG_REQUIRED;
-    }
-
-    // 4. 기본값: LLM 직접 처리
-    log.info("Intent: LLM_DIRECT - {}", truncateForLog(preprocessedInput));
-    return Intent.LLM_DIRECT;
-}
-
-/**
- * Agent 명령 여부 확인
- */
-private boolean isAgentCommand(String input) {
-    // @agent 프리픽스로 시작하는 경우
-    if (input.trim().startsWith(AGENT_COMMAND_PREFIX)) {
-        return true;
-    }
-    // Agent 관련 키워드 포함 여부
-    return AGENT_COMMAND_KEYWORDS.stream().anyMatch(input::contains);
+    // 이하 기존 로직 유지
+    // ...
 }
 ```
 
-### 7.4 ChatbotServiceImpl 수정
+> **설계 결정**: Agent 명령 감지는 `@agent` 프리픽스만 사용합니다. "에이전트", "수집해줘" 등 일반적인 키워드로 Agent 명령을 감지하면 일반 대화가 Agent 호출로 오분류될 위험이 큽니다. 명시적 프리픽스 방식이 오분류를 방지하고 사용자 의도를 정확히 반영합니다.
 
-파일: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/ChatbotServiceImpl.java`
+### 6.4 ChatbotServiceImpl 수정
+
+파일: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/ChatbotServiceImpl.java`
 
 ```java
 // 의존성 추가
 private final AgentDelegationService agentDelegationService;
+private final UserPrincipalProvider userPrincipalProvider;  // x-user-role 헤더에서 역할 추출
 
-@Override
-public ChatResponse generateResponse(ChatRequest request, Long userId) {
-    String sessionId = getOrCreateSession(request, userId);
-    ChatMemory chatMemory = memoryProvider.get(sessionId);
-
-    boolean isExistingSession = request.conversationId() != null && !request.conversationId().isBlank();
-    if (isExistingSession) {
-        loadHistoryToMemory(sessionId, chatMemory);
-    }
-
-    Intent intent = intentService.classifyIntent(request.message());
-    log.info("Intent classified: {} for message: {}", intent, request.message());
-
-    String response;
-    List<SourceResponse> sources;
-
-    switch (intent) {
-        case LLM_DIRECT -> {
-            response = handleGeneralConversation(request, sessionId, chatMemory);
-            sources = Collections.emptyList();
-        }
-        case WEB_SEARCH_REQUIRED -> {
-            WebSearchResult webResult = handleWebSearchPipeline(request);
-            response = webResult.response();
-            sources = webResult.sources();
-        }
-        case RAG_REQUIRED -> {
-            RAGResult ragResult = handleRAGPipeline(request, sessionId, userId);
-            response = ragResult.response();
-            sources = ragResult.sources();
-        }
-        case AGENT_COMMAND -> {
-            response = handleAgentCommand(request, userId);
-            sources = Collections.emptyList();
-        }
-        default -> {
-            response = handleGeneralConversation(request, sessionId, chatMemory);
-            sources = Collections.emptyList();
-        }
-    }
-
-    saveCurrentMessages(sessionId, chatMemory, request.message(), response);
-    sessionService.updateLastMessageAt(sessionId);
-    trackTokenUsage(sessionId, userId, request.message(), response);
-
-    return ChatResponse.builder()
-        .response(response)
-        .conversationId(sessionId)
-        .sources(sources)
-        .build();
+// switch 문에 AGENT_COMMAND 케이스 추가
+case AGENT_COMMAND -> {
+    response = handleAgentCommand(request, userId);
+    sources = Collections.emptyList();
 }
 
 /**
  * Agent 명령 처리
  */
 private String handleAgentCommand(ChatRequest request, Long userId) {
-    // 관리자 권한 확인
-    if (!isAdmin(userId)) {
-        return "Agent 명령은 관리자만 사용할 수 있습니다. 일반 질문이나 검색을 원하시면 '@agent' 없이 메시지를 보내주세요.";
+    String userRole = userPrincipalProvider.getCurrentRole();
+    if (!"ADMIN".equals(userRole)) {
+        return "Agent 명령은 관리자만 사용할 수 있습니다. 일반 질문은 '@agent' 없이 메시지를 보내주세요.";
     }
 
-    // Agent에게 작업 위임
-    String goal = extractAgentGoal(request.message());
+    String goal = request.message().substring("@agent".length()).trim();
     return agentDelegationService.delegateToAgent(goal, userId);
-}
-
-/**
- * 관리자 여부 확인
- */
-private boolean isAdmin(Long userId) {
-    return userReaderRepository.findById(userId)
-        .map(UserEntity::isAdmin)
-        .orElse(false);
-}
-
-/**
- * Agent 명령에서 목표 추출
- */
-private String extractAgentGoal(String message) {
-    String lowerMessage = message.toLowerCase();
-    if (lowerMessage.startsWith("@agent")) {
-        return message.substring("@agent".length()).trim();
-    }
-    return message;
 }
 ```
 
-### 7.5 AgentDelegationService 생성
+> **설계 결정**: 일반 사용자가 `@agent` 명령을 보내면 403 에러 대신 안내 메시지를 반환합니다. 채팅 UX에서 에러 응답보다 자연스러운 안내가 적합합니다.
 
-파일: `api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/service/AgentDelegationService.java`
+### 6.5 AgentDelegationService
+
+파일: `api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/service/AgentDelegationService.java`
+
+> **주의**: Chatbot 모듈에서 Agent 모듈로의 내부 호출에는 Feign Client를 사용합니다. Agent 모듈의 인증이 JWT 기반으로 변경되므로, 내부 호출 시 관리자 JWT 토큰을 전달해야 합니다. Gateway를 경유하는 경우 `x-user-id`, `x-user-role` 헤더가 이미 주입되어 있으므로, 이를 Feign 요청 헤더에 전파합니다.
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
-
-import com.tech.n.ai.client.feign.domain.internal.agent.AgentInternalClient;
-import com.tech.n.ai.client.feign.domain.internal.agent.AgentRunRequest;
-import com.tech.n.ai.client.feign.domain.internal.agent.AgentRunResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AgentDelegationService {
 
-    private final AgentInternalClient agentClient;
+    private final EmergingTechInternalApi agentApi;  // 기존 Feign 패턴 활용
 
     /**
      * Agent에게 작업 위임
@@ -874,38 +861,55 @@ public class AgentDelegationService {
     public String delegateToAgent(String goal, Long userId) {
         try {
             String sessionId = "chatbot-" + userId + "-" + System.currentTimeMillis();
-            AgentRunRequest request = new AgentRunRequest(goal, sessionId);
-            AgentRunResponse response = agentClient.runAgent(request);
-
-            if (response.success()) {
-                return formatAgentResponse(response);
-            } else {
-                return "Agent 작업 실행 중 오류가 발생했습니다: " + response.summary();
-            }
+            // 기존 EmergingTechInternalApi 패턴 참고하여 Agent API 호출
+            // 구체적인 Feign Client 구현은 client/feign 모듈에 추가
+            var result = agentApi.runAgent(goal, sessionId);
+            return formatResult(result);
         } catch (Exception e) {
             log.error("Agent delegation failed", e);
             return "Agent 작업 요청에 실패했습니다. 잠시 후 다시 시도해주세요.";
         }
     }
 
-    private String formatAgentResponse(AgentRunResponse response) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Agent 작업이 완료되었습니다.\n\n");
-        sb.append("📊 실행 결과:\n");
-        sb.append("- ").append(response.summary()).append("\n");
-        sb.append("- 도구 호출 횟수: ").append(response.toolCallCount()).append("\n");
-        sb.append("- 생성된 포스트: ").append(response.postsCreated()).append("개\n");
-        sb.append("- 실행 시간: ").append(response.executionTimeMs()).append("ms");
-        return sb.toString();
+    private String formatResult(Object result) {
+        // Agent 실행 결과 포맷팅
+        return "Agent 작업이 완료되었습니다. 결과: " + result.toString();
     }
 }
 ```
 
 ---
 
-## 8. 시퀀스 다이어그램
+## 7. 시퀀스 다이어그램
 
-### 8.1 관리자 계정 생성 흐름
+### 7.1 관리자 계정 생성
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin Client
+    participant Gateway as API Gateway
+    participant Auth as Auth Service
+    participant DB as Aurora MySQL (admins)
+
+    Admin->>Gateway: POST /api/v1/auth/admin/accounts<br/>(Authorization: Bearer token)
+    Gateway->>Gateway: JWT 검증
+    Gateway->>Gateway: isAdminOnlyPath = true
+    Gateway->>Gateway: role == ADMIN 확인
+
+    alt role != ADMIN
+        Gateway-->>Admin: 403 Forbidden
+    end
+
+    Gateway->>Auth: Forward (x-user-id, x-user-email, x-user-role)
+    Auth->>Auth: 이메일/사용자명 중복 검사
+    Auth->>Auth: 비밀번호 암호화 (BCrypt)
+    Auth->>DB: INSERT admins
+    DB-->>Auth: Success
+    Auth-->>Gateway: AdminResponse
+    Gateway-->>Admin: 200 OK
+```
+
+### 7.2 관리자 로그인
 
 ```mermaid
 sequenceDiagram
@@ -914,30 +918,18 @@ sequenceDiagram
     participant Auth as Auth Service
     participant DB as Aurora MySQL
 
-    Admin->>Gateway: POST /api/v1/auth/admin/users<br/>(Authorization: Bearer token)
-    Gateway->>Gateway: JWT 검증
-    Gateway->>Gateway: role == ADMIN 확인
-
-    alt role != ADMIN
-        Gateway-->>Admin: 403 Forbidden
-    end
-
-    Gateway->>Auth: Forward<br/>(x-user-id, x-user-email, x-user-role)
-    Auth->>Auth: 이메일 중복 검사
-
-    alt 이메일 중복
-        Auth-->>Gateway: 409 Conflict
-        Gateway-->>Admin: 409 Conflict
-    end
-
-    Auth->>Auth: 비밀번호 암호화 (BCrypt)
-    Auth->>DB: INSERT users (role=ADMIN)
-    DB-->>Auth: Success
-    Auth-->>Gateway: AdminResponse
-    Gateway-->>Admin: 200 OK
+    Admin->>Gateway: POST /api/v1/auth/admin/login
+    Gateway->>Gateway: isPublicPath = true (로그인 경로)
+    Gateway->>Auth: Forward
+    Auth->>DB: SELECT admin by email
+    Auth->>Auth: 비밀번호 검증
+    Auth->>Auth: JWT 생성 (role=ADMIN)
+    Auth->>DB: UPDATE lastLoginAt
+    Auth-->>Gateway: TokenResponse
+    Gateway-->>Admin: 200 OK (accessToken, refreshToken)
 ```
 
-### 8.2 Agent 명령 처리 흐름 (Chatbot 경유)
+### 7.3 Agent 명령 처리 (Chatbot 경유)
 
 ```mermaid
 sequenceDiagram
@@ -947,119 +939,71 @@ sequenceDiagram
     participant Agent as Agent Service
 
     User->>Gateway: POST /api/v1/chatbot<br/>(message: "@agent 새 기술 수집해줘")
-    Gateway->>Gateway: JWT 검증
+    Gateway->>Gateway: JWT 검증 (role=ADMIN)
     Gateway->>Chatbot: Forward (x-user-role=ADMIN)
 
-    Chatbot->>Chatbot: Intent 분류 (AGENT_COMMAND)
-    Chatbot->>Chatbot: 관리자 권한 확인
-
-    alt role != ADMIN
-        Chatbot-->>Gateway: "관리자만 사용 가능" 메시지
-        Gateway-->>User: 200 OK (안내 메시지)
-    end
-
-    Chatbot->>Agent: Internal API 호출<br/>(goal: "새 기술 수집해줘")
+    Chatbot->>Chatbot: Intent 분류 → AGENT_COMMAND
+    Chatbot->>Chatbot: 역할 확인 (ADMIN)
+    Chatbot->>Agent: 내부 API 호출 (goal)
     Agent->>Agent: 작업 실행
-    Agent-->>Chatbot: AgentExecutionResult
-    Chatbot->>Chatbot: 응답 포맷팅
+    Agent-->>Chatbot: 실행 결과
     Chatbot-->>Gateway: ChatResponse
     Gateway-->>User: 200 OK
 ```
 
-### 8.3 Agent 직접 호출 흐름
+---
 
-```mermaid
-sequenceDiagram
-    participant Admin as Admin User
-    participant Gateway as API Gateway
-    participant Agent as Agent Service
+## 8. 에러 처리
 
-    Admin->>Gateway: POST /api/v1/agent/run<br/>(Authorization: Bearer token)
-    Gateway->>Gateway: JWT 검증
-    Gateway->>Gateway: isAdminOnlyPath() = true
-    Gateway->>Gateway: role == ADMIN 확인
+### 8.1 예외 시나리오
 
-    alt role != ADMIN
-        Gateway-->>Admin: 403 Forbidden
-    end
+| 상황 | 예외 클래스 | HTTP 상태 | 에러 코드 | 비고 |
+|------|------------|-----------|-----------|------|
+| 권한 없음 | `ForbiddenException` | 403 | 4003 | 이미 존재 |
+| 이메일/사용자명 중복 | `ConflictException` | 400 | 4006 | 기존 동작: 유효성 검증 형식으로 반환 |
+| 관리자 미존재 | `ResourceNotFoundException` | 404 | 4004 | 이미 존재 |
+| 인증 실패 | `UnauthorizedException` | 401 | 4001 | 이미 존재 |
+| 자기 자신 삭제 | `ForbiddenException` | 403 | 4003 | |
 
-    Gateway->>Agent: Forward (x-user-id, x-user-role)
-    Agent->>Agent: 작업 실행
-    Agent-->>Gateway: AgentExecutionResult
-    Gateway-->>Admin: 200 OK
-```
+> **주의**: 현재 `ConflictException`은 `GlobalExceptionHandler`에서 HTTP 400 (BAD_REQUEST) + 에러코드 4006 (VALIDATION_ERROR) 형식으로 반환됩니다. 409가 아닙니다. 테스트 작성 시 이를 반영해야 합니다.
 
 ---
 
-## 9. 에러 처리
+## 9. 테스트 전략
 
-### 9.1 예외 시나리오
+### 9.1 HTTP 테스트 파일
 
-| 상황 | 예외 클래스 | HTTP 상태 | 에러 코드 |
-|------|------------|-----------|-----------|
-| 권한 없음 (ADMIN 필요) | `ForbiddenException` | 403 | 4003 |
-| 이메일 중복 | `ConflictException` | 409 | 4005 |
-| 사용자 미존재 | `ResourceNotFoundException` | 404 | 4004 |
-| 인증 실패 | `UnauthorizedException` | 401 | 4001 |
-| 자기 자신 삭제 시도 | `ForbiddenException` | 403 | 4003 |
-| 이미 삭제된 관리자 | `ConflictException` | 409 | 4005 |
-
-### 9.2 ForbiddenException 추가
-
-파일: `common/exception/src/main/java/com/tech/n/ai/common/exception/exception/ForbiddenException.java`
-
-```java
-package com.tech.n.ai.common.exception.exception;
-
-/**
- * 권한 없음 예외 (403 Forbidden)
- */
-public class ForbiddenException extends RuntimeException {
-
-    public ForbiddenException(String message) {
-        super(message);
-    }
-}
-```
-
-### 9.3 GlobalExceptionHandler 수정
-
-파일: `common/exception/src/main/java/com/tech/n/ai/common/exception/handler/GlobalExceptionHandler.java`
-
-```java
-// 기존 핸들러에 추가
-@ExceptionHandler(ForbiddenException.class)
-public ResponseEntity<ApiResponse<Void>> handleForbiddenException(ForbiddenException e) {
-    log.warn("Forbidden: {}", e.getMessage());
-    MessageCode messageCode = new MessageCode(
-        ErrorCodeConstants.MESSAGE_CODE_FORBIDDEN,
-        e.getMessage()
-    );
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(ApiResponse.error(ErrorCodeConstants.FORBIDDEN, messageCode));
-}
-```
-
----
-
-## 10. 테스트 전략
-
-### 10.1 HTTP 테스트 파일
-
-#### 10.1.1 관리자 계정 생성 테스트
+#### 관리자 로그인 및 계정 생성 테스트
 
 파일: `api/bookmark/src/test/http/12-admin-create.http`
 
 ```http
 ###
-# POST /api/v1/auth/admin/users - 관리자 계정 생성 API 테스트
-# Description: 새 관리자 계정을 생성합니다.
-# Authentication: Required (Bearer Token, ADMIN role)
+# 관리자 로그인 및 계정 생성 API 테스트
+# Description: 관리자 로그인 후 토큰을 발급받고, 새 관리자 계정을 생성합니다.
 # @no-cookie-jar
 ###
 
+### 0. 관리자 로그인 (시드 관리자 계정으로 토큰 발급)
+POST {{gatewayUrl}}/api/v1/auth/admin/login
+Content-Type: application/json
+
+{
+  "email": "admin@shrimp-tm.com",
+  "password": "초기비밀번호"
+}
+
+> {%
+    client.test("관리자 로그인 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+        client.assert(response.body.data.accessToken !== undefined, "accessToken이 존재해야 합니다");
+        client.global.set("adminAccessToken", response.body.data.accessToken);
+    });
+%}
+
 ### 1. 관리자 계정 생성 성공
-POST {{gatewayUrl}}/api/v1/auth/admin/users
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -1079,12 +1023,13 @@ Authorization: Bearer {{adminAccessToken}}
         var data = response.body.data;
         client.assert(data.email === "newadmin@example.com", "email이 일치해야 합니다");
         client.assert(data.role === "ADMIN", "role이 ADMIN이어야 합니다");
+        client.assert(data.isActive === true, "isActive가 true여야 합니다");
         client.global.set("testAdminId", data.id);
     });
 %}
 
 ### 2. 실패 케이스 - 일반 사용자 권한으로 시도
-POST {{gatewayUrl}}/api/v1/auth/admin/users
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
 Content-Type: application/json
 Authorization: Bearer {{userAccessToken}}
 
@@ -1102,7 +1047,7 @@ Authorization: Bearer {{userAccessToken}}
 %}
 
 ### 3. 실패 케이스 - 이메일 중복
-POST {{gatewayUrl}}/api/v1/auth/admin/users
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -1114,13 +1059,13 @@ Authorization: Bearer {{adminAccessToken}}
 
 > {%
     client.test("이메일 중복 오류", function() {
-        client.assert(response.status === 409, "응답 상태 코드가 409여야 합니다");
-        client.assert(response.body.code === "4005", "code 필드가 4005(CONFLICT)이어야 합니다");
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
     });
 %}
 
 ### 4. 실패 케이스 - 인증 없이 요청
-POST {{gatewayUrl}}/api/v1/auth/admin/users
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
 Content-Type: application/json
 
 {
@@ -1136,7 +1081,7 @@ Content-Type: application/json
 %}
 
 ### 5. 실패 케이스 - 유효성 검증 실패 (짧은 비밀번호)
-POST {{gatewayUrl}}/api/v1/auth/admin/users
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -1154,37 +1099,69 @@ Authorization: Bearer {{adminAccessToken}}
 %}
 ```
 
-#### 10.1.2 관리자 목록 조회 테스트
+#### 관리자 목록/상세/수정/삭제 테스트
 
-파일: `api/bookmark/src/test/http/13-admin-list.http`
+파일: `api/bookmark/src/test/http/13-admin-manage.http`
 
 ```http
 ###
-# GET /api/v1/auth/admin/users - 관리자 목록 조회 API 테스트
-# Description: 관리자 목록을 조회합니다.
+# 관리자 계정 관리 API 테스트
+# Description: 목록 조회, 상세 조회, 수정, 삭제
 # Authentication: Required (Bearer Token, ADMIN role)
 # @no-cookie-jar
 ###
 
 ### 1. 관리자 목록 조회 성공
-GET {{gatewayUrl}}/api/v1/auth/admin/users
+GET {{gatewayUrl}}/api/v1/auth/admin/accounts
 Authorization: Bearer {{adminAccessToken}}
 
 > {%
     client.test("관리자 목록 조회 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
         client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
-    });
-
-    client.test("목록 데이터 확인", function() {
-        var data = response.body.data;
-        client.assert(data.admins !== undefined, "admins 배열이 존재해야 합니다");
-        client.assert(data.totalCount >= 0, "totalCount가 0 이상이어야 합니다");
+        client.assert(Array.isArray(response.body.data), "data가 배열이어야 합니다");
     });
 %}
 
-### 2. 실패 케이스 - 일반 사용자 권한으로 시도
-GET {{gatewayUrl}}/api/v1/auth/admin/users
+### 2. 관리자 상세 조회 성공
+GET {{gatewayUrl}}/api/v1/auth/admin/accounts/{{testAdminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("관리자 상세 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.data.role === "ADMIN", "role이 ADMIN이어야 합니다");
+    });
+%}
+
+### 3. 관리자 정보 수정 성공
+PUT {{gatewayUrl}}/api/v1/auth/admin/accounts/{{testAdminId}}
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "username": "updatedadmin"
+}
+
+> {%
+    client.test("관리자 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.data.username === "updatedadmin", "username이 수정되어야 합니다");
+    });
+%}
+
+### 4. 관리자 삭제 성공
+DELETE {{gatewayUrl}}/api/v1/auth/admin/accounts/{{testAdminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("관리자 삭제 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 일반 사용자로 목록 조회
+GET {{gatewayUrl}}/api/v1/auth/admin/accounts
 Authorization: Bearer {{userAccessToken}}
 
 > {%
@@ -1192,9 +1169,20 @@ Authorization: Bearer {{userAccessToken}}
         client.assert(response.status === 403, "응답 상태 코드가 403이어야 합니다");
     });
 %}
+
+### 6. 실패 케이스 - 존재하지 않는 관리자 조회
+GET {{gatewayUrl}}/api/v1/auth/admin/accounts/999999
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("관리자 미존재 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
 ```
 
-#### 10.1.3 Agent 명령 테스트 (Chatbot 경유)
+#### Agent 명령 테스트 (Chatbot 경유)
 
 파일: `api/bookmark/src/test/http/14-agent-command.http`
 
@@ -1228,7 +1216,7 @@ Authorization: Bearer {{adminAccessToken}}
     });
 %}
 
-### 2. Agent 명령 - 일반 사용자 권한으로 시도 (권한 안내 메시지)
+### 2. Agent 명령 - 일반 사용자 (안내 메시지)
 POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{userAccessToken}}
@@ -1248,7 +1236,7 @@ Authorization: Bearer {{userAccessToken}}
     });
 %}
 
-### 3. 일반 채팅 - 일반 사용자 (정상 동작)
+### 3. 일반 채팅 - 일반 사용자 (Agent 명령이 아닌 경우)
 POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{userAccessToken}}
@@ -1265,189 +1253,95 @@ Authorization: Bearer {{userAccessToken}}
 %}
 ```
 
-### 10.2 단위 테스트
-
-#### 10.2.1 AdminServiceTest
-
-```java
-@ExtendWith(MockitoExtension.class)
-class AdminServiceTest {
-
-    @Mock private UserReaderRepository userReaderRepository;
-    @Mock private UserWriterRepository userWriterRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private UserValidator userValidator;
-    @Mock private RefreshTokenService refreshTokenService;
-
-    @InjectMocks private AdminService adminService;
-
-    @Test
-    void createAdmin_Success() {
-        // given
-        AdminCreateRequest request = new AdminCreateRequest(
-            "admin@example.com", "admin", "password123"
-        );
-        when(passwordEncoder.encode(any())).thenReturn("encoded");
-
-        // when
-        AdminResponse response = adminService.createAdmin(request);
-
-        // then
-        assertThat(response.email()).isEqualTo("admin@example.com");
-        assertThat(response.role()).isEqualTo("ADMIN");
-        verify(userWriterRepository).save(any(UserEntity.class));
-    }
-
-    @Test
-    void deleteAdmin_SelfDelete_ThrowsForbidden() {
-        // given
-        Long userId = 1L;
-        Long currentUserId = 1L;
-
-        // when & then
-        assertThatThrownBy(() -> adminService.deleteAdmin(userId, currentUserId))
-            .isInstanceOf(ForbiddenException.class)
-            .hasMessage("자기 자신은 삭제할 수 없습니다.");
-    }
-}
-```
-
-#### 10.2.2 IntentClassificationServiceTest
-
-```java
-@ExtendWith(MockitoExtension.class)
-class IntentClassificationServiceTest {
-
-    @InjectMocks private IntentClassificationServiceImpl service;
-
-    @Test
-    void classifyIntent_AgentCommand_WithPrefix() {
-        // given
-        String message = "@agent 새 기술 수집해줘";
-
-        // when
-        Intent intent = service.classifyIntent(message);
-
-        // then
-        assertThat(intent).isEqualTo(Intent.AGENT_COMMAND);
-    }
-
-    @Test
-    void classifyIntent_AgentCommand_WithKeyword() {
-        // given
-        String message = "에이전트에게 작업 지시할게";
-
-        // when
-        Intent intent = service.classifyIntent(message);
-
-        // then
-        assertThat(intent).isEqualTo(Intent.AGENT_COMMAND);
-    }
-
-    @Test
-    void classifyIntent_LlmDirect_GeneralConversation() {
-        // given
-        String message = "안녕하세요";
-
-        // when
-        Intent intent = service.classifyIntent(message);
-
-        // then
-        assertThat(intent).isEqualTo(Intent.LLM_DIRECT);
-    }
-}
-```
-
 ---
 
-## 11. 구현 순서
+## 10. 구현 순서
 
-### Phase 1: 데이터베이스 스키마 변경
-1. Flyway 마이그레이션 스크립트 작성 (V{version}__add_role_column_to_users.sql)
-2. 로컬 환경에서 마이그레이션 테스트
+### Phase 0: 초기 관리자 시드 데이터
+1. Flyway 마이그레이션 스크립트로 최초 관리자 계정 `admins` 테이블에 삽입
+2. BCrypt 인코딩된 비밀번호 사용
 
-### Phase 2: 엔티티 및 DTO 수정
-1. Role enum 생성
-2. UserEntity에 role 필드 및 관련 메서드 추가
-3. 관리자 관련 DTO 생성 (AdminCreateRequest, AdminUpdateRequest, AdminResponse, AdminListResponse)
+### Phase 1: RefreshToken 관리자 지원
+1. `refresh_tokens` 테이블에 `admin_id` 컬럼 추가, `user_id`를 `NULL` 허용으로 변경
+2. `RefreshTokenEntity`에 `AdminEntity` 관계 추가, `createForUser`/`createForAdmin` 팩토리 메서드
+3. `RefreshTokenService`에 `saveAdminRefreshToken()` 메서드 추가
 
-### Phase 3: 에러 처리 추가
-1. ForbiddenException 생성
-2. ErrorCodeConstants에 FORBIDDEN 상수 추가
-3. GlobalExceptionHandler에 ForbiddenException 핸들러 추가
+### Phase 2: TokenService 수정
+1. `TokenService.generateTokens()` 에 role 파라미터 추가
+2. role 기반으로 `saveRefreshToken` / `saveAdminRefreshToken` 분기
+3. 기존 호출부 (`UserAuthenticationService`, `OAuthService`) 수정 - `USER_ROLE` 전달
+
+### Phase 3: AdminReaderRepository 확장
+1. `findByEmail`, `findByUsername`, `findByIsActiveTrue`, `findByEmailAndIsActiveTrue` 메서드 추가
 
 ### Phase 4: 관리자 관리 API 구현
-1. UserReaderRepository에 findByRole 메서드 추가
+1. DTO 생성 (AdminCreateRequest, AdminUpdateRequest, AdminResponse)
 2. AdminService 구현
 3. AdminFacade 구현
 4. AdminController 구현
 
-### Phase 5: Gateway 역할 검증 구현
-1. JwtAuthenticationGatewayFilter에 isAdminOnlyPath 메서드 추가
-2. handleForbidden 메서드 추가
-3. isPublicPath 메서드 수정 (/api/v1/auth/admin 제외)
+### Phase 5: Gateway 역할 검증
+1. `isPublicPath()` 수정 - `/api/v1/auth/admin` 분리, `/api/v1/agent` 제거
+2. `isAdminOnlyPath()` 추가
+3. `handleForbidden()` 추가
 
-### Phase 6: Agent 모듈 수정
-1. AgentController에서 X-Internal-Api-Key 인증 제거
-2. x-user-id 헤더 활용으로 변경
+### Phase 6: SecurityConfig 수정
+1. `/api/v1/auth/admin/login` permitAll 추가
+2. `/api/v1/auth/admin/**` hasRole("ADMIN") 추가
 
-### Phase 7: Intent 분류 확장
-1. Intent enum에 AGENT_COMMAND 추가
-2. IntentClassificationServiceImpl에 Agent 명령 감지 로직 추가
-3. AgentDelegationService 생성
-4. ChatbotServiceImpl에 AGENT_COMMAND 처리 로직 추가
+### Phase 7: Agent 모듈 수정
+1. `AgentController`에서 `X-Internal-Api-Key` 인증 제거
+2. `x-user-id` 헤더 활용으로 변경
 
-### Phase 8: 테스트 작성
-1. HTTP 테스트 파일 작성
+### Phase 8: Chatbot Intent 확장
+1. `Intent.AGENT_COMMAND` 추가
+2. `IntentClassificationServiceImpl`에 `@agent` 프리픽스 감지 추가
+3. `AgentDelegationService` 생성
+4. `ChatbotServiceImpl`에 `AGENT_COMMAND` 처리 추가
+
+### Phase 9: 테스트 작성
+1. HTTP 테스트 파일 작성 (12, 13, 14)
 2. 단위 테스트 작성
-3. 통합 테스트 실행
 
 ---
 
-## 12. 검증 체크리스트
+## 11. 검증 체크리스트
 
-### 12.1 정합성 검증
-- [x] 기존 인증 시스템과의 정합성
+### 정합성 검증
+- [x] 기존 `AdminEntity` (`admins` 테이블) 활용
+- [x] 기존 `AdminReaderRepository`, `AdminWriterRepository` 활용
+- [x] 기존 `ForbiddenException`, `ErrorCodeConstants` 활용
+- [x] 기존 `GlobalExceptionHandler` 핸들러 활용
 - [x] JWT 토큰 페이로드 구조 유지 (userId, email, role)
 - [x] Gateway 필터 로직과의 일관성
-- [x] Soft Delete 원칙 준수
+- [x] Soft Delete 원칙 준수 (BaseWriterRepository + HistoryService)
+- [x] `ConflictException`이 400/4006 반환하는 기존 동작 반영
 
-### 12.2 완전성 검증
+### 완전성 검증
 - [x] 모든 API 엔드포인트 명세 포함
+- [x] 관리자 로그인 설계 포함
 - [x] 시퀀스 다이어그램 포함
 - [x] 에러 처리 시나리오 명시
 - [x] 테스트 전략 포함
 
-### 12.3 설계 원칙 준수
-- [x] SOLID 원칙 적용
-  - SRP: AdminService, AgentDelegationService 분리
-  - OCP: Intent enum 확장 가능
-  - DIP: Repository 인터페이스 의존
-- [x] 객체지향 설계 기법 적용
-- [x] 클린코드 원칙 준수
-- [x] 최소한의 한글 주석
-
-### 12.4 보안 검증
-- [x] 역할 기반 접근 제어 구현
-- [x] Gateway 레벨 권한 검증
-- [x] Controller 레벨 이중 검증
-- [x] 관리자 전용 API 보호
+### 오버엔지니어링 방지
+- [x] 기존 `AdminEntity` 활용 (UserEntity에 role 컬럼 추가 불필요)
+- [x] 기존 예외 클래스 재사용 (새로 만들지 않음)
+- [x] 기존 Repository 패턴 재사용
+- [x] Agent 명령 감지는 `@agent` 프리픽스만 사용 (과도한 키워드 감지 제거)
+- [x] 불필요한 Role enum 생성 제거 (AdminEntity.role은 String)
 
 ---
 
-## 13. 참고 자료
+## 12. 참고 자료
 
-### 13.1 공식 문서
-- Spring Security: https://docs.spring.io/spring-security/reference/
-- Spring Cloud Gateway: https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/
+### 공식 문서
+- Spring Security Authorization: https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html
+- Spring Cloud Gateway Filters: https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway/global-filters.html
 - JWT (RFC 7519): https://tools.ietf.org/html/rfc7519
 
-### 13.2 프로젝트 내 참고 문서
-- `docs/step6/spring-security-auth-design-guide.md`
-- `docs/step1/3. aurora-schema-design.md`
-
 ---
 
-**작성일**: 2026-02-03
-**버전**: 1.0
+**작성일**: 2026-02-04
+**버전**: 2.0 (v1.0 대비 기존 코드베이스 정합성 전면 개정)
 **대상 모듈**: api/auth, api/gateway, api/chatbot, api/agent

@@ -194,7 +194,7 @@ graph LR
 
 #### 4.1.1 BookmarkEntity.java
 
-**파일**: `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/bookmark/BookmarkEntity.java`
+**파일**: `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/bookmark/BookmarkEntity.java`
 
 **변경 내용**:
 
@@ -267,7 +267,7 @@ public class BookmarkEntity extends BaseEntity {
 
 #### 4.1.2 BookmarkReaderRepository.java
 
-**파일**: `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/repository/reader/bookmark/BookmarkReaderRepository.java`
+**파일**: `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/repository/reader/bookmark/BookmarkReaderRepository.java`
 
 **변경 내용**:
 
@@ -352,7 +352,7 @@ dependencies {
 
 #### 4.2.2 BookmarkCreateRequest.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/dto/request/BookmarkCreateRequest.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/dto/request/BookmarkCreateRequest.java`
 
 **변경 내용**:
 
@@ -372,7 +372,7 @@ public record BookmarkCreateRequest(
 
 #### 4.2.3 BookmarkDetailResponse.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/dto/response/BookmarkDetailResponse.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/dto/response/BookmarkDetailResponse.java`
 
 **변경 내용**:
 
@@ -424,7 +424,7 @@ public record BookmarkDetailResponse(
 
 #### 4.2.4 BookmarkListRequest.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/dto/request/BookmarkListRequest.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/dto/request/BookmarkListRequest.java`
 
 **변경 내용**:
 
@@ -448,7 +448,7 @@ public record BookmarkListRequest(
 
 #### 4.2.5 BookmarkCommandServiceImpl.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/service/BookmarkCommandServiceImpl.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/service/BookmarkCommandServiceImpl.java`
 
 **변경 내용**:
 
@@ -547,7 +547,7 @@ public class BookmarkCommandServiceImpl implements BookmarkCommandService {
 
 #### 4.2.6 BookmarkQueryServiceImpl.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/service/BookmarkQueryServiceImpl.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/service/BookmarkQueryServiceImpl.java`
 
 **변경 내용**:
 
@@ -582,7 +582,7 @@ public Page<BookmarkEntity> findBookmarks(Long userId, BookmarkListRequest reque
 
 #### 4.2.7 BookmarkHistoryServiceImpl.java
 
-**파일**: `api/bookmark/src/main/java/com/tech/n/ai/api/bookmark/service/BookmarkHistoryServiceImpl.java`
+**파일**: `api/bookmark/src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/service/BookmarkHistoryServiceImpl.java`
 
 **변경 내용**: `updateBookmarkFromHistory()` 메서드 수정
 
@@ -811,8 +811,8 @@ Step 13: 검증         - 빌드 및 컴파일 확인
 ```bash
 # itemType/itemId 참조가 남아있지 않은지 확인
 grep -rn "itemType\|itemId\|item_type\|item_id" api/bookmark/src/
-grep -rn "itemType\|itemId\|item_type\|item_id" domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/bookmark/
-grep -rn "itemType\|itemId\|item_type\|item_id" domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/repository/reader/bookmark/
+grep -rn "itemType\|itemId\|item_type\|item_id" domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/bookmark/
+grep -rn "itemType\|itemId\|item_type\|item_id" domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/repository/reader/bookmark/
 ```
 
 ---

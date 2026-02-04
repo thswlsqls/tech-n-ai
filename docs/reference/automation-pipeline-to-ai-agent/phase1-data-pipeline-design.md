@@ -361,7 +361,7 @@ public class GitHubReleasesWriter implements ItemWriter<EmergingTechCreateReques
 기존 `RssParser` 인터페이스를 구현하여 기술 블로그 전용 파서 추가:
 
 ```
-client/rss/src/main/java/com/tech/n/ai/client/rss/parser/
+client/rss/src/main/java/com/ebson/shrimp/tm/demo/client/rss/parser/
 ├── RssParser.java                      # 기존 인터페이스
 ├── TechCrunchRssParser.java            # 기존 구현
 ├── OpenAiBlogRssParser.java            # 신규 - OpenAI Blog
