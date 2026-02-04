@@ -1,0 +1,126 @@
+###
+# GET /api/v1/bookmark/history/{entityId} - 북마크 변경 이력 조회 API 테스트
+# Description: 특정 북마크의 변경 이력을 조회합니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 1. 변경 이력 조회 (기본 파라미터)
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("변경 이력 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("이력 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.data !== undefined, "PageData가 존재해야 합니다");
+    });
+
+    // 첫 번째 이력 ID 저장
+    client.test("이력 ID 저장", function() {
+        var data = response.body.data;
+        if (data.data && data.data.list && data.data.list.length > 0) {
+            client.global.set("testHistoryId", data.data.list[0].historyId);
+        }
+    });
+%}
+
+### 2. 페이지네이션 - 커스텀 page/size
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}?page=1&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("페이지네이션 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 3. operationType 필터링
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}?operationType=INSERT
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("operationType 필터 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 4. 날짜 범위 필터링
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}?startDate=2024-01-01&endDate=2026-12-31
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("날짜 범위 필터 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 5. 페이지네이션 - 큰 페이지 번호 (빈 결과)
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}?page=100&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("빈 페이지 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("빈 결과 확인", function() {
+        var data = response.body.data;
+        client.assert(data.data.list.length === 0, "결과가 비어있어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 존재하지 않는 엔티티 ID (유효한 형식)
+GET {{gatewayUrl}}/api/v1/bookmark/history/999999999999999999
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("엔티티 없음 - 빈 결과 또는 404", function() {
+        client.assert(response.status === 404 || response.status === 200,
+            "응답 상태 코드가 404 또는 200(빈 결과)이어야 합니다");
+    });
+%}
+
+### 6-1. 실패 케이스 - 유효하지 않은 엔티티 ID 형식
+GET {{gatewayUrl}}/api/v1/bookmark/history/invalid-id-format
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ID 형식 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 인증 없이 요청
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 잘못된 토큰
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}
+Authorization: Bearer invalid_token_here
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 잘못된 page 파라미터 (0)
+GET {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}?page=0
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("파라미터 검증 실패", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}

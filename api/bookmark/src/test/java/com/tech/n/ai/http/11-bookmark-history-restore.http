@@ -1,0 +1,106 @@
+###
+# POST /api/v1/bookmark/history/{entityId}/restore - 특정 버전으로 복구 API 테스트
+# Description: 특정 히스토리 버전으로 북마크를 복구합니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 1. 특정 버전으로 복구 성공
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId={{testHistoryId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("히스토리 복구 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("복구된 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.bookmarkTsid !== undefined, "bookmarkTsid가 존재해야 합니다");
+    });
+%}
+
+### 2. 실패 케이스 - historyId 파라미터 누락
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("historyId 누락 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 존재하지 않는 히스토리 ID (유효한 숫자 형식)
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId=999999999999999999
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("히스토리 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
+
+### 3-1. 실패 케이스 - 유효하지 않은 히스토리 ID 형식
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId=non-existent-history-id
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("히스토리 ID 형식 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 존재하지 않는 엔티티 ID (유효한 형식)
+POST {{gatewayUrl}}/api/v1/bookmark/history/999999999999999999/restore?historyId={{testHistoryId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("엔티티 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
+
+### 4-1. 실패 케이스 - 유효하지 않은 엔티티 ID 형식
+POST {{gatewayUrl}}/api/v1/bookmark/history/invalid-id-format/restore?historyId={{testHistoryId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ID 형식 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - entityId와 historyId 불일치
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId=mismatched-history-id-12345
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("불일치 오류", function() {
+        client.assert(response.status === 400 || response.status === 404,
+            "응답 상태 코드가 400 또는 404이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 인증 없이 요청
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId={{testHistoryId}}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 잘못된 토큰
+POST {{gatewayUrl}}/api/v1/bookmark/history/{{testBookmarkId}}/restore?historyId={{testHistoryId}}
+Authorization: Bearer invalid_token_here
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}

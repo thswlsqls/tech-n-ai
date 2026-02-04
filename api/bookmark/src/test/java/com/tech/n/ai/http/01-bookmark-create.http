@@ -1,0 +1,200 @@
+###
+# POST /api/v1/bookmark - 북마크 저장 API 테스트
+# Description: 새 북마크를 생성합니다.
+# Authentication: Required (Bearer Token)
+# @no-cookie-jar
+###
+
+### 1. 북마크 저장 성공 (필수 필드만)
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "697b1e45a5f3d11fec198111"
+}
+
+> {%
+    client.test("북마크 저장 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("북마크 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.bookmarkTsid !== undefined, "bookmarkTsid가 존재해야 합니다");
+        client.assert(data.emergingTechId === "697b1e45a5f3d11fec198111", "emergingTechId가 일치해야 합니다");
+        client.assert(data.title !== undefined, "title이 존재해야 합니다");
+        client.assert(data.url !== undefined, "url이 존재해야 합니다");
+        client.assert(data.provider !== undefined, "provider가 존재해야 합니다");
+        client.global.set("testBookmarkId", data.bookmarkTsid);
+    });
+%}
+
+### 2. 북마크 저장 성공 (모든 필드 포함)
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "697b1beea5f3d11fec198092",
+  "tag": "AI",
+  "memo": "나중에 읽을 OPENAI SDK 업데이트"
+}
+
+> {%
+    client.test("북마크 저장 성공 (전체 필드)", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("모든 필드 확인", function() {
+        var data = response.body.data;
+        client.assert(data.emergingTechId === "697b1beea5f3d11fec198092", "emergingTechId가 일치해야 합니다");
+        client.assert(data.title !== undefined, "title이 존재해야 합니다");
+        client.assert(data.url !== undefined, "url이 존재해야 합니다");
+        client.assert(data.provider !== undefined, "provider가 존재해야 합니다");
+        client.assert(data.tag === "AI", "tag가 AI여야 합니다");
+        client.assert(data.memo === "나중에 읽을 OPENAI SDK 업데이트", "memo가 일치해야 합니다");
+        client.global.set("testBookmarkId2", data.bookmarkTsid);
+    });
+%}
+
+### 3. 실패 케이스 - emergingTechId 누락
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "AI"
+}
+
+> {%
+    client.test("유효성 검증 실패 - emergingTechId 누락", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 빈 emergingTechId
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": ""
+}
+
+> {%
+    client.test("유효성 검증 실패 - 빈 emergingTechId", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 공백만 있는 emergingTechId
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "   "
+}
+
+> {%
+    client.test("유효성 검증 실패 - 공백 emergingTechId", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 빈 요청 바디
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{}
+
+> {%
+    client.test("유효성 검증 실패 - 빈 바디", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 유효하지 않은 emergingTechId 형식
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "invalid-objectid-format"
+}
+
+> {%
+    client.test("유효성 검증 실패 - 잘못된 ObjectId 형식", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 존재하지 않는 emergingTechId
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "000000000000000000000000"
+}
+
+> {%
+    client.test("EmergingTech 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 중복 북마크
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "697b1e45a5f3d11fec198111"
+}
+
+> {%
+    client.test("중복 북마크 오류", function() {
+        client.assert(response.status === 409, "응답 상태 코드가 409여야 합니다");
+        client.assert(response.body.code === "4005", "code 필드가 4005(CONFLICT)이어야 합니다");
+    });
+%}
+
+### 10. 실패 케이스 - 인증 없이 요청
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+
+{
+  "emergingTechId": "6789abcdef012345abcdef01"
+}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 11. 실패 케이스 - 잘못된 토큰
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+{
+  "emergingTechId": "6789abcdef012345abcdef01"
+}
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}

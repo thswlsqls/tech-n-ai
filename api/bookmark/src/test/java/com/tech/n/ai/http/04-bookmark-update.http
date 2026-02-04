@@ -1,0 +1,149 @@
+###
+# PUT /api/v1/bookmark/{id} - 북마크 수정 API 테스트
+# Description: 특정 북마크의 tag, memo를 수정합니다.
+# Authentication: Required (Bearer Token)
+# @no-cookie-jar
+###
+
+### 1. 북마크 수정 성공 (tag + memo)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "태그 업데이트 2",
+  "memo": "메모 업데이트 2"
+}
+
+> {%
+    client.test("북마크 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("수정된 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.tag === "수정된 태그", "tag가 수정되어야 합니다");
+        client.assert(data.memo === "수정된 메모입니다", "memo가 수정되어야 합니다");
+    });
+%}
+
+### 2. 북마크 수정 성공 (tag만)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "새로운 태그"
+}
+
+> {%
+    client.test("tag만 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 3. 북마크 수정 성공 (memo만)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "memo": "새로운 메모"
+}
+
+> {%
+    client.test("memo만 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 4. 북마크 수정 성공 (빈 바디 - 변경 없음)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{}
+
+> {%
+    client.test("빈 바디 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 존재하지 않는 북마크 수정 (유효한 ID 형식)
+PUT {{gatewayUrl}}/api/v1/bookmark/999999999999999999
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "테스트"
+}
+
+> {%
+    client.test("북마크 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 인증 없이 요청
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+
+{
+  "tag": "테스트"
+}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 7. 실패 케이스 - 잘못된 토큰
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+{
+  "tag": "테스트"
+}
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 8. 실패 케이스 - 다른 사용자의 북마크 수정 (존재하지 않는 ID로 404 확인)
+PUT {{gatewayUrl}}/api/v1/bookmark/999999999999999998
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "테스트"
+}
+
+> {%
+    client.test("권한 없음 또는 북마크 없음 오류", function() {
+        client.assert(response.status === 404,
+            "응답 상태 코드가 404이어야 합니다");
+    });
+%}
+
+### 9. 실패 케이스 - 잘못된 ID 형식 (숫자가 아닌 값)
+PUT {{gatewayUrl}}/api/v1/bookmark/invalid-id-format
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tag": "테스트"
+}
+
+> {%
+    client.test("잘못된 ID 형식 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}

@@ -1,0 +1,116 @@
+###
+# POST /api/v1/bookmark/{id}/restore - 북마크 복구 API 테스트
+# Description: 소프트 삭제된 북마크를 복구합니다.
+# Authentication: Required (Bearer Token)
+###
+
+### 0. [사전 작업] 복구용 북마크 생성 및 삭제
+POST {{gatewayUrl}}/api/v1/bookmark
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "emergingTechId": "697b1bf4a5f3d11fec1980bc"
+}
+
+> {%
+    client.test("복구용 북마크 생성 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("복구할 북마크 ID 저장", function() {
+        var data = response.body.data;
+        client.global.set("restoreBookmarkId", data.bookmarkTsid);
+    });
+%}
+
+### 0-1. [사전 작업] 북마크 삭제
+DELETE {{gatewayUrl}}/api/v1/bookmark/{{restoreBookmarkId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("북마크 삭제 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 1. 북마크 복구 성공
+POST {{gatewayUrl}}/api/v1/bookmark/{{restoreBookmarkId}}/restore
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("북마크 복구 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("복구된 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.bookmarkTsid !== undefined, "bookmarkTsid가 존재해야 합니다");
+        client.assert(data.emergingTechId !== undefined, "emergingTechId가 존재해야 합니다");
+        client.assert(data.title !== undefined, "title이 존재해야 합니다");
+        client.assert(data.url !== undefined, "url이 존재해야 합니다");
+    });
+%}
+
+### 2. 복구 후 상세 조회 확인
+GET {{gatewayUrl}}/api/v1/bookmark/{{restoreBookmarkId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("복구된 북마크 조회 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 존재하지 않는 북마크 복구 (유효한 ID 형식)
+POST {{gatewayUrl}}/api/v1/bookmark/999999999999999999/restore
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("북마크 없음 오류", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404이어야 합니다");
+        client.assert(response.body.code === "4004", "code 필드가 4004(NOT_FOUND)이어야 합니다");
+    });
+%}
+
+### 3-1. 실패 케이스 - 유효하지 않은 북마크 ID 형식
+POST {{gatewayUrl}}/api/v1/bookmark/invalid-id-format/restore
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("ID 형식 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 삭제되지 않은 북마크 복구 시도
+POST {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}/restore
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("이미 활성 상태인 북마크 복구 오류", function() {
+        client.assert(response.status === 400 || response.status === 409,
+            "응답 상태 코드가 400 또는 409이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 인증 없이 요청
+POST {{gatewayUrl}}/api/v1/bookmark/{{restoreBookmarkId}}/restore
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 6. 실패 케이스 - 잘못된 토큰
+POST {{gatewayUrl}}/api/v1/bookmark/{{restoreBookmarkId}}/restore
+Authorization: Bearer invalid_token_here
+
+> {%
+    client.test("인증 실패 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
