@@ -26,7 +26,7 @@ public class ScraperToolAdapter {
 
     private static final int MAX_CONTENT_LENGTH = 2000;
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
-    private static final String USER_AGENT = "AiUpdateAgent/1.0";
+    private static final String USER_AGENT = "EmergingTechAgent/1.0";
 
     public ScraperToolAdapter(
             RobotsTxtChecker robotsTxtChecker,

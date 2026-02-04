@@ -1,6 +1,7 @@
 package com.tech.n.ai.api.agent.agent;
 
 import dev.langchain4j.service.MemoryId;
+import dev.langchain4j.service.UserMessage;
 
 /**
  * LangChain4j AiServices용 Assistant 인터페이스
@@ -16,5 +17,5 @@ public interface AgentAssistant {
      * @param userMessage 사용자 메시지 (System Prompt 포함)
      * @return Agent 응답
      */
-    String chat(@MemoryId String sessionId, String userMessage);
+    String chat(@MemoryId String sessionId, @UserMessage String userMessage);
 }

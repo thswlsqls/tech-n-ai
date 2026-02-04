@@ -1,0 +1,739 @@
+###
+# POST /api/v1/agent/run - Emerging Tech Agent 수동 실행 API 테스트
+# Description: Emerging Tech Agent를 수동으로 실행하여 AI 업데이트 정보를 수집합니다.
+# Authentication: Gateway에서 JWT ADMIN 역할 검증 후 x-user-id 헤더 주입
+# @no-cookie-jar
+###
+
+### ============================================
+### 정상 케이스 (Success Cases)
+### ============================================
+
+### 1. 기본 Agent 실행 (sessionId 자동 생성)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "최근 AI 업데이트 정보를 수집해주세요."
+}
+
+> {%
+    client.test("Agent 실행 성공 - HTTP 200", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("Agent 실행 성공 - ApiResponse 구조 확인", function() {
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+        client.assert(response.body.messageCode.code === "SUCCESS", "messageCode.code가 SUCCESS여야 합니다");
+        client.assert(response.body.message === "success", "message가 success여야 합니다");
+    });
+
+    client.test("Agent 실행 성공 - AgentExecutionResult 필드 확인", function() {
+        var data = response.body.data;
+        client.assert(data.success !== undefined, "success 필드가 존재해야 합니다");
+        client.assert(data.summary !== undefined, "summary 필드가 존재해야 합니다");
+        client.assert(data.toolCallCount !== undefined, "toolCallCount 필드가 존재해야 합니다");
+        client.assert(data.analyticsCallCount !== undefined, "analyticsCallCount 필드가 존재해야 합니다");
+        client.assert(data.executionTimeMs !== undefined, "executionTimeMs 필드가 존재해야 합니다");
+        client.assert(data.errors !== undefined, "errors 필드가 존재해야 합니다");
+    });
+
+    client.test("Agent 실행 성공 - 데이터 타입 확인", function() {
+        var data = response.body.data;
+        client.assert(typeof data.success === "boolean", "success가 boolean이어야 합니다");
+        client.assert(typeof data.summary === "string", "summary가 문자열이어야 합니다");
+        client.assert(typeof data.toolCallCount === "number", "toolCallCount가 숫자여야 합니다");
+        client.assert(typeof data.analyticsCallCount === "number", "analyticsCallCount가 숫자여야 합니다");
+        client.assert(typeof data.executionTimeMs === "number", "executionTimeMs가 숫자여야 합니다");
+        client.assert(Array.isArray(data.errors), "errors가 배열이어야 합니다");
+    });
+%}
+
+### 2. sessionId 지정하여 실행
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "GitHub에서 최신 AI 프레임워크 릴리스 정보를 확인해주세요.",
+  "sessionId": "test-session-001"
+}
+
+> {%
+    client.test("sessionId 지정 실행 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+
+    client.test("Agent 응답 데이터 타입 확인", function() {
+        var data = response.body.data;
+        client.assert(typeof data.summary === "string", "summary가 문자열이어야 합니다");
+        client.assert(typeof data.toolCallCount === "number", "toolCallCount가 숫자여야 합니다");
+        client.assert(typeof data.analyticsCallCount === "number", "analyticsCallCount가 숫자여야 합니다");
+        client.assert(typeof data.executionTimeMs === "number", "executionTimeMs가 숫자여야 합니다");
+        client.assert(Array.isArray(data.errors), "errors가 배열이어야 합니다");
+    });
+%}
+
+### 3. 다양한 goal 테스트 - OpenAI 관련 정보 수집
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "OpenAI의 최신 모델 업데이트 정보를 수집해주세요."
+}
+
+> {%
+    client.test("OpenAI 정보 수집 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 4. 다양한 goal 테스트 - Anthropic 관련 정보 수집
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "Anthropic Claude의 최신 업데이트 정보를 확인해주세요."
+}
+
+> {%
+    client.test("Anthropic 정보 수집 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 5. 다양한 goal 테스트 - 여러 AI 도구 정보 수집
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "LangChain, LlamaIndex, Hugging Face의 최신 릴리스 정보를 수집해주세요."
+}
+
+> {%
+    client.test("여러 AI 도구 정보 수집 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 6. 긴 goal 메시지 테스트
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "최근 한 주간 발표된 AI 관련 업데이트를 종합적으로 수집해주세요. 특히 대규모 언어 모델(LLM), 이미지 생성 AI, 코드 생성 도구, AI 프레임워크 등 다양한 분야의 업데이트를 포함해주세요."
+}
+
+> {%
+    client.test("긴 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 7. 특수 문자가 포함된 goal 테스트
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "GPT-4o, Claude 3.5, Gemini 1.5 Pro 등의 최신 버전 정보를 확인해주세요."
+}
+
+> {%
+    client.test("특수 문자 포함 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 8. 한글 goal 테스트
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "인공지능 모델들의 한국어 지원 업데이트 현황을 확인해주세요."
+}
+
+> {%
+    client.test("한글 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### ============================================
+### 실패 케이스 (Failure Cases)
+### ============================================
+
+### 9. 실패 케이스 - goal 필드 누락
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "sessionId": "test-session-002"
+}
+
+> {%
+    client.test("goal 누락 - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+
+    client.test("goal 누락 - 유효성 검증 에러 코드", function() {
+        client.assert(response.body.code === "4006", "code가 4006(VALIDATION_ERROR)이어야 합니다");
+        client.assert(response.body.messageCode.code === "VALIDATION_ERROR", "messageCode.code가 VALIDATION_ERROR여야 합니다");
+    });
+
+    client.test("goal 누락 - 필드 에러 메시지 확인", function() {
+        client.assert(response.body.data.goal !== undefined, "goal 필드 에러가 존재해야 합니다");
+        client.assert(response.body.data.goal === "goal은 필수입니다.", "goal 에러 메시지가 정확해야 합니다");
+    });
+%}
+
+### 10. 실패 케이스 - 빈 goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": ""
+}
+
+> {%
+    client.test("빈 goal - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+
+    client.test("빈 goal - 유효성 검증 에러", function() {
+        client.assert(response.body.code === "4006", "code가 4006이어야 합니다");
+        client.assert(response.body.data.goal !== undefined, "goal 필드 에러가 존재해야 합니다");
+    });
+%}
+
+### 11. 실패 케이스 - 공백만 있는 goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "   "
+}
+
+> {%
+    client.test("공백 goal - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+
+    client.test("공백 goal - @NotBlank 유효성 검증", function() {
+        client.assert(response.body.code === "4006", "code가 4006이어야 합니다");
+        client.assert(response.body.data.goal !== undefined, "goal 필드 에러가 존재해야 합니다");
+    });
+%}
+
+### 12. 실패 케이스 - null goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": null
+}
+
+> {%
+    client.test("null goal - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+
+    client.test("null goal - 유효성 검증 에러", function() {
+        client.assert(response.body.code === "4006", "code가 4006이어야 합니다");
+    });
+%}
+
+### 13. 실패 케이스 - x-user-id 헤더 누락
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 정보를 수집해주세요."
+}
+
+> {%
+    client.test("x-user-id 누락 - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 14. 실패 케이스 - 빈 x-user-id 헤더
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id:
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 정보를 수집해주세요."
+}
+
+> {%
+    client.test("빈 x-user-id - 요청 처리", function() {
+        // 빈 헤더 값은 Spring에서 빈 문자열로 처리되어 200 또는 400 가능
+        client.assert(response.status === 200 || response.status === 400,
+            "응답 상태 코드가 200 또는 400이어야 합니다");
+    });
+%}
+
+### 15. 실패 케이스 - 잘못된 Content-Type
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: text/plain
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+goal=AI 업데이트 정보를 수집해주세요.
+
+> {%
+    client.test("잘못된 Content-Type - HTTP 415", function() {
+        client.assert(response.status === 415 || response.status === 400,
+            "응답 상태 코드가 415 또는 400이어야 합니다");
+    });
+%}
+
+### 16. 실패 케이스 - 빈 요청 본문
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("빈 요청 본문 - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 17. 실패 케이스 - 잘못된 JSON 형식
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 정보를 수집해주세요.",
+  invalid json here
+}
+
+> {%
+    client.test("잘못된 JSON - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 18. 실패 케이스 - 존재하지 않는 엔드포인트
+POST {{gatewayUrl}}/api/v1/agent/unknown-endpoint
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "테스트"
+}
+
+> {%
+    client.test("존재하지 않는 엔드포인트 - HTTP 404", function() {
+        client.assert(response.status === 404, "응답 상태 코드가 404여야 합니다");
+    });
+
+    client.test("404 에러 응답 구조 확인", function() {
+        client.assert(response.body.code === "4004", "code가 4004(NOT_FOUND)여야 합니다");
+        client.assert(response.body.messageCode.code === "NOT_FOUND", "messageCode.code가 NOT_FOUND여야 합니다");
+    });
+%}
+
+### 19. 실패 케이스 - goal만 없는 빈 JSON 객체
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{}
+
+> {%
+    client.test("빈 JSON 객체 - HTTP 400", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+
+    client.test("빈 JSON 객체 - goal 누락 에러", function() {
+        client.assert(response.body.code === "4006", "code가 4006이어야 합니다");
+        client.assert(response.body.data.goal !== undefined, "goal 필드 에러가 존재해야 합니다");
+    });
+%}
+
+### ============================================
+### 엣지 케이스 (Edge Cases)
+### ============================================
+
+### 20. 엣지 케이스 - 빈 sessionId (자동 생성 확인)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": ""
+}
+
+> {%
+    client.test("빈 sessionId - 자동 생성되어 HTTP 200", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 21. 엣지 케이스 - 공백 sessionId (자동 생성 확인)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": "   "
+}
+
+> {%
+    client.test("공백 sessionId - 자동 생성되어 HTTP 200", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 22. 엣지 케이스 - 긴 sessionId
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": "very-long-session-id-that-might-exceed-normal-limits-1234567890-abcdefghijklmnopqrstuvwxyz"
+}
+
+> {%
+    client.test("긴 sessionId 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 23. 엣지 케이스 - 특수 문자가 포함된 sessionId
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": "session@#$%^&*()_+"
+}
+
+> {%
+    client.test("특수 문자 sessionId 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 24. 엣지 케이스 - 유니코드 문자가 포함된 sessionId
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": "세션-아이디-테스트-123"
+}
+
+> {%
+    client.test("유니코드 sessionId 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 25. 엣지 케이스 - 추가 필드가 포함된 요청 (무시되어야 함)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 정보를 수집해주세요.",
+  "sessionId": "test-session-extra",
+  "unknownField": "should be ignored",
+  "anotherUnknownField": 12345
+}
+
+> {%
+    client.test("추가 필드 무시하고 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 26. 엣지 케이스 - 동시 요청 시뮬레이션 (첫 번째)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "동시 요청 테스트 1",
+  "sessionId": "concurrent-test-1"
+}
+
+> {%
+    client.test("동시 요청 첫 번째 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 27. 엣지 케이스 - 동시 요청 시뮬레이션 (두 번째 - 같은 sessionId)
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "동시 요청 테스트 2",
+  "sessionId": "concurrent-test-1"
+}
+
+> {%
+    client.test("동일 sessionId 재사용 처리", function() {
+        client.assert(response.status === 200 || response.status === 409,
+            "응답 상태 코드가 200 또는 409여야 합니다");
+    });
+%}
+
+### 28. 엣지 케이스 - 매우 짧은 goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI"
+}
+
+> {%
+    client.test("짧은 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 29. 엣지 케이스 - 이모지가 포함된 goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "🤖 AI 업데이트 정보를 수집해주세요 🚀"
+}
+
+> {%
+    client.test("이모지 포함 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 30. 엣지 케이스 - 줄바꿈이 포함된 goal
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 정보를 수집해주세요.\n특히 LLM 관련 정보를 중점적으로.\n최근 일주일 내 업데이트만 포함해주세요."
+}
+
+> {%
+    client.test("줄바꿈 포함 goal 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 31. 엣지 케이스 - null sessionId 명시적 전달
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트",
+  "sessionId": null
+}
+
+> {%
+    client.test("null sessionId - 자동 생성되어 HTTP 200", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 32. 엣지 케이스 - sessionId 필드 없이 goal만 전달
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "sessionId 없이 goal만 전달하는 테스트"
+}
+
+> {%
+    client.test("sessionId 필드 없이 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 33. 엣지 케이스 - HTTP Method 오류 (GET)
+GET {{gatewayUrl}}/api/v1/agent/run
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("GET Method - HTTP 405", function() {
+        client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+%}
+
+### 34. 엣지 케이스 - HTTP Method 오류 (PUT)
+PUT {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트"
+}
+
+> {%
+    client.test("PUT Method - HTTP 405", function() {
+        client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+%}
+
+### 35. 엣지 케이스 - HTTP Method 오류 (DELETE)
+DELETE {{gatewayUrl}}/api/v1/agent/run
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("DELETE Method - HTTP 405", function() {
+        client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+%}
+
+### 36. 엣지 케이스 - HTTP Method 오류 (PATCH)
+PATCH {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "AI 업데이트 테스트"
+}
+
+> {%
+    client.test("PATCH Method - HTTP 405", function() {
+        client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+%}
+
+### 37. 엣지 케이스 - Content-Type에 charset 포함
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json; charset=UTF-8
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "charset 명시 테스트"
+}
+
+> {%
+    client.test("Content-Type charset 포함 - HTTP 200", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 38. 엣지 케이스 - 다른 x-user-id로 실행
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: different-admin-user-999
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "다른 사용자 ID로 실행 테스트"
+}
+
+> {%
+    client.test("다른 x-user-id 처리 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 39. 엣지 케이스 - Agent 실행 실패 시 응답 구조 확인 (의도적 실패 유발은 불가하나 응답 구조 문서화)
+# Agent가 내부적으로 실패하면 success=false, errors 배열에 에러 메시지가 포함됨
+# 이 테스트는 Agent 실행 결과의 errors 필드가 배열인지 확인
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "비정상적인 URL scraping 테스트: https://this-domain-does-not-exist-12345.invalid"
+}
+
+> {%
+    client.test("Agent 실행 응답 - HTTP 200 (Agent 내부 에러는 data에 포함)", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다 (Agent 내부 실패도 200으로 반환)");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+
+    client.test("Agent 응답 - errors 필드 확인", function() {
+        var data = response.body.data;
+        client.assert(Array.isArray(data.errors), "errors가 배열이어야 합니다");
+    });
+%}

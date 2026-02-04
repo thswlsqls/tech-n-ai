@@ -1,6 +1,6 @@
 package com.tech.n.ai.api.agent.config;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +37,7 @@ public class AiAgentConfig {
      * Tool 호출을 지원하는 모델 (낮은 temperature로 일관된 Tool 호출 유도)
      */
     @Bean("agentChatModel")
-    public ChatLanguageModel agentChatLanguageModel() {
+    public ChatModel agentChatLanguageModel() {
         log.info("Agent ChatLanguageModel 초기화: model={}, temperature={}", agentModelName, agentTemperature);
 
         return OpenAiChatModel.builder()

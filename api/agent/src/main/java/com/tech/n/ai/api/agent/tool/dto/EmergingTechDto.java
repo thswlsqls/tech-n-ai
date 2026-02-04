@@ -1,9 +1,9 @@
 package com.tech.n.ai.api.agent.tool.dto;
 
 /**
- * AI Update Tool 응답 DTO
+ * Emerging Tech Tool 응답 DTO
  */
-public record AiUpdateDto(
+public record EmergingTechDto(
     String id,
     String provider,
     String updateType,

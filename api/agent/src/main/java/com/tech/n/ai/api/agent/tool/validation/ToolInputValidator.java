@@ -1,6 +1,7 @@
 package com.tech.n.ai.api.agent.tool.validation;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -20,8 +21,29 @@ public final class ToolInputValidator {
     private static final Pattern GITHUB_OWNER_PATTERN = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
     private static final Pattern GITHUB_REPO_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
 
-    private static final Set<String> VALID_PROVIDERS = Set.of("OPENAI", "ANTHROPIC", "GOOGLE", "META");
-    private static final Set<String> VALID_UPDATE_TYPES = Set.of("MODEL_RELEASE", "API_UPDATE", "SDK_RELEASE", "BLOG_POST");
+    private static final Set<String> VALID_PROVIDERS = Set.of("OPENAI", "ANTHROPIC", "GOOGLE", "META", "XAI");
+    private static final Set<String> VALID_UPDATE_TYPES = Set.of("MODEL_RELEASE", "API_UPDATE", "SDK_RELEASE", "PRODUCT_LAUNCH", "PLATFORM_UPDATE", "BLOG_POST");
+
+    /**
+     * LLM이 자주 틀리는 GitHub org 이름 교정 맵
+     * key: 잘못된 이름 (lowercase), value: 올바른 이름
+     */
+    private static final Map<String, String> GITHUB_OWNER_CORRECTIONS = Map.of(
+        "anthropic", "anthropics",
+        "meta", "meta-llama",
+        "facebook", "facebookresearch",
+        "xai", "xai-org"
+    );
+
+    /**
+     * LLM이 다양한 케이스로 입력할 수 있으므로 대소문자 정규화 매핑 사용
+     */
+    private static final Map<String, String> GROUP_FIELD_MAP = Map.of(
+        "provider", "provider",
+        "source_type", "source_type",
+        "update_type", "update_type"
+    );
+    private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
 
     /**
      * 필수 입력값 검증 (null/blank 체크)
@@ -142,6 +164,76 @@ public final class ToolInputValidator {
         }
 
         return null;
+    }
+
+    /**
+     * GitHub owner 이름을 교정합니다.
+     * LLM이 자주 틀리는 org 이름(예: anthropic → anthropics)을 올바른 이름으로 변환합니다.
+     *
+     * @param owner 입력된 owner
+     * @return 교정된 owner (교정 불필요 시 원본 반환)
+     */
+    public static String correctGitHubOwner(String owner) {
+        if (owner == null || owner.isBlank()) {
+            return owner;
+        }
+        return GITHUB_OWNER_CORRECTIONS.getOrDefault(owner.toLowerCase(), owner);
+    }
+
+    /**
+     * 집계 기준 필드 검증
+     *
+     * <p>LLM이 "Provider", "SOURCE_TYPE" 등 다양한 케이스로 입력할 수 있으므로
+     * toLowerCase()로 정규화 후 매핑한다.
+     *
+     * @param groupBy 집계 기준 필드
+     * @return 에러 메시지 또는 null (검증 성공)
+     */
+    public static String validateGroupByField(String groupBy) {
+        String requiredError = validateRequired(groupBy, "groupBy");
+        if (requiredError != null) {
+            return requiredError;
+        }
+        if (!GROUP_FIELD_MAP.containsKey(groupBy.toLowerCase())) {
+            return String.format("Error: groupBy는 다음 값 중 하나여야 합니다: %s (입력값: %s)",
+                    String.join(", ", GROUP_FIELD_MAP.keySet()), groupBy);
+        }
+        return null;
+    }
+
+    /**
+     * groupBy 필드를 MongoDB 필드명으로 변환
+     *
+     * @param groupBy 입력값
+     * @return MongoDB 필드명 또는 null (매핑 실패)
+     */
+    public static String resolveGroupByField(String groupBy) {
+        if (groupBy == null || groupBy.isBlank()) {
+            return null;
+        }
+        return GROUP_FIELD_MAP.get(groupBy.toLowerCase());
+    }
+
+    /**
+     * 날짜 형식 검증 (YYYY-MM-DD, 빈 문자열 허용)
+     *
+     * @param date 검증할 날짜 문자열
+     * @param fieldName 필드명 (에러 메시지용)
+     * @return 에러 메시지 또는 null (검증 성공)
+     */
+    public static String validateDateOptional(String date, String fieldName) {
+        if (date == null || date.isBlank()) {
+            return null;
+        }
+        if (!DATE_PATTERN.matcher(date).matches()) {
+            return String.format("Error: %s는 YYYY-MM-DD 형식이어야 합니다 (입력값: %s)", fieldName, date);
+        }
+        try {
+            java.time.LocalDate.parse(date);
+            return null;
+        } catch (java.time.format.DateTimeParseException e) {
+            return String.format("Error: %s는 유효한 날짜가 아닙니다 (입력값: %s)", fieldName, date);
+        }
     }
 
     /**
