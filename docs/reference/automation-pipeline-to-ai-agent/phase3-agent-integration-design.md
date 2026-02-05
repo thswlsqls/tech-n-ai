@@ -16,7 +16,7 @@ Phase 2에서 정의한 Tool들을 사용하는 AI Agent를 구축하여, 자연
 ### 2.1 인터페이스 정의
 
 ```java
-package com.tech.n.ai.api.agent.agent;
+package com.ebson.shrimp.tm.demo.api.agent.agent;
 
 /**
  * Emerging Tech 업데이트 추적 Agent 인터페이스
@@ -78,10 +78,10 @@ api/agent/src/main/java/.../agent/
 ### 3.2 Agent 구현체
 
 ```java
-package com.tech.n.ai.api.agent.agent;
+package com.ebson.shrimp.tm.demo.api.agent.agent;
 
-import com.tech.n.ai.api.agent.tool.EmergingTechAgentTools;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
+import com.ebson.shrimp.tm.demo.api.agent.tool.EmergingTechAgentTools;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackContract;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -198,7 +198,7 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
 ### 3.3 AgentAssistant 인터페이스
 
 ```java
-package com.tech.n.ai.api.agent.agent;
+package com.ebson.shrimp.tm.demo.api.agent.agent;
 
 /**
  * LangChain4j AiServices용 Assistant 인터페이스
@@ -222,14 +222,14 @@ public interface AgentAssistant {
 ### 4.1 REST API 트리거
 
 ```java
-package com.tech.n.ai.api.agent.controller;
+package com.ebson.shrimp.tm.demo.api.agent.controller;
 
-import com.tech.n.ai.api.agent.agent.EmergingTechAgent;
-import com.tech.n.ai.api.agent.agent.EmergingTechAgentImpl;
-import com.tech.n.ai.api.agent.agent.AgentExecutionResult;
-import com.tech.n.ai.api.agent.config.AgentConfig;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.exception.exception.UnauthorizedException;
+import com.ebson.shrimp.tm.demo.api.agent.agent.EmergingTechAgent;
+import com.ebson.shrimp.tm.demo.api.agent.agent.EmergingTechAgentImpl;
+import com.ebson.shrimp.tm.demo.api.agent.agent.AgentExecutionResult;
+import com.ebson.shrimp.tm.demo.api.agent.config.AgentConfig;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.exception.exception.UnauthorizedException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -319,11 +319,11 @@ public class AgentController {
 ### 4.2 스케줄 트리거
 
 ```java
-package com.tech.n.ai.api.agent.scheduler;
+package com.ebson.shrimp.tm.demo.api.agent.scheduler;
 
-import com.tech.n.ai.api.agent.agent.EmergingTechAgent;
-import com.tech.n.ai.api.agent.agent.AgentExecutionResult;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
+import com.ebson.shrimp.tm.demo.api.agent.agent.EmergingTechAgent;
+import com.ebson.shrimp.tm.demo.api.agent.agent.AgentExecutionResult;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackContract;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -391,7 +391,7 @@ public class EmergingTechAgentScheduler {
 ### 5.1 Agent 설정 클래스
 
 ```java
-package com.tech.n.ai.api.agent.config;
+package com.ebson.shrimp.tm.demo.api.agent.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

@@ -142,7 +142,7 @@ public interface KakaoOAuthFeignClient { ... }
 #### 파일 구조
 
 ```
-client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/
+client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/
 ├── contract/
 │   ├── OAuthProviderContract.java
 │   └── OAuthDto.java
@@ -169,11 +169,11 @@ client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/contract/OAuthProviderContract.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.contract;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenRequest;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenResponse;
 
 /**
  * OAuth Provider Contract 인터페이스
@@ -205,7 +205,7 @@ public interface OAuthProviderContract {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/contract/OAuthDto.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.contract;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract;
 
 import lombok.Builder;
 
@@ -317,10 +317,10 @@ public class OAuthDto {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/client/GoogleOAuthFeignClient.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.client;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.GoogleTokenResponse;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.GoogleUserInfoResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.GoogleTokenResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.GoogleUserInfoResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
@@ -347,10 +347,10 @@ public interface GoogleOAuthFeignClient {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/client/NaverOAuthFeignClient.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.client;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.NaverTokenResponse;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.NaverUserInfoResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.NaverTokenResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.NaverUserInfoResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
@@ -377,10 +377,10 @@ public interface NaverOAuthFeignClient {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/client/KakaoOAuthFeignClient.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.client;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.KakaoTokenResponse;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.KakaoUserInfoResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.KakaoTokenResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.KakaoUserInfoResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
@@ -409,12 +409,12 @@ public interface KakaoOAuthFeignClient {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/api/GoogleOAuthApi.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.api;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.api;
 
-import com.tech.n.ai.client.feign.domain.oauth.client.GoogleOAuthFeignClient;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.*;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
-import com.tech.n.ai.common.exception.exception.UnauthorizedException;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client.GoogleOAuthFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.*;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthProviderContract;
+import com.ebson.shrimp.tm.demo.common.exception.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.LinkedMultiValueMap;
@@ -469,18 +469,18 @@ public class GoogleOAuthApi implements OAuthProviderContract {
 **파일 위치**: `client/feign/src/main/java/.../domain/oauth/config/OAuthFeignConfig.java`
 
 ```java
-package com.tech.n.ai.client.feign.domain.oauth.config;
+package com.ebson.shrimp.tm.demo.client.feign.domain.oauth.config;
 
-import com.tech.n.ai.client.feign.domain.oauth.api.GoogleOAuthApi;
-import com.tech.n.ai.client.feign.domain.oauth.api.KakaoOAuthApi;
-import com.tech.n.ai.client.feign.domain.oauth.api.NaverOAuthApi;
-import com.tech.n.ai.client.feign.domain.oauth.client.GoogleOAuthFeignClient;
-import com.tech.n.ai.client.feign.domain.oauth.client.KakaoOAuthFeignClient;
-import com.tech.n.ai.client.feign.domain.oauth.client.NaverOAuthFeignClient;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
-import com.tech.n.ai.client.feign.domain.oauth.mock.GoogleOAuthMock;
-import com.tech.n.ai.client.feign.domain.oauth.mock.KakaoOAuthMock;
-import com.tech.n.ai.client.feign.domain.oauth.mock.NaverOAuthMock;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.api.GoogleOAuthApi;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.api.KakaoOAuthApi;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.api.NaverOAuthApi;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client.GoogleOAuthFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client.KakaoOAuthFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.client.NaverOAuthFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthProviderContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.mock.GoogleOAuthMock;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.mock.KakaoOAuthMock;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.mock.NaverOAuthMock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
@@ -493,7 +493,7 @@ import org.springframework.context.annotation.Import;
     KakaoOAuthFeignClient.class
 })
 @Import({
-    com.tech.n.ai.client.feign.config.OpenFeignConfig.class
+    com.ebson.shrimp.tm.demo.client.feign.config.OpenFeignConfig.class
 })
 @Configuration
 public class OAuthFeignConfig {
@@ -587,10 +587,10 @@ dependencies {
 **파일 위치**: `api/auth/src/main/java/.../oauth/OAuthProvider.java`
 
 ```java
-package com.tech.n.ai.api.auth.oauth;
+package com.ebson.shrimp.tm.demo.api.auth.oauth;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthProviderContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
 
 /**
  * OAuth Provider 공통 인터페이스
@@ -635,11 +635,11 @@ public interface OAuthProvider {
 **파일 위치**: `api/auth/src/main/java/.../oauth/GoogleOAuthProvider.java`
 
 ```java
-package com.tech.n.ai.api.auth.oauth;
+package com.ebson.shrimp.tm.demo.api.auth.oauth;
 
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenRequest;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
-import com.tech.n.ai.client.feign.domain.oauth.contract.OAuthProviderContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthTokenRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthDto.OAuthUserInfo;
+import com.ebson.shrimp.tm.demo.client.feign.domain.oauth.contract.OAuthProviderContract;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

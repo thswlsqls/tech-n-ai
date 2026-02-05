@@ -23,7 +23,7 @@
 
 ### 현재 Redis 사용 현황
 
-**1. Redis 설정 (`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`)**:
+**1. Redis 설정 (`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`)**:
 - 기본 `RedisTemplate<String, String>` 설정
 - StringRedisSerializer 사용 (Key, Value, HashKey, HashValue 모두)
 - 연결 풀 설정 없음
@@ -31,13 +31,13 @@
 
 **2. Redis 사용 사례**:
 
-**a) OAuth State 저장 (`api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`)**:
+**a) OAuth State 저장 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`)**:
 - 용도: OAuth 2.0 CSRF 공격 방지를 위한 State 파라미터 저장
 - Key 형식: `oauth:state:{state_value}`
 - TTL: 10분 (600초)
 - 작업: 저장, 조회, 삭제 (일회성 사용)
 
-**b) Kafka 이벤트 멱등성 보장 (`common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`)**:
+**b) Kafka 이벤트 멱등성 보장 (`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`)**:
 - 용도: Kafka 이벤트 중복 처리 방지
 - Key 형식: `processed_event:{eventId}`
 - TTL: 7일
@@ -279,14 +279,14 @@ spring:
 ### 1단계: 현재 구현 분석
 
 **분석 대상**:
-1. `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
-2. `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`
-3. `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
+1. `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
+2. `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`
+3. `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
    - **특별 분석**: TTL 설정 방법의 일관성 (Duration vs TimeUnit 혼용 문제)
 4. `common/core/build.gradle` (의존성 확인)
 5. `common/security/build.gradle` (Spring Session Data Redis 의존성 확인)
    - **특별 분석**: Spring Session Data Redis 의존성이 있으나 실제 사용 여부 확인
-   - `common/security/src/main/java/com/tech/n/ai/common/security/config/SecurityConfig.java` 확인
+   - `common/security/src/main/java/com/ebson/shrimp/tm/demo/common/security/config/SecurityConfig.java` 확인
 6. `api/auth/src/main/resources/application-auth-api.yml` (Redis 연결 설정)
 
 **분석 항목**:

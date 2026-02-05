@@ -287,7 +287,7 @@ spring:
       enable-auto-commit: false
       max-poll-records: 500
       properties:
-        spring.json.trusted.packages: com.tech.n.ai.common.kafka.event,com.tech.n.ai.*.event
+        spring.json.trusted.packages: com.ebson.shrimp.tm.demo.common.kafka.event,com.ebson.shrimp.tm.demo.*.event
         isolation.level: read_committed
         max.poll.interval.ms: 600000
       # Consumer가 구독할 Topic 목록
@@ -1120,7 +1120,7 @@ spring:
   kafka:
     consumer:
       properties:
-        spring.json.trusted.packages: com.tech.n.ai.common.kafka.event,com.tech.n.ai.*.event
+        spring.json.trusted.packages: com.ebson.shrimp.tm.demo.common.kafka.event,com.ebson.shrimp.tm.demo.*.event
 ```
 
 와일드카드 패턴(`*.event`)을 사용하여 모든 도메인 패키지의 이벤트를 허용합니다.

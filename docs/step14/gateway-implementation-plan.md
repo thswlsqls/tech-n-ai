@@ -243,7 +243,7 @@ dependencies {
 ### 2. 패키지 구조
 
 ```
-api/gateway/src/main/java/com/tech/n/ai/api/gateway/
+api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
 ├── GatewayApplication.java                    # Spring Boot 메인 클래스 (기존)
 ├── config/
 │   ├── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정

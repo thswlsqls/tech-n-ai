@@ -92,7 +92,7 @@
 ### 코드 예시
 
 ```java
-package com.tech.n.ai.api.auth.oauth;
+package com.ebson.shrimp.tm.demo.api.auth.oauth;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

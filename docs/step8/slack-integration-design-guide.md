@@ -197,7 +197,7 @@ shrimp-tm-demo/
 
 **패키지 구조**:
 ```
-com.tech.n.ai.client.feign
+com.ebson.shrimp.tm.demo.client.feign
 ├── config/
 │   ├── OpenFeignConfig.java
 │   └── SampleFeignConfig.java
@@ -431,7 +431,7 @@ redisTemplate.opsForValue().set(
 ### 4.1. 패키지 구조 설계
 
 ```
-com.tech.n.ai.client.slack
+com.ebson.shrimp.tm.demo.client.slack
 ├── config/
 │   └── SlackConfig.java
 ├── domain/
@@ -695,7 +695,7 @@ resilience4j:
 #### SlackDto.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.contract;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract;
 
 import lombok.Builder;
 import java.time.LocalDateTime;
@@ -746,7 +746,7 @@ public class SlackDto {
 #### SlackContract.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.contract;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract;
 
 public interface SlackContract {
     void sendNotification(SlackDto.NotificationRequest request);
@@ -762,9 +762,9 @@ public interface SlackContract {
 #### SlackClient.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.client;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.client;
 
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackDto;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackDto;
 
 public interface SlackClient {
     void sendMessage(SlackDto.SlackMessage message);
@@ -778,11 +778,11 @@ public interface SlackClient {
 #### SlackWebhookClient.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.client;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.client;
 
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackDto;
-import com.tech.n.ai.client.slack.util.SlackRateLimiter;
-import com.tech.n.ai.client.slack.config.SlackProperties;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackDto;
+import com.ebson.shrimp.tm.demo.client.slack.util.SlackRateLimiter;
+import com.ebson.shrimp.tm.demo.client.slack.config.SlackProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -850,9 +850,9 @@ public class SlackWebhookClient implements SlackClient {
 #### SlackMessageBuilder.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.builder;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.builder;
 
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackDto;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackDto;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -909,12 +909,12 @@ public class SlackMessageBuilder {
 #### SlackApi.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.api;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.api;
 
-import com.tech.n.ai.client.slack.domain.slack.client.SlackClient;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackDto;
-import com.tech.n.ai.client.slack.domain.slack.builder.SlackMessageBuilder;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.client.SlackClient;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackContract;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackDto;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.builder.SlackMessageBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -1030,11 +1030,11 @@ public class SlackApi implements SlackContract {
 #### SlackNotificationServiceImpl.java
 
 ```java
-package com.tech.n.ai.client.slack.domain.slack.service;
+package com.ebson.shrimp.tm.demo.client.slack.domain.slack.service;
 
-import com.tech.n.ai.client.slack.domain.slack.builder.SlackMessageBuilder;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackDto;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.builder.SlackMessageBuilder;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackContract;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -1140,7 +1140,7 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
 #### SlackRateLimiter.java
 
 ```java
-package com.tech.n.ai.client.slack.util;
+package com.ebson.shrimp.tm.demo.client.slack.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -1193,13 +1193,13 @@ public class SlackRateLimiter {
 #### SlackConfig.java
 
 ```java
-package com.tech.n.ai.client.slack.config;
+package com.ebson.shrimp.tm.demo.client.slack.config;
 
-import com.tech.n.ai.client.slack.domain.slack.client.SlackClient;
-import com.tech.n.ai.client.slack.domain.slack.client.SlackWebhookClient;
-import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
-import com.tech.n.ai.client.slack.domain.slack.service.SlackNotificationService;
-import com.tech.n.ai.client.slack.domain.slack.service.SlackNotificationServiceImpl;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.client.SlackClient;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.client.SlackWebhookClient;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.contract.SlackContract;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.service.SlackNotificationService;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.service.SlackNotificationServiceImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -1230,7 +1230,7 @@ public class SlackConfig {
     
     @Bean
     public SlackContract slackContract(SlackClient slackClient) {
-        return new com.tech.n.ai.client.slack.domain.slack.api.SlackApi(slackClient);
+        return new com.ebson.shrimp.tm.demo.client.slack.domain.slack.api.SlackApi(slackClient);
     }
     
     @Bean
@@ -1244,13 +1244,13 @@ public class SlackConfig {
 
 #### 테스트 클래스 구조
 
-**참고 파일**: `client/feign/src/test/java/com/tech/n/ai/client/feign/SampleFeignTest.java`
+**참고 파일**: `client/feign/src/test/java/com/ebson/shrimp/tm/demo/client/feign/SampleFeignTest.java`
 
 ```java
-package com.tech.n.ai.client.slack;
+package com.ebson.shrimp.tm.demo.client.slack;
 
-import com.tech.n.ai.client.slack.config.SlackConfig;
-import com.tech.n.ai.client.slack.domain.slack.service.SlackNotificationService;
+import com.ebson.shrimp.tm.demo.client.slack.config.SlackConfig;
+import com.ebson.shrimp.tm.demo.client.slack.domain.slack.service.SlackNotificationService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1266,9 +1266,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class SlackClientTest {
     
     // SlackTestContext.java 예시
-    // package com.tech.n.ai.client.slack;
+    // package com.ebson.shrimp.tm.demo.client.slack;
     //
-    // import com.tech.n.ai.client.slack.config.SlackConfig;
+    // import com.ebson.shrimp.tm.demo.client.slack.config.SlackConfig;
     // import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
     // import org.springframework.boot.web.reactive.function.client.WebClientAutoConfiguration;
     //

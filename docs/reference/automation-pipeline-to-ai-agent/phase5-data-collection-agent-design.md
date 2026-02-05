@@ -97,7 +97,7 @@ EmergingTechAgentTools (Tool Layer)
 **역할**: 수집 결과 통계 DTO. LangChain4j가 JSON으로 직렬화하여 LLM에 전달하면, LLM이 이를 해석하여 사용자에게 보고한다.
 
 ```java
-package com.tech.n.ai.api.agent.tool.dto;
+package com.ebson.shrimp.tm.demo.api.agent.tool.dto;
 
 import java.util.List;
 
@@ -179,16 +179,16 @@ Agent에서는 배치 모듈의 `EmergingTechCreateRequest`(중간 DTO)를 경�
 - `AbstractEmergingTechWriter.java:115-138`
 
 ```java
-package com.tech.n.ai.api.agent.tool.util;
+package com.ebson.shrimp.tm.demo.api.agent.tool.util;
 
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import com.tech.n.ai.client.scraper.dto.ScrapedTechArticle;
-import com.tech.n.ai.domain.mongodb.enums.EmergingTechType;
-import com.tech.n.ai.domain.mongodb.enums.PostStatus;
-import com.tech.n.ai.domain.mongodb.enums.SourceType;
-import com.tech.n.ai.domain.mongodb.enums.TechProvider;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubDto;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedTechArticle;
+import com.ebson.shrimp.tm.demo.domain.mongodb.enums.EmergingTechType;
+import com.ebson.shrimp.tm.demo.domain.mongodb.enums.PostStatus;
+import com.ebson.shrimp.tm.demo.domain.mongodb.enums.SourceType;
+import com.ebson.shrimp.tm.demo.domain.mongodb.enums.TechProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
@@ -437,10 +437,10 @@ public final class DataCollectionProcessorUtil {
 `DataCollectionProcessorUtil`에서 `InternalApiDto.EmergingTechCreateRequest`로 변환할 수 있도록 한다.
 
 ```java
-package com.tech.n.ai.api.agent.service;
+package com.ebson.shrimp.tm.demo.api.agent.service;
 
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubContract;
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -507,11 +507,11 @@ public class GitHubDataCollectionService {
 제공자별 필터링 로직을 추가하여 `List<RssFeedItem>`을 반환한다.
 
 ```java
-package com.tech.n.ai.api.agent.service;
+package com.ebson.shrimp.tm.demo.api.agent.service;
 
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import com.tech.n.ai.client.rss.parser.GoogleAiBlogRssParser;
-import com.tech.n.ai.client.rss.parser.OpenAiBlogRssParser;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.client.rss.parser.GoogleAiBlogRssParser;
+import com.ebson.shrimp.tm.demo.client.rss.parser.OpenAiBlogRssParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -586,11 +586,11 @@ public class RssDataCollectionService {
 제공자별 필터링 로직을 추가하여 `List<ScrapedTechArticle>`을 반환한다.
 
 ```java
-package com.tech.n.ai.api.agent.service;
+package com.ebson.shrimp.tm.demo.api.agent.service;
 
-import com.tech.n.ai.client.scraper.dto.ScrapedTechArticle;
-import com.tech.n.ai.client.scraper.scraper.AnthropicNewsScraper;
-import com.tech.n.ai.client.scraper.scraper.MetaAiBlogScraper;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedTechArticle;
+import com.ebson.shrimp.tm.demo.client.scraper.scraper.AnthropicNewsScraper;
+import com.ebson.shrimp.tm.demo.client.scraper.scraper.MetaAiBlogScraper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -664,20 +664,20 @@ public class ScraperDataCollectionService {
 **역할**: 수집 파이프라인 오케스트레이터. fetch -> process -> Internal API 배치 호출 -> 결과 통계 반환.
 
 ```java
-package com.tech.n.ai.api.agent.tool.adapter;
+package com.ebson.shrimp.tm.demo.api.agent.tool.adapter;
 
-import com.tech.n.ai.api.agent.service.GitHubDataCollectionService;
-import com.tech.n.ai.api.agent.service.RssDataCollectionService;
-import com.tech.n.ai.api.agent.service.ScraperDataCollectionService;
-import com.tech.n.ai.api.agent.tool.dto.DataCollectionResultDto;
-import com.tech.n.ai.api.agent.tool.util.DataCollectionProcessorUtil;
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
-import com.tech.n.ai.client.feign.domain.internal.contract.EmergingTechInternalContract;
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import com.tech.n.ai.client.scraper.dto.ScrapedTechArticle;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.domain.mongodb.enums.TechProvider;
+import com.ebson.shrimp.tm.demo.api.agent.service.GitHubDataCollectionService;
+import com.ebson.shrimp.tm.demo.api.agent.service.RssDataCollectionService;
+import com.ebson.shrimp.tm.demo.api.agent.service.ScraperDataCollectionService;
+import com.ebson.shrimp.tm.demo.api.agent.tool.dto.DataCollectionResultDto;
+import com.ebson.shrimp.tm.demo.api.agent.tool.util.DataCollectionProcessorUtil;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubDto;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.EmergingTechInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedTechArticle;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.domain.mongodb.enums.TechProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -862,8 +862,8 @@ public class DataCollectionToolAdapter {
 #### 추가할 import 문
 
 ```java
-import com.tech.n.ai.api.agent.tool.adapter.DataCollectionToolAdapter;
-import com.tech.n.ai.api.agent.tool.dto.DataCollectionResultDto;
+import com.ebson.shrimp.tm.demo.api.agent.tool.adapter.DataCollectionToolAdapter;
+import com.ebson.shrimp.tm.demo.api.agent.tool.dto.DataCollectionResultDto;
 ```
 
 #### 추가할 필드

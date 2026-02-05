@@ -94,7 +94,7 @@ if (intent == Intent.GENERAL_CONVERSATION) {
 **파일**: `api/chatbot/.../service/dto/Intent.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service.dto;
+package com.ebson.shrimp.tm.demo.api.chatbot.service.dto;
 
 /**
  * 의도 분류 결과
@@ -130,9 +130,9 @@ public enum Intent {
 **파일**: `api/chatbot/.../service/IntentClassificationServiceImpl.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.service.dto.Intent;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.Intent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -351,9 +351,9 @@ private record WebSearchResult(String response, List<SourceResponse> sources) {}
 **파일**: `api/chatbot/.../service/WebSearchService.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.service.dto.WebSearchDocument;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.WebSearchDocument;
 import java.util.List;
 
 /**
@@ -385,7 +385,7 @@ public interface WebSearchService {
 **파일**: `api/chatbot/.../service/dto/WebSearchDocument.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service.dto;
+package com.ebson.shrimp.tm.demo.api.chatbot.service.dto;
 
 import lombok.Builder;
 
@@ -406,9 +406,9 @@ public record WebSearchDocument(
 **파일**: `api/chatbot/.../service/WebSearchServiceImpl.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.service.dto.WebSearchDocument;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.WebSearchDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -541,7 +541,7 @@ public String buildWebSearchPrompt(String query, List<WebSearchDocument> searchR
 **파일**: `api/chatbot/.../dto/response/SourceResponse.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.dto.response;
+package com.ebson.shrimp.tm.demo.api.chatbot.dto.response;
 
 import lombok.Builder;
 
@@ -579,7 +579,7 @@ chatbot:
 **파일**: `api/chatbot/.../config/WebSearchConfig.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

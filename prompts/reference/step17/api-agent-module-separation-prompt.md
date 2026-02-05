@@ -28,7 +28,7 @@ project(':api-agent').projectDir = file('api/agent')
 
 #### 1.2 api/agent/build.gradle 생성
 ```groovy
-group = 'com.tech.n.ai.api'
+group = 'com.ebson.shrimp.tm.demo.api'
 version = '0.0.1-SNAPSHOT'
 description = 'api-agent'
 
@@ -119,7 +119,7 @@ api/agent/
 | `api/chatbot/.../config/AiAgentConfig.java` | `api/agent/.../config/AiAgentConfig.java` | `api.chatbot.config` → `api.agent.config` |
 
 #### 2.2 패키지명 변경 규칙
-- `com.tech.n.ai.api.chatbot` → `com.tech.n.ai.api.agent`
+- `com.ebson.shrimp.tm.demo.api.chatbot` → `com.ebson.shrimp.tm.demo.api.agent`
 - 모든 import 문 업데이트
 
 ---
@@ -128,7 +128,7 @@ api/agent/
 
 #### 3.1 ApiAgentApplication.java
 ```java
-package com.tech.n.ai.api.agent;
+package com.ebson.shrimp.tm.demo.api.agent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -152,19 +152,19 @@ public class ApiAgentApplication {
 
 #### 3.2 config/ServerConfig.java
 ```java
-package com.tech.n.ai.api.agent.config;
+package com.ebson.shrimp.tm.demo.api.agent.config;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ComponentScan(basePackages = {
-    "com.tech.n.ai.api.agent",
-    "com.tech.n.ai.client.feign",
-    "com.tech.n.ai.client.slack",
-    "com.tech.n.ai.client.scraper",
-    "com.tech.n.ai.common.core",
-    "com.tech.n.ai.common.exception"
+    "com.ebson.shrimp.tm.demo.api.agent",
+    "com.ebson.shrimp.tm.demo.client.feign",
+    "com.ebson.shrimp.tm.demo.client.slack",
+    "com.ebson.shrimp.tm.demo.client.scraper",
+    "com.ebson.shrimp.tm.demo.common.core",
+    "com.ebson.shrimp.tm.demo.common.exception"
 })
 public class ServerConfig {
 }

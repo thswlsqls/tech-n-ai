@@ -414,23 +414,23 @@ Aurora MySQL ──이벤트 발행──> Kafka Topic ──이벤트 수신─
 설계서 작성 시 다음 코드를 참고하세요:
 
 ### 7.1 Kafka 모듈
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/publisher/EventPublisher.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BaseEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserCreatedEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserUpdatedEvent.java` (updatedFields 구조 확인)
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserDeletedEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserRestoredEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkCreatedEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkUpdatedEvent.java` (updatedFields 구조 확인)
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkDeletedEvent.java`
-- `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkRestoredEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BaseEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserCreatedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserUpdatedEvent.java` (updatedFields 구조 확인)
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserDeletedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserRestoredEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkCreatedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkUpdatedEvent.java` (updatedFields 구조 확인)
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkDeletedEvent.java`
+- `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkRestoredEvent.java`
 
 ### 7.2 MongoDB 모듈
-- `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/UserProfileDocument.java`
-- `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/BookmarkDocument.java`
-- `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/UserProfileRepository.java`
-- `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/BookmarkRepository.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java`
+- `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java`
 
 ---
 

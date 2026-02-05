@@ -323,13 +323,13 @@ dependencies {
 
 ```java
 @ComponentScan(basePackages = {
-    "com.tech.n.ai.api.agent",
-    "com.tech.n.ai.domain.mongodb",  // 추가
-    "com.tech.n.ai.client.feign",
-    "com.tech.n.ai.client.slack",
-    "com.tech.n.ai.client.scraper",
-    "com.tech.n.ai.common.core",
-    "com.tech.n.ai.common.exception"
+    "com.ebson.shrimp.tm.demo.api.agent",
+    "com.ebson.shrimp.tm.demo.domain.mongodb",  // 추가
+    "com.ebson.shrimp.tm.demo.client.feign",
+    "com.ebson.shrimp.tm.demo.client.slack",
+    "com.ebson.shrimp.tm.demo.client.scraper",
+    "com.ebson.shrimp.tm.demo.common.core",
+    "com.ebson.shrimp.tm.demo.common.exception"
 })
 ```
 

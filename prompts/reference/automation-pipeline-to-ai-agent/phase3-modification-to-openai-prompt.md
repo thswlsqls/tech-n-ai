@@ -12,7 +12,7 @@
 
 **변경 전:**
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -46,7 +46,7 @@ public class AiAgentConfig {
 
 **변경 후:**
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;

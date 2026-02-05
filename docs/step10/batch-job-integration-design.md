@@ -56,7 +56,7 @@
 
 #### 1. batch-source 모듈의 DTO
 
-**위치**: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/dto/`
+**위치**: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/dto/`
 
 **DTO 목록**:
 - `ContestCreateRequest` (api-contest 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -71,7 +71,7 @@
 
 #### 2. client-feign 모듈의 내부 API DTO
 
-**위치**: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/InternalApiDto.java`
+**위치**: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/InternalApiDto.java`
 
 **DTO 목록**:
 - `InternalApiDto.ContestCreateRequest` (api-contest 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -86,7 +86,7 @@
 
 #### 3. api-contest/api-news 모듈의 DTO
 
-**위치**: `api/{contest|news}/src/main/java/com/tech/n/ai/api/{contest|news}/dto/`
+**위치**: `api/{contest|news}/src/main/java/com/ebson/shrimp/tm/demo/api/{contest|news}/dto/`
 
 **DTO 목록**:
 - `ContestCreateRequest` (batch-source, client-feign 모듈의 DTO와 필드가 같아도 별도 정의)
@@ -197,7 +197,7 @@ public void write(Chunk<? extends ContestCreateRequest> chunk) throws Exception 
 
 ```
 client-feign/
-  src/main/java/com/tech/n/ai/client/feign/domain/
+  src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/
     internal/
       contract/
         ContestInternalContract.java
@@ -209,7 +209,7 @@ client-feign/
       api/
         ContestInternalApi.java
         NewsInternalApi.java
-  src/main/java/com/tech/n/ai/client/feign/config/
+  src/main/java/com/ebson/shrimp/tm/demo/client/feign/config/
     ContestInternalFeignConfig.java
     NewsInternalFeignConfig.java
 ```
@@ -219,10 +219,10 @@ client-feign/
 #### ContestInternalContract
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.contract;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract;
 
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -250,10 +250,10 @@ public interface ContestInternalContract {
 #### NewsInternalContract
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.contract;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract;
 
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -281,7 +281,7 @@ public interface NewsInternalContract {
 ### InternalApiDto 설계
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.contract;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract;
 
 import lombok.Builder;
 import lombok.Data;
@@ -362,11 +362,11 @@ public class InternalApiDto {
 기존 `*FeignConfig` 패턴을 따르며, `OpenFeignConfig`를 `@Import`하여 공통 설정을 사용합니다.
 
 ```java
-package com.tech.n.ai.client.feign.config;
+package com.ebson.shrimp.tm.demo.client.feign.config;
 
-import com.tech.n.ai.client.feign.domain.internal.api.ContestInternalApi;
-import com.tech.n.ai.client.feign.domain.internal.client.ContestInternalFeignClient;
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.api.ContestInternalApi;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.client.ContestInternalFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -391,11 +391,11 @@ public class ContestInternalFeignConfig {
 #### NewsInternalFeignConfig
 
 ```java
-package com.tech.n.ai.client.feign.config;
+package com.ebson.shrimp.tm.demo.client.feign.config;
 
-import com.tech.n.ai.client.feign.domain.internal.api.NewsInternalApi;
-import com.tech.n.ai.client.feign.domain.internal.client.NewsInternalFeignClient;
-import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.api.NewsInternalApi;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.client.NewsInternalFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.NewsInternalContract;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -447,9 +447,9 @@ internal-api:
 #### ContestInternalFeignClient
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.client;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.client;
 
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
 import org.springframework.cloud.openfeign.FeignClient;
 
 @FeignClient(
@@ -463,9 +463,9 @@ public interface ContestInternalFeignClient extends ContestInternalContract {
 #### NewsInternalFeignClient
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.client;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.client;
 
-import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.NewsInternalContract;
 import org.springframework.cloud.openfeign.FeignClient;
 
 @FeignClient(
@@ -481,12 +481,12 @@ public interface NewsInternalFeignClient extends NewsInternalContract {
 #### ContestInternalApi
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.api;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.api;
 
-import com.tech.n.ai.client.feign.domain.internal.client.ContestInternalFeignClient;
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.client.ContestInternalFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -513,12 +513,12 @@ public class ContestInternalApi implements ContestInternalContract {
 #### NewsInternalApi
 
 ```java
-package com.tech.n.ai.client.feign.domain.internal.api;
+package com.ebson.shrimp.tm.demo.client.feign.domain.internal.api;
 
-import com.tech.n.ai.client.feign.domain.internal.client.NewsInternalFeignClient;
-import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.client.NewsInternalFeignClient;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.NewsInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -586,7 +586,7 @@ public class NewsInternalApi implements NewsInternalContract {
 
 ```
 batch-source/
-  src/main/java/com/tech/n/ai/batch/source/domain/
+  src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/
     contest/
       codeforces/ (기존, client-feign)
         jobconfig/ContestCodeforcesApiJobConfig.java
@@ -645,18 +645,18 @@ batch-source/
 #### 구현 예시 1: client-feign 클라이언트 (`*ApiJobConfig` 패턴)
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.github.jobconfig;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.jobconfig;
 
-import com.tech.n.ai.batch.source.common.Constants;
-import com.tech.n.ai.batch.source.domain.contest.github.incrementer.ContestGitHubIncrementer;
-import com.tech.n.ai.batch.source.domain.contest.github.jobparameter.ContestGitHubJobParameter;
-import com.tech.n.ai.batch.source.domain.contest.github.processor.GitHubStep1Processor;
-import com.tech.n.ai.batch.source.domain.contest.github.reader.GitHubApiPagingItemReader;
-import com.tech.n.ai.batch.source.domain.contest.github.service.GitHubApiService;
-import com.tech.n.ai.batch.source.domain.contest.github.writer.GitHubStep1Writer;
-import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.batch.source.common.Constants;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.incrementer.ContestGitHubIncrementer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.jobparameter.ContestGitHubJobParameter;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.processor.GitHubStep1Processor;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.reader.GitHubApiPagingItemReader;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.service.GitHubApiService;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.writer.GitHubStep1Writer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.dto.request.ContestCreateRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubDto;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -730,17 +730,17 @@ public class ContestGitHubApiJobConfig {  // *ApiJobConfig 명명 규칙
 #### 구현 예시 2: client-rss 클라이언트 (`*RssParserJobConfig` 패턴)
 
 ```java
-package com.tech.n.ai.batch.source.domain.news.techcrunch.jobconfig;
+package com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.jobconfig;
 
-import com.tech.n.ai.batch.source.common.Constants;
-import com.tech.n.ai.batch.source.domain.news.techcrunch.incrementer.NewsTechCrunchIncrementer;
-import com.tech.n.ai.batch.source.domain.news.techcrunch.jobparameter.NewsTechCrunchJobParameter;
-import com.tech.n.ai.batch.source.domain.news.techcrunch.processor.TechCrunchStep1Processor;
-import com.tech.n.ai.batch.source.domain.news.techcrunch.reader.TechCrunchRssItemReader;
-import com.tech.n.ai.batch.source.domain.news.techcrunch.writer.TechCrunchStep1Writer;
-import com.tech.n.ai.batch.source.domain.news.dto.request.NewsCreateRequest;
-import com.tech.n.ai.client.feign.domain.internal.contract.NewsInternalContract;
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.batch.source.common.Constants;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.incrementer.NewsTechCrunchIncrementer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.jobparameter.NewsTechCrunchJobParameter;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.processor.TechCrunchStep1Processor;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.reader.TechCrunchRssItemReader;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.writer.TechCrunchStep1Writer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.news.dto.request.NewsCreateRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.NewsInternalContract;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -814,17 +814,17 @@ public class NewsTechCrunchRssParserJobConfig {  // *RssParserJobConfig 명명 �
 #### 구현 예시 3: client-scraper 클라이언트 (`*ScraperJobConfig` 패턴)
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.leetcode.jobconfig;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.jobconfig;
 
-import com.tech.n.ai.batch.source.common.Constants;
-import com.tech.n.ai.batch.source.domain.contest.leetcode.incrementer.ContestLeetCodeIncrementer;
-import com.tech.n.ai.batch.source.domain.contest.leetcode.jobparameter.ContestLeetCodeJobParameter;
-import com.tech.n.ai.batch.source.domain.contest.leetcode.processor.LeetCodeStep1Processor;
-import com.tech.n.ai.batch.source.domain.contest.leetcode.reader.LeetCodeScrapingItemReader;
-import com.tech.n.ai.batch.source.domain.contest.leetcode.writer.LeetCodeStep1Writer;
-import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
-import com.tech.n.ai.client.scraper.dto.ScrapedContestItem;
+import com.ebson.shrimp.tm.demo.batch.source.common.Constants;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.incrementer.ContestLeetCodeIncrementer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.jobparameter.ContestLeetCodeJobParameter;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.processor.LeetCodeStep1Processor;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.reader.LeetCodeScrapingItemReader;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.writer.LeetCodeStep1Writer;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.dto.request.ContestCreateRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedContestItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -919,10 +919,10 @@ public class ContestLeetCodeScraperJobConfig {  // *ScraperJobConfig 명명 규�
 #### Feign API용 *PagingItemReader
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.github.reader;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.reader;
 
-import com.tech.n.ai.batch.source.domain.contest.github.service.GitHubApiService;
-import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.github.service.GitHubApiService;
+import com.ebson.shrimp.tm.demo.client.feign.domain.github.contract.GitHubDto;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -974,10 +974,10 @@ public class GitHubApiPagingItemReader<T> extends AbstractPagingItemReader<T> {
 #### RSS용 *RssItemReader
 
 ```java
-package com.tech.n.ai.batch.source.domain.news.techcrunch.reader;
+package com.ebson.shrimp.tm.demo.batch.source.domain.news.techcrunch.reader;
 
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
-import com.tech.n.ai.client.rss.parser.TechCrunchRssParser;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.client.rss.parser.TechCrunchRssParser;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -1029,10 +1029,10 @@ public class TechCrunchRssItemReader<T> extends AbstractPagingItemReader<T> {
 #### Scraper용 *ScrapingItemReader
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.leetcode.reader;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.leetcode.reader;
 
-import com.tech.n.ai.client.scraper.dto.ScrapedContestItem;
-import com.tech.n.ai.client.scraper.scraper.LeetCodeScraper;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedContestItem;
+import com.ebson.shrimp.tm.demo.client.scraper.scraper.LeetCodeScraper;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -1141,10 +1141,10 @@ public class LeetCodeScrapingItemReader<T> extends AbstractPagingItemReader<T> {
 ### 구현 예시
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.codeforces.processor;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.codeforces.processor;
 
-import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
-import com.tech.n.ai.client.feign.domain.codeforces.contract.CodeforcesDto;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.dto.request.ContestCreateRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.codeforces.contract.CodeforcesDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -1233,12 +1233,12 @@ public class CodeforcesStep1Processor implements ItemProcessor<CodeforcesDto.Con
 ### 구현 예시
 
 ```java
-package com.tech.n.ai.batch.source.domain.contest.codeforces.writer;
+package com.ebson.shrimp.tm.demo.batch.source.domain.contest.codeforces.writer;
 
-import com.tech.n.ai.batch.source.domain.contest.dto.request.ContestCreateRequest;
-import com.tech.n.ai.client.feign.domain.internal.contract.ContestInternalContract;
-import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.batch.source.domain.contest.dto.request.ContestCreateRequest;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.ContestInternalContract;
+import com.ebson.shrimp.tm.demo.client.feign.domain.internal.contract.InternalApiDto;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -1362,7 +1362,7 @@ MongoDB Atlas (ContestDocument / NewsArticleDocument)
 **명명 규칙**: Job 이름은 소문자와 점(.)을 사용하며, 클라이언트 타입을 구분하지 않음 (JobConfig 클래스 이름에서만 구분)
 
 ```java
-package com.tech.n.ai.batch.source.common;
+package com.ebson.shrimp.tm.demo.batch.source.common;
 
 public class Constants {
     

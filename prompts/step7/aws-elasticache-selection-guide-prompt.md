@@ -21,7 +21,7 @@
 다음 파일들을 분석하여 현재 프로젝트의 Redis 사용 목적과 패턴을 정확히 파악하세요:
 
 **분석 대상**:
-- `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
+- `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
 - `common/core/src/main/resources/application-common-core.yml`
 - `docs/step6/oauth-state-storage-research-result.md`
 - `docs/step7/redis-optimization-best-practices.md`

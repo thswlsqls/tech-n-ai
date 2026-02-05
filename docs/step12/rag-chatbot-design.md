@@ -343,7 +343,7 @@ sequenceDiagram
 
 ```
 api/chatbot/
-├── src/main/java/com/tech/n/ai/api/chatbot/
+├── src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/
 │   ├── ChatbotApplication.java
 │   ├── config/
 │   │   ├── LangChain4jConfig.java
@@ -513,7 +513,7 @@ chatbot:
 
 **`LangChain4jConfig.java`**:
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -623,10 +623,10 @@ public class LangChain4jConfig {
 
 **방법 1: common/core 모듈의 RedisConfig 확장 (권장)**:
 
-`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`에 추가:
+`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`에 추가:
 
 ```java
-package com.tech.n.ai.common.core.config;
+package com.ebson.shrimp.tm.demo.common.core.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -679,10 +679,10 @@ public class RedisConfig {
 
 **방법 2: 챗봇 모듈에 별도 Config 추가**:
 
-`api/chatbot/src/main/java/com/tech/n/ai/api/chatbot/config/ChatbotRedisConfig.java` 생성:
+`api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot/config/ChatbotRedisConfig.java` 생성:
 
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -894,7 +894,7 @@ MongoDB Atlas에서 Vector Search Index를 생성합니다:
 
 **VectorSearchService.java** (의사코드):
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import lombok.RequiredArgsConstructor;
@@ -1589,9 +1589,9 @@ langchain4j는 `ChatMemory` 인터페이스를 통해 대화 메모리를 관리
 **Command Side (Aurora MySQL) - ConversationSession 엔티티**:
 
 ```java
-package com.tech.n.ai.domain.mariadb.entity.chatbot;
+package com.ebson.shrimp.tm.demo.domain.mariadb.entity.chatbot;
 
-import com.tech.n.ai.domain.mariadb.entity.BaseEntity;
+import com.ebson.shrimp.tm.demo.domain.mariadb.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -1632,7 +1632,7 @@ public class ConversationSessionEntity extends BaseEntity {
 **Query Side (MongoDB Atlas) - ConversationSessionDocument**:
 
 ```java
-package com.tech.n.ai.domain.mongodb.document;
+package com.ebson.shrimp.tm.demo.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -1691,7 +1691,7 @@ public class ConversationSessionDocument {
 **Command Side (Aurora MySQL) - ConversationMessage 엔티티**:
 
 ```java
-package com.tech.n.ai.domain.mariadb.entity.chatbot;
+package com.ebson.shrimp.tm.demo.domain.mariadb.entity.chatbot;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -1746,7 +1746,7 @@ public class ConversationMessageEntity {
 **Query Side (MongoDB Atlas) - ConversationMessageDocument**:
 
 ```java
-package com.tech.n.ai.domain.mongodb.document;
+package com.ebson.shrimp.tm.demo.domain.mongodb.document;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -1842,7 +1842,7 @@ public class ConversationMessageDocument {
 langchain4j의 `ChatMemoryStore` 인터페이스를 구현하여 영구 저장소를 제공합니다:
 
 ```java
-package com.tech.n.ai.api.chatbot.memory;
+package com.ebson.shrimp.tm.demo.api.chatbot.memory;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.memory.ChatMemoryStore;
@@ -1939,7 +1939,7 @@ public ChatMemory chatMemory(ChatMemoryStore memoryStore) {
 사용자별/세션별 ChatMemory 인스턴스를 제공합니다:
 
 ```java
-package com.tech.n.ai.api.chatbot.memory;
+package com.ebson.shrimp.tm.demo.api.chatbot.memory;
 
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.ChatMemoryProvider;
@@ -1988,7 +1988,7 @@ langchain4j의 `ChatMessage`를 각 Provider API 포맷으로 변환하는 인�
 **MessageFormatConverter 인터페이스**:
 
 ```java
-package com.tech.n.ai.api.chatbot.converter;
+package com.ebson.shrimp.tm.demo.api.chatbot.converter;
 
 import dev.langchain4j.data.message.ChatMessage;
 import java.util.List;
@@ -2018,7 +2018,7 @@ public interface MessageFormatConverter {
 **OpenAiMessageConverter 구현** (기본):
 
 ```java
-package com.tech.n.ai.api.chatbot.converter;
+package com.ebson.shrimp.tm.demo.api.chatbot.converter;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -2088,7 +2088,7 @@ public class OpenAiMessageConverter implements MessageFormatConverter {
 **AnthropicMessageConverter 구현** (대안):
 
 ```java
-package com.tech.n.ai.api.chatbot.converter;
+package com.ebson.shrimp.tm.demo.api.chatbot.converter;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -2309,9 +2309,9 @@ public record ChatResponse(
 ##### ConversationSessionService
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.SessionResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -2398,14 +2398,14 @@ public interface ConversationSessionService {
 ##### ConversationSessionService 구현 예시
 
 ```java
-package com.tech.n.ai.api.chatbot.service.impl;
+package com.ebson.shrimp.tm.demo.api.chatbot.service.impl;
 
-import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
-import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
-import com.tech.n.ai.api.chatbot.common.exception.ConversationSessionNotFoundException;
-import com.tech.n.ai.api.chatbot.common.exception.UnauthorizedException;
-import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
-import com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.SessionResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ConversationSessionService;
+import com.ebson.shrimp.tm.demo.api.chatbot.common.exception.ConversationSessionNotFoundException;
+import com.ebson.shrimp.tm.demo.api.chatbot.common.exception.UnauthorizedException;
+import com.ebson.shrimp.tm.demo.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.ebson.shrimp.tm.demo.domain.mariadb.repository.writer.chatbot.ConversationSessionWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -2581,9 +2581,9 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
 세션 생명주기 관리를 위한 Repository 메서드 추가:
 
 ```java
-package com.tech.n.ai.domain.mariadb.repository.writer.chatbot;
+package com.ebson.shrimp.tm.demo.domain.mariadb.repository.writer.chatbot;
 
-import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
+import com.ebson.shrimp.tm.demo.domain.mariadb.entity.chatbot.ConversationSessionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -2638,9 +2638,9 @@ public interface ConversationSessionWriterRepository extends JpaRepository<Conve
 **세션 생명주기 스케줄러 구현**:
 
 ```java
-package com.tech.n.ai.api.chatbot.scheduler;
+package com.ebson.shrimp.tm.demo.api.chatbot.scheduler;
 
-import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ConversationSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -2714,7 +2714,7 @@ public class ConversationSessionLifecycleScheduler {
 **스케줄러 활성화 설정**:
 
 ```java
-package com.tech.n.ai.api.chatbot.config;
+package com.ebson.shrimp.tm.demo.api.chatbot.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -2732,9 +2732,9 @@ public class SchedulerConfig {
 ##### ConversationMessageService
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.MessageResponse;
 import dev.langchain4j.data.message.ChatMessage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -2768,16 +2768,16 @@ public interface ConversationMessageService {
 기존 `generateResponse(ChatRequest)` 메서드에 히스토리 관리 로직을 추가합니다:
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.converter.MessageFormatConverter;
-import com.tech.n.ai.api.chatbot.dto.request.ChatRequest;
-import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
-import com.tech.n.ai.api.chatbot.memory.ChatMemoryProvider;
-import com.tech.n.ai.api.chatbot.service.ConversationMessageService;
-import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
-import com.tech.n.ai.api.chatbot.service.LLMService;
-import com.tech.n.ai.api.chatbot.service.TokenService;
+import com.ebson.shrimp.tm.demo.api.chatbot.converter.MessageFormatConverter;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.request.ChatRequest;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.ChatResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.memory.ChatMemoryProvider;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ConversationMessageService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ConversationSessionService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.LLMService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.TokenService;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -3303,9 +3303,9 @@ public class TokenService {
 
 **CacheService.java**:
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.ChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -3419,7 +3419,7 @@ public class CacheService {
 - **Key 네이밍**: `chatbot:ratelimit:{userId}` (네임스페이스 구분)
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -3594,7 +3594,7 @@ public class RateLimitingService {
 
 **ChatRequest.java**:
 ```java
-package com.tech.n.ai.api.chatbot.dto.request;
+package com.ebson.shrimp.tm.demo.api.chatbot.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -3639,7 +3639,7 @@ public record ChatOptions(
 
 **ChatResponse.java**:
 ```java
-package com.tech.n.ai.api.chatbot.dto.response;
+package com.ebson.shrimp.tm.demo.api.chatbot.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -3694,14 +3694,14 @@ public record TokenUsage(
 
 **ChatbotFacade.java**:
 ```java
-package com.tech.n.ai.api.chatbot.facade;
+package com.ebson.shrimp.tm.demo.api.chatbot.facade;
 
-import com.tech.n.ai.api.chatbot.dto.request.ChatRequest;
-import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
-import com.tech.n.ai.api.chatbot.dto.response.SessionListResponse;
-import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
-import com.tech.n.ai.api.chatbot.service.ChatbotService;
-import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.request.ChatRequest;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.ChatResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.SessionListResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.SessionResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ChatbotService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ConversationSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -3780,12 +3780,12 @@ public class ChatbotFacade {
 
 **ChatbotController.java**:
 ```java
-package com.tech.n.ai.api.chatbot.controller;
+package com.ebson.shrimp.tm.demo.api.chatbot.controller;
 
-import com.tech.n.ai.api.chatbot.dto.request.ChatRequest;
-import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
-import com.tech.n.ai.api.chatbot.facade.ChatbotFacade;
-import com.tech.n.ai.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.request.ChatRequest;
+import com.ebson.shrimp.tm.demo.api.chatbot.dto.response.ChatResponse;
+import com.ebson.shrimp.tm.demo.api.chatbot.facade.ChatbotFacade;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -4053,7 +4053,7 @@ public SessionResponse getSession(String sessionId, Long userId) {
 #### UnauthorizedException
 
 ```java
-package com.tech.n.ai.api.chatbot.common.exception;
+package com.ebson.shrimp.tm.demo.api.chatbot.common.exception;
 
 /**
  * 세션 소유권이 없을 때 발생하는 예외
@@ -4082,17 +4082,17 @@ public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedExceptio
 
 **ChatbotExceptionHandler.java**:
 ```java
-package com.tech.n.ai.api.chatbot.common.exception;
+package com.ebson.shrimp.tm.demo.api.chatbot.common.exception;
 
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.core.dto.MessageCode;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.MessageCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
-@RestControllerAdvice(basePackages = "com.tech.n.ai.api.chatbot")
+@RestControllerAdvice(basePackages = "com.ebson.shrimp.tm.demo.api.chatbot")
 public class ChatbotExceptionHandler {
     
     @ExceptionHandler(InvalidInputException.class)
@@ -4142,7 +4142,7 @@ public class ChatbotExceptionHandler {
 
 1. **모듈 생성**
    ```bash
-   mkdir -p api/chatbot/src/main/java/com/tech/n/ai/api/chatbot
+   mkdir -p api/chatbot/src/main/java/com/ebson/shrimp/tm/demo/api/chatbot
    mkdir -p api/chatbot/src/main/resources
    ```
 
@@ -4336,7 +4336,7 @@ chatbot:
 
 logging:
   level:
-    com.tech.n.ai.api.chatbot: DEBUG
+    com.ebson.shrimp.tm.demo.api.chatbot: DEBUG
     dev.langchain4j: INFO
 ```
 

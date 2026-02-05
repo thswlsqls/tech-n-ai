@@ -1144,9 +1144,9 @@ public class Resilience4jConfig {
 
 ```java
 // test/java/.../client/rss/RssTestContext.java
-package com.tech.n.ai.client.rss;
+package com.ebson.shrimp.tm.demo.client.rss;
 
-import com.tech.n.ai.client.rss.config.RssParserConfig;
+import com.ebson.shrimp.tm.demo.client.rss.config.RssParserConfig;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -1163,9 +1163,9 @@ class RssTestContext {
 
 ```java
 // test/java/.../client/scraper/ScraperTestContext.java
-package com.tech.n.ai.client.scraper;
+package com.ebson.shrimp.tm.demo.client.scraper;
 
-import com.tech.n.ai.client.scraper.config.ScraperConfig;
+import com.ebson.shrimp.tm.demo.client.scraper.config.ScraperConfig;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -1184,11 +1184,11 @@ class ScraperTestContext {
 
 ```java
 // test/java/.../client/rss/parser/TechCrunchRssParserTest.java
-package com.tech.n.ai.client.rss.parser;
+package com.ebson.shrimp.tm.demo.client.rss.parser;
 
-import com.tech.n.ai.client.rss.RssTestContext;
-import com.tech.n.ai.client.rss.config.RssParserConfig;
-import com.tech.n.ai.client.rss.dto.RssFeedItem;
+import com.ebson.shrimp.tm.demo.client.rss.RssTestContext;
+import com.ebson.shrimp.tm.demo.client.rss.config.RssParserConfig;
+import com.ebson.shrimp.tm.demo.client.rss.dto.RssFeedItem;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -1261,11 +1261,11 @@ public class TechCrunchRssParserTest {
 
 ```java
 // test/java/.../client/scraper/scraper/DevpostScraperTest.java
-package com.tech.n.ai.client.scraper.scraper;
+package com.ebson.shrimp.tm.demo.client.scraper.scraper;
 
-import com.tech.n.ai.client.scraper.ScraperTestContext;
-import com.tech.n.ai.client.scraper.config.ScraperConfig;
-import com.tech.n.ai.client.scraper.dto.ScrapedContestItem;
+import com.ebson.shrimp.tm.demo.client.scraper.ScraperTestContext;
+import com.ebson.shrimp.tm.demo.client.scraper.config.ScraperConfig;
+import com.ebson.shrimp.tm.demo.client.scraper.dto.ScrapedContestItem;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

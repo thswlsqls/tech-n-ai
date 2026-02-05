@@ -33,7 +33,7 @@
 ### 2.1 서비스 클래스
 
 ```java
-package com.tech.n.ai.domain.mongodb.service;
+package com.ebson.shrimp.tm.demo.domain.mongodb.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -91,7 +91,7 @@ public class EmergingTechAggregationService {
      *
      * <p>Aggregation Pipeline:
      * <pre>
-     * 1. $match: 기간 필터 + provider 필터
+     * 1. $match: 기간 필터 + provider/updateType/sourceType 필터
      * 2. $project: title + summary를 하나의 텍스트로 결합, 소문자 변환, 공백 기준 분리
      * 3. $unwind: 단어 배열을 개별 도큐먼트로 전개
      * 4. $match: 불용어 제외, 2글자 미만 제외
@@ -101,6 +101,8 @@ public class EmergingTechAggregationService {
      * </pre>
      *
      * @param provider provider 필터 (nullable)
+     * @param updateType update_type 필터 (nullable)
+     * @param sourceType source_type 필터 (nullable)
      * @param startDate 조회 시작일 (nullable)
      * @param endDate 조회 종료일 (nullable)
      * @param stopWords 불용어 목록 (외부 설정에서 주입)
@@ -108,12 +110,19 @@ public class EmergingTechAggregationService {
      * @return 단어별 빈도 집계 결과
      */
     public List<WordFrequencyResult> aggregateWordFrequency(
-            String provider, LocalDateTime startDate, LocalDateTime endDate,
+            String provider, String updateType, String sourceType,
+            LocalDateTime startDate, LocalDateTime endDate,
             List<String> stopWords, int topN) {
 
         Criteria criteria = buildDateCriteria(startDate, endDate);
         if (provider != null && !provider.isBlank()) {
             criteria = criteria.and("provider").is(provider);
+        }
+        if (updateType != null && !updateType.isBlank()) {
+            criteria = criteria.and("update_type").is(updateType);
+        }
+        if (sourceType != null && !sourceType.isBlank()) {
+            criteria = criteria.and("source_type").is(sourceType);
         }
 
         Aggregation aggregation = Aggregation.newAggregation(
@@ -148,14 +157,23 @@ public class EmergingTechAggregationService {
      * 기간 내 전체 도큐먼트 수 조회
      *
      * @param provider provider 필터 (nullable)
+     * @param updateType update_type 필터 (nullable)
+     * @param sourceType source_type 필터 (nullable)
      * @param startDate 조회 시작일 (nullable)
      * @param endDate 조회 종료일 (nullable)
      * @return 도큐먼트 수
      */
-    public long countDocuments(String provider, LocalDateTime startDate, LocalDateTime endDate) {
+    public long countDocuments(String provider, String updateType, String sourceType,
+                               LocalDateTime startDate, LocalDateTime endDate) {
         Criteria criteria = buildDateCriteria(startDate, endDate);
         if (provider != null && !provider.isBlank()) {
             criteria = criteria.and("provider").is(provider);
+        }
+        if (updateType != null && !updateType.isBlank()) {
+            criteria = criteria.and("update_type").is(updateType);
+        }
+        if (sourceType != null && !sourceType.isBlank()) {
+            criteria = criteria.and("source_type").is(sourceType);
         }
         Query query = new Query(criteria);
         return mongoTemplate.count(query, COLLECTION);
@@ -194,7 +212,7 @@ public class EmergingTechAggregationService {
 ### 2.2 집계 결과 DTO
 
 ```java
-package com.tech.n.ai.domain.mongodb.service;
+package com.ebson.shrimp.tm.demo.domain.mongodb.service;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -214,7 +232,7 @@ public class GroupCountResult {
 ```
 
 ```java
-package com.tech.n.ai.domain.mongodb.service;
+package com.ebson.shrimp.tm.demo.domain.mongodb.service;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -239,6 +257,7 @@ public class WordFrequencyResult {
 - 기존 `EmergingTechQueryServiceImpl`의 동적 Criteria 패턴과 일관성 유지
 - 날짜 범위 필터는 `published_at` 필드 기준 (기존 인덱스 `provider + published_at DESC` 활용)
 - `published_at`이 null인 도큐먼트도 `$or` 조건으로 포함하여 데이터 누락 방지
+- **provider, update_type, source_type 3가지 필터 모두 지원** (nullable, 빈 문자열이면 전체)
 - **텍스트 빈도 집계는 MongoDB 서버사이드에서 수행** ($split + $unwind + $group)
   - 전체 도큐먼트를 Java로 전송하지 않아 네트워크 부하 최소화
   - MongoDB의 분산 처리 능력 활용으로 대량 데이터에서도 성능 유지
@@ -254,7 +273,7 @@ LangChain4j Tool이 반환하는 DTO를 정의한다. LangChain4j 1.10.0은 Gson
 ### 3.1 StatisticsDto
 
 ```java
-package com.tech.n.ai.api.agent.tool.dto;
+package com.ebson.shrimp.tm.demo.api.agent.tool.dto;
 
 import java.util.List;
 
@@ -279,7 +298,7 @@ public record StatisticsDto(
 ### 3.2 WordFrequencyDto
 
 ```java
-package com.tech.n.ai.api.agent.tool.dto;
+package com.ebson.shrimp.tm.demo.api.agent.tool.dto;
 
 import java.util.List;
 
@@ -373,21 +392,38 @@ public StatisticsDto getStatistics(
  */
 @Tool(name = "analyze_text_frequency",
       value = "EmergingTech 도큐먼트의 title, summary에서 주요 키워드 빈도를 분석합니다. "
+            + "Provider, UpdateType, SourceType으로 필터링할 수 있습니다. "
             + "Mermaid 차트나 Word Cloud 형태로 결과를 정리할 수 있습니다.")
 public WordFrequencyDto analyzeTextFrequency(
-    @P("Provider 필터 (OPENAI, ANTHROPIC 등, 빈 문자열이면 전체)") String provider,
+    @P("Provider 필터 (OPENAI, ANTHROPIC, GOOGLE, META, XAI 또는 빈 문자열이면 전체)") String provider,
+    @P("UpdateType 필터 (MODEL_RELEASE, API_UPDATE, SDK_RELEASE, PRODUCT_LAUNCH, PLATFORM_UPDATE, BLOG_POST 또는 빈 문자열이면 전체)") String updateType,
+    @P("SourceType 필터 (GITHUB_RELEASE, RSS, WEB_SCRAPING 또는 빈 문자열이면 전체)") String sourceType,
     @P("조회 시작일 (YYYY-MM-DD 형식, 빈 문자열이면 전체 기간)") String startDate,
     @P("조회 종료일 (YYYY-MM-DD 형식, 빈 문자열이면 전체 기간)") String endDate,
     @P("상위 키워드 개수 (기본값 20)") int topN
 ) {
     metrics().incrementToolCall();
-    log.info("Tool 호출: analyze_text_frequency(provider={}, startDate={}, endDate={}, topN={})",
-            provider, startDate, endDate, topN);
+    log.info("Tool 호출: analyze_text_frequency(provider={}, updateType={}, sourceType={}, startDate={}, endDate={}, topN={})",
+            provider, updateType, sourceType, startDate, endDate, topN);
 
     String providerError = ToolInputValidator.validateProviderOptional(provider);
     if (providerError != null) {
         metrics().incrementValidationError();
         log.warn("Tool 입력값 검증 실패: {}", providerError);
+        return new WordFrequencyDto(0, "", List.of(), List.of());
+    }
+
+    String updateTypeError = ToolInputValidator.validateUpdateTypeOptional(updateType);
+    if (updateTypeError != null) {
+        metrics().incrementValidationError();
+        log.warn("Tool 입력값 검증 실패: {}", updateTypeError);
+        return new WordFrequencyDto(0, "", List.of(), List.of());
+    }
+
+    String sourceTypeError = ToolInputValidator.validateSourceTypeOptional(sourceType);
+    if (sourceTypeError != null) {
+        metrics().incrementValidationError();
+        log.warn("Tool 입력값 검증 실패: {}", sourceTypeError);
         return new WordFrequencyDto(0, "", List.of(), List.of());
     }
 
@@ -406,7 +442,7 @@ public WordFrequencyDto analyzeTextFrequency(
     }
 
     int effectiveTopN = (topN > 0 && topN <= 100) ? topN : 20;
-    return analyticsAdapter.analyzeTextFrequency(provider, startDate, endDate, effectiveTopN);
+    return analyticsAdapter.analyzeTextFrequency(provider, updateType, sourceType, startDate, endDate, effectiveTopN);
 }
 ```
 
@@ -427,14 +463,14 @@ EmergingTechAgentTools (Tool Method)
 ### 5.2 Adapter 구현
 
 ```java
-package com.tech.n.ai.api.agent.tool.adapter;
+package com.ebson.shrimp.tm.demo.api.agent.tool.adapter;
 
-import com.tech.n.ai.api.agent.config.AnalyticsConfig;
-import com.tech.n.ai.api.agent.tool.dto.StatisticsDto;
-import com.tech.n.ai.api.agent.tool.dto.WordFrequencyDto;
-import com.tech.n.ai.domain.mongodb.service.EmergingTechAggregationService;
-import com.tech.n.ai.domain.mongodb.service.GroupCountResult;
-import com.tech.n.ai.domain.mongodb.service.WordFrequencyResult;
+import com.ebson.shrimp.tm.demo.api.agent.config.AnalyticsConfig;
+import com.ebson.shrimp.tm.demo.api.agent.tool.dto.StatisticsDto;
+import com.ebson.shrimp.tm.demo.api.agent.tool.dto.WordFrequencyDto;
+import com.ebson.shrimp.tm.demo.domain.mongodb.service.EmergingTechAggregationService;
+import com.ebson.shrimp.tm.demo.domain.mongodb.service.GroupCountResult;
+import com.ebson.shrimp.tm.demo.domain.mongodb.service.WordFrequencyResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -501,11 +537,12 @@ public class AnalyticsToolAdapter {
      * <ol>
      *   <li>MongoDB Aggregation Pipeline에서 $split + $unwind + $group으로 서버사이드 토큰화/집계</li>
      *   <li>불용어 목록을 AnalyticsConfig에서 외부 설정으로 주입</li>
-     *   <li>단일 키워드(unigram)와 2-gram(bigram)을 함께 제공</li>
+     *   <li>provider, updateType, sourceType 3가지 필터를 조합하여 세분화된 분석 지원</li>
      *   <li>전체 도큐먼트를 Java로 전송하지 않아 대량 데이터에서도 성능 유지</li>
      * </ol>
      */
-    public WordFrequencyDto analyzeTextFrequency(String provider, String startDate, String endDate, int topN) {
+    public WordFrequencyDto analyzeTextFrequency(String provider, String updateType, String sourceType,
+                                                  String startDate, String endDate, int topN) {
         try {
             LocalDateTime start = parseDate(startDate, true);
             LocalDateTime end = parseDate(endDate, false);
@@ -515,24 +552,23 @@ public class AnalyticsToolAdapter {
 
             // 서버사이드 단어 빈도 집계 (unigram)
             List<WordFrequencyResult> wordResults = aggregationService.aggregateWordFrequency(
-                provider, start, end, stopWords, topN);
+                provider, updateType, sourceType, start, end, stopWords, topN);
 
             List<WordFrequencyDto.WordCount> topWords = wordResults.stream()
                 .map(r -> new WordFrequencyDto.WordCount(r.getId(), r.getCount()))
                 .toList();
 
             // 2-gram 빈도 집계 (향후 MongoDB $reduce + $zip으로 서버사이드 구현 가능)
-            // 현재는 topN/2개만 제공하여 응답 크기 제한
             List<WordFrequencyDto.WordCount> topBigrams = List.of();
             // TODO: 2-gram 서버사이드 Aggregation 구현 시 활성화
 
             // 전체 도큐먼트 수
-            long totalDocs = aggregationService.countDocuments(provider, start, end);
+            long totalDocs = aggregationService.countDocuments(provider, updateType, sourceType, start, end);
 
             String period = buildPeriodString(startDate, endDate);
             return new WordFrequencyDto((int) totalDocs, period, topWords, topBigrams);
         } catch (Exception e) {
-            log.error("텍스트 빈도 분석 실패: provider={}", provider, e);
+            log.error("텍스트 빈도 분석 실패: provider={}, updateType={}, sourceType={}", provider, updateType, sourceType, e);
             return new WordFrequencyDto(0, "", List.of(), List.of());
         }
     }
@@ -571,7 +607,7 @@ public class AnalyticsToolAdapter {
 ### 5-1.1 설정 클래스
 
 ```java
-package com.tech.n.ai.api.agent.config;
+package com.ebson.shrimp.tm.demo.api.agent.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -697,6 +733,35 @@ public static String resolveGroupByField(String groupBy) {
         return null;
     }
     return GROUP_FIELD_MAP.get(groupBy.toLowerCase());
+}
+
+/**
+ * UpdateType 검증 (선택적, 빈 문자열 허용)
+ *
+ * @param updateType 검증할 updateType 값
+ * @return 에러 메시지 또는 null (검증 성공)
+ */
+public static String validateUpdateTypeOptional(String updateType) {
+    if (updateType == null || updateType.isBlank()) {
+        return null;
+    }
+    return validateEnum(updateType, "updateType", VALID_UPDATE_TYPES);
+}
+
+private static final Set<String> VALID_SOURCE_TYPES = Set.of(
+    "GITHUB_RELEASE", "RSS", "WEB_SCRAPING");
+
+/**
+ * SourceType 검증 (선택적, 빈 문자열 허용)
+ *
+ * @param sourceType 검증할 sourceType 값
+ * @return 에러 메시지 또는 null (검증 성공)
+ */
+public static String validateSourceTypeOptional(String sourceType) {
+    if (sourceType == null || sourceType.isBlank()) {
+        return null;
+    }
+    return validateEnum(sourceType, "sourceType", VALID_SOURCE_TYPES);
 }
 
 /**
@@ -975,13 +1040,13 @@ dependencies {
 ```java
 @Configuration
 @ComponentScan(basePackages = {
-    "com.tech.n.ai.api.agent",
-    "com.tech.n.ai.domain.mongodb",  // 추가
-    "com.tech.n.ai.client.feign",
-    "com.tech.n.ai.client.slack",
-    "com.tech.n.ai.client.scraper",
-    "com.tech.n.ai.common.core",
-    "com.tech.n.ai.common.exception"
+    "com.ebson.shrimp.tm.demo.api.agent",
+    "com.ebson.shrimp.tm.demo.domain.mongodb",  // 추가
+    "com.ebson.shrimp.tm.demo.client.feign",
+    "com.ebson.shrimp.tm.demo.client.slack",
+    "com.ebson.shrimp.tm.demo.client.scraper",
+    "com.ebson.shrimp.tm.demo.common.core",
+    "com.ebson.shrimp.tm.demo.common.exception"
 })
 public class ServerConfig {
 }
@@ -1111,7 +1176,7 @@ api/agent/src/main/java/.../api/agent/
     ├── handler/
     │   └── ToolErrorHandlers.java          // Tool 목록 업데이트
     └── validation/
-        └── ToolInputValidator.java         // 3개 메서드 추가 (validateGroupByField, resolveGroupByField, validateDateOptional)
+        └── ToolInputValidator.java         // 5개 메서드 추가 (validateGroupByField, resolveGroupByField, validateDateOptional, validateUpdateTypeOptional, validateSourceTypeOptional)
 
 domain/mongodb/src/main/java/.../domain/mongodb/
 ├── service/
@@ -1191,6 +1256,8 @@ User → AgentController → AgentFacade → EmergingTechAgentImpl
                                               ▼
                                        ToolInputValidator
                                    .validateProviderOptional()
+                                   .validateUpdateTypeOptional()
+                                   .validateSourceTypeOptional()
                                     .validateDateOptional()
                                               │
                                               ▼
@@ -1208,7 +1275,8 @@ User → AgentController → AgentFacade → EmergingTechAgentImpl
                                               ▼
                                         MongoTemplate
                                   Aggregation Pipeline
-                                  ($match → $project → $split
+                                  ($match(provider+updateType+sourceType+기간)
+                                   → $project → $split
                                    → $unwind → $match(불용어)
                                    → $group → $sort → $limit)
                                    ※ 서버사이드 토큰화/집계
@@ -1269,7 +1337,7 @@ User: "올해 수집된 데이터의 주요 키워드를 Word Cloud로 보여줘
 
 Agent 추론:
 1. "키워드 빈도 분석이 필요해"
-   → Tool: analyze_text_frequency("", "2025-01-01", "2025-12-31", 20)
+   → Tool: analyze_text_frequency("", "", "", "2025-01-01", "2025-12-31", 20)
    → 결과: { totalDocuments: 412, period: "2025-01-01 ~ 2025-12-31",
              topWords: [{word:"model", count:312}, ...],
              topBigrams: [{word:"language model", count:89}, ...] }
@@ -1340,6 +1408,54 @@ Agent 응답:
 Slack으로 신규 릴리스 발견 알림을 보낼까요?"
 ```
 
+### 16.4 update_type별 Word Cloud 요청
+
+```
+User: "SDK 릴리스에서 많이 나오는 키워드가 뭐야?"
+
+Agent 추론:
+1. "SDK_RELEASE 타입으로 필터링해서 키워드 분석"
+   → Tool: analyze_text_frequency("", "SDK_RELEASE", "", "", "", 20)
+   → 결과: { totalDocuments: 87, period: "전체 기간",
+             topWords: [{word:"version", count:65}, {word:"sdk", count:58}, ...] }
+
+Agent 응답:
+"## SDK 릴리스 키워드 분석 (전체 기간, 87건)
+..."
+```
+
+### 16.5 source_type별 Word Cloud 요청
+
+```
+User: "RSS에서 수집된 기사의 키워드 트렌드를 보여줘"
+
+Agent 추론:
+1. "RSS 소스만 필터링해서 분석"
+   → Tool: analyze_text_frequency("", "", "RSS", "", "", 20)
+   → 결과: { totalDocuments: 142, period: "전체 기간",
+             topWords: [{word:"model", count:98}, {word:"release", count:76}, ...] }
+
+Agent 응답:
+"## RSS 수집 기사 키워드 분석 (전체 기간, 142건)
+..."
+```
+
+### 16.6 복합 필터 Word Cloud 요청
+
+```
+User: "Anthropic의 블로그 포스트 키워드를 분석해줘"
+
+Agent 추론:
+1. "ANTHROPIC + BLOG_POST로 필터링"
+   → Tool: analyze_text_frequency("ANTHROPIC", "BLOG_POST", "", "", "", 20)
+   → 결과: { totalDocuments: 23, period: "전체 기간",
+             topWords: [{word:"safety", count:18}, {word:"claude", count:15}, ...] }
+
+Agent 응답:
+"## Anthropic 블로그 포스트 키워드 분석 (23건)
+..."
+```
+
 ---
 
 ## 17. 구현 순서
@@ -1350,7 +1466,7 @@ Slack으로 신규 릴리스 발견 알림을 보낼까요?"
 | 2 | 신규 Tool DTO 생성 | `api-agent`: `StatisticsDto`, `WordFrequencyDto` |
 | 3 | AnalyticsConfig 생성 (불용어 외부 설정) | `api-agent`: `AnalyticsConfig` |
 | 4 | AnalyticsToolAdapter 생성 | `api-agent`: `AnalyticsToolAdapter` |
-| 5 | ToolInputValidator 확장 | `api-agent`: `validateGroupByField`, `resolveGroupByField`, `validateDateOptional` |
+| 5 | ToolInputValidator 확장 | `api-agent`: `validateGroupByField`, `resolveGroupByField`, `validateDateOptional`, `validateUpdateTypeOptional`, `validateSourceTypeOptional` |
 | 6 | EmergingTechAgentTools 변경 | 제거: `createDraftPost`, `publishPost` / 추가: `getStatistics`, `analyzeTextFrequency` |
 | 7 | EmergingTechToolAdapter 변경 | 제거: `createDraft`, `publish` |
 | 8 | ToolErrorHandlers 변경 | Tool 목록 문자열 업데이트 |

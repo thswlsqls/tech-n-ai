@@ -71,7 +71,7 @@ AWS ElastiCache for Redis는 완전 관리형 인메모리 데이터 스토어 �
 
 - **Redis 최적화**: `docs/step7/redis-optimization-best-practices.md`
 - **OAuth State 저장**: `docs/step6/oauth-state-storage-research-result.md`
-- **Redis 설정 코드**: `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
+- **Redis 설정 코드**: `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
 
 ### 공식 문서
 
@@ -1159,7 +1159,7 @@ spring:
 **2. redisTemplateForObjects (JSON 직렬화)**:
 - 챗봇 캐싱 (복잡한 객체 저장)
 
-**참고**: `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
+**참고**: `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
 
 **변경 불필요**: 기존 설정으로 로컬 Redis와 연동 가능합니다.
 
@@ -1774,7 +1774,7 @@ spring:
 
 현재 `RedisConfig` 클래스는 ElastiCache for Redis와 완벽 호환:
 
-```java:common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java
+```java:common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java
 @Configuration
 public class RedisConfig {
     
@@ -2734,7 +2734,7 @@ AWS Cost Explorer를 활용하여 ElastiCache 비용을 분석합니다.
 - `docs/step6/oauth-state-storage-research-result.md`: OAuth State 저장 패턴
 
 #### 소스 코드
-- `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
+- `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
 - `common/core/src/main/resources/application-common-core.yml`
 
 ---

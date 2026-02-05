@@ -350,7 +350,7 @@
 **분석 대상:**
 - `client/feign` 모듈의 패키지 구조:
   ```
-  com.tech.n.ai.client.feign
+  com.ebson.shrimp.tm.demo.client.feign
   ├── config/
   ├── domain/
   │   ├── {domain}/
@@ -364,7 +364,7 @@
 **적용 방안:**
 - `client/slack` 모듈도 유사한 구조로 설계:
   ```
-  com.tech.n.ai.client.slack
+  com.ebson.shrimp.tm.demo.client.slack
   ├── config/
   ├── domain/
   │   └── slack/
@@ -565,7 +565,7 @@ public interface SlackNotificationService {
 
 ### 6-1. 테스트 작성 가이드 (상세)
 
-**참고 파일**: `client/feign/src/test/java/com/tech/n/ai/client/feign/SampleFeignTest.java`
+**참고 파일**: `client/feign/src/test/java/com/ebson/shrimp/tm/demo/client/feign/SampleFeignTest.java`
 
 **테스트 작성 패턴:**
 

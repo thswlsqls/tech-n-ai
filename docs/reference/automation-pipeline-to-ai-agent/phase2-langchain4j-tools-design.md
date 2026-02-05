@@ -118,7 +118,7 @@ api/agent/src/main/java/.../agent/
 ### 4.2 Tool 클래스 구현
 
 ```java
-package com.tech.n.ai.api.agent.tool;
+package com.ebson.shrimp.tm.demo.api.agent.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;

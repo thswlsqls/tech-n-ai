@@ -208,7 +208,7 @@ shrimp-tm-demo/
 │   ├── mail/                          # 신규 모듈
 │   │   ├── build.gradle
 │   │   └── src/main/
-│   │       ├── java/com/tech/n/ai/client/mail/
+│   │       ├── java/com/ebson/shrimp/tm/demo/client/mail/
 │   │       │   ├── config/
 │   │       │   │   ├── MailConfig.java
 │   │       │   │   └── MailProperties.java
@@ -352,9 +352,9 @@ Spring Boot Mail 공식 문서: https://docs.spring.io/spring-boot/reference/io/
 ### 5.1 EmailSender 인터페이스
 
 ```java
-package com.tech.n.ai.client.mail.domain.mail.service;
+package com.ebson.shrimp.tm.demo.client.mail.domain.mail.service;
 
-import com.tech.n.ai.client.mail.domain.mail.dto.EmailMessage;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.dto.EmailMessage;
 
 public interface EmailSender {
     
@@ -380,7 +380,7 @@ public interface EmailSender {
 ### 5.2 EmailMessage DTO
 
 ```java
-package com.tech.n.ai.client.mail.domain.mail.dto;
+package com.ebson.shrimp.tm.demo.client.mail.domain.mail.dto;
 
 import lombok.Builder;
 
@@ -408,7 +408,7 @@ public record EmailMessage(
 ### 5.3 EmailTemplateService 인터페이스
 
 ```java
-package com.tech.n.ai.client.mail.domain.mail.template;
+package com.ebson.shrimp.tm.demo.client.mail.domain.mail.template;
 
 public interface EmailTemplateService {
     
@@ -437,7 +437,7 @@ public interface EmailTemplateService {
 ### 5.4 MailProperties 설정 클래스
 
 ```java
-package com.tech.n.ai.client.mail.config;
+package com.ebson.shrimp.tm.demo.client.mail.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -569,7 +569,7 @@ classDiagram
 
 ```gradle
 // client/mail/build.gradle
-group = 'com.tech.n.ai.client'
+group = 'com.ebson.shrimp.tm.demo.client'
 version = '0.0.1-SNAPSHOT'
 description = 'client-mail'
 
@@ -613,12 +613,12 @@ tasks.named('test') {
 #### Step 2: MailConfig 구현
 
 ```java
-package com.tech.n.ai.client.mail.config;
+package com.ebson.shrimp.tm.demo.client.mail.config;
 
-import com.tech.n.ai.client.mail.domain.mail.service.EmailSender;
-import com.tech.n.ai.client.mail.domain.mail.service.SmtpEmailSender;
-import com.tech.n.ai.client.mail.domain.mail.template.EmailTemplateService;
-import com.tech.n.ai.client.mail.domain.mail.template.ThymeleafEmailTemplateService;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.service.EmailSender;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.service.SmtpEmailSender;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.template.EmailTemplateService;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.template.ThymeleafEmailTemplateService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -670,11 +670,11 @@ public class MailConfig {
 #### Step 3: SmtpEmailSender 구현
 
 ```java
-package com.tech.n.ai.client.mail.domain.mail.service;
+package com.ebson.shrimp.tm.demo.client.mail.domain.mail.service;
 
-import com.tech.n.ai.client.mail.config.MailProperties;
-import com.tech.n.ai.client.mail.domain.mail.dto.EmailMessage;
-import com.tech.n.ai.client.mail.exception.EmailSendException;
+import com.ebson.shrimp.tm.demo.client.mail.config.MailProperties;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.dto.EmailMessage;
+import com.ebson.shrimp.tm.demo.client.mail.exception.EmailSendException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -745,7 +745,7 @@ public class SmtpEmailSender implements EmailSender {
 #### Step 4: EmailSendException 정의
 
 ```java
-package com.tech.n.ai.client.mail.exception;
+package com.ebson.shrimp.tm.demo.client.mail.exception;
 
 /**
  * 이메일 발송 실패 시 발생하는 예외.
@@ -766,7 +766,7 @@ public class EmailSendException extends RuntimeException {
 #### Step 5: ThymeleafEmailTemplateService 구현
 
 ```java
-package com.tech.n.ai.client.mail.domain.mail.template;
+package com.ebson.shrimp.tm.demo.client.mail.domain.mail.template;
 
 import lombok.RequiredArgsConstructor;
 import org.thymeleaf.TemplateEngine;
@@ -844,10 +844,10 @@ private void sendVerificationEmail(String email, String token) {
 #### EmailVerificationService 의존성 추가
 
 ```java
-import com.tech.n.ai.client.mail.config.MailProperties;
-import com.tech.n.ai.client.mail.domain.mail.dto.EmailMessage;
-import com.tech.n.ai.client.mail.domain.mail.service.EmailSender;
-import com.tech.n.ai.client.mail.domain.mail.template.EmailTemplateService;
+import com.ebson.shrimp.tm.demo.client.mail.config.MailProperties;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.dto.EmailMessage;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.service.EmailSender;
+import com.ebson.shrimp.tm.demo.client.mail.domain.mail.template.EmailTemplateService;
 
 @Slf4j
 @Service
@@ -1654,7 +1654,7 @@ private void searchModules(final File moduleDir, final String parentStr = "") {
 client/mail/
 ├── build.gradle
 └── src/main/
-    ├── java/com/tech/n/ai/client/mail/
+    ├── java/com/ebson/shrimp/tm/demo/client/mail/
     │   ├── config/
     │   │   ├── MailConfig.java
     │   │   └── MailProperties.java

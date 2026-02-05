@@ -1429,7 +1429,7 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
 - 기존 common 모듈 구조 확인 (list_dir, read_file 도구 사용)
   * common/ 디렉토리 구조 확인
   * 각 모듈의 build.gradle 파일 확인
-  * 기존 패키지 구조 확인 (com.tech.n.ai.common.*)
+  * 기존 패키지 구조 확인 (com.ebson.shrimp.tm.demo.common.*)
 - 모듈 간 의존성 확인 (build.gradle 파일 검토)
   * 다른 모듈에서 common 모듈 사용 여부 확인
   * 의존성 방향 검증 (API → Domain → Common → Client)
@@ -1587,12 +1587,12 @@ Common 모듈(common-core, common-exception, common-security, common-kafka)을 �
    예외 로깅 시스템 (MongoDB Atlas 저장):
    - **참고**: Spring Data MongoDB 공식 문서 (https://docs.spring.io/spring-data/mongodb/docs/current/reference/html/)
    - ExceptionLoggingService 구현
-     * 위치: `common/exception/src/main/java/com/tech/n/ai/common/exception/ExceptionLoggingService.java`
+     * 위치: `common/exception/src/main/java/com/ebson/shrimp/tm/demo/common/exception/ExceptionLoggingService.java`
      * 비동기 처리: @Async 사용 (Spring 공식 문서 참고)
      * 실패 시 대체 로깅: MongoDB 저장 실패 시 로컬 로그 파일에 기록 (SLF4J 사용)
      * **주의**: 멱등성 보장은 실제 중복 저장 문제가 발생한 경우에만 구현 (YAGNI 원칙)
    - ExceptionContext 클래스 정의
-     * 위치: `common/exception/src/main/java/com/tech/n/ai/common/exception/ExceptionContext.java`
+     * 위치: `common/exception/src/main/java/com/ebson/shrimp/tm/demo/common/exception/ExceptionContext.java`
      * 예외 발생 컨텍스트 정보 수집
      * 필드:
        - source: String ("READ" 또는 "WRITE")
@@ -2419,15 +2419,15 @@ Google, Naver, Kakao OAuth 2.0 로그인 기능을 구현하여 각 Provider별 
 **분석 가이드** (plan task 실행 시 필수 확인 사항):
 
 1. **프로젝트 아키텍처 식별**:
-   - `api/auth` 모듈 구조 확인 (`api/auth/src/main/java/com/tech/n/ai/api/auth/` 디렉토리 구조 분석)
-   - `client/feign` 모듈 구조 확인 (`client/feign/src/main/java/com/tech/n/ai/client/feign/domain/` 디렉토리 구조 분석, Contract Pattern 사용 방식 확인)
+   - `api/auth` 모듈 구조 확인 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/` 디렉토리 구조 분석)
+   - `client/feign` 모듈 구조 확인 (`client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/` 디렉토리 구조 분석, Contract Pattern 사용 방식 확인)
    - 기존 Spring Boot Configuration Properties 사용 패턴 확인 (다른 모듈의 설정 클래스 참고)
    - 기존 Redis 사용 패턴 확인 (프로젝트 내 Redis 사용 사례 검색: `codebase_search` 사용)
    - 기존 환경변수 관리 패턴 확인 (`docs/phase1/3. aurora-schema-design.md` 참고)
    - 기존 OpenFeign 클라이언트 사용 패턴 확인 (`client/feign` 모듈의 기존 구현 참고)
 
 2. **기존 코드 확인** (반드시 `codebase_search` 또는 `read_file` 도구 사용):
-   - 기존 AuthService의 OAuth 메서드 구조 확인 (`api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`)
+   - 기존 AuthService의 OAuth 메서드 구조 확인 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`)
      - `startOAuthLogin()` 메서드 (예시 코드)
      - `handleOAuthCallback()` 메서드 (예시 코드)
    - 기존 `client/feign` 모듈의 Contract Pattern 사용 방식 확인 (예: `client/feign/src/main/java/.../domain/sample/` 디렉토리 구조)
@@ -2492,16 +2492,16 @@ Google, Naver, Kakao OAuth 2.0 로그인 기능을 구현하여 각 Provider별 
 
 **모듈 구조**:
 - `client-feign`: OAuth Provider OpenFeign 클라이언트 구현
-  - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/contract/`: OAuthProviderContract, OAuthDto
-  - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/client/`: GoogleOAuthFeignClient, NaverOAuthFeignClient, KakaoOAuthFeignClient
-  - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/api/`: GoogleOAuthApi, NaverOAuthApi, KakaoOAuthApi
-  - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/mock/`: GoogleOAuthMock, NaverOAuthMock, KakaoOAuthMock (테스트용)
-  - `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/oauth/config/`: OAuthFeignConfig
+  - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/contract/`: OAuthProviderContract, OAuthDto
+  - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/client/`: GoogleOAuthFeignClient, NaverOAuthFeignClient, KakaoOAuthFeignClient
+  - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/api/`: GoogleOAuthApi, NaverOAuthApi, KakaoOAuthApi
+  - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/mock/`: GoogleOAuthMock, NaverOAuthMock, KakaoOAuthMock (테스트용)
+  - `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/oauth/config/`: OAuthFeignConfig
   - `client/feign/src/main/resources/application-feign-oauth.yml`: OpenFeign 설정 파일
 - `api-auth`: OAuth Provider 구현 클래스 및 AuthService 통합
-  - `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/`: OAuth Provider 인터페이스 및 구현체, OAuthStateService
-  - `api/auth/src/main/java/com/tech/n/ai/api/auth/config/`: OAuth 설정 클래스
-  - `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`: OAuth 메서드 통합
+  - `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/`: OAuth Provider 인터페이스 및 구현체, OAuthStateService
+  - `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/config/`: OAuth 설정 클래스
+  - `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`: OAuth 메서드 통합
   - `api/auth/src/main/resources/application.yml`: OAuth 환경변수 설정
 
 **작업 의존성 관계**:
@@ -2573,7 +2573,7 @@ Google, Naver, Kakao OAuth 2.0 로그인 기능을 구현하여 각 Provider별 
 1. OAuth Provider 인터페이스 및 공통 클래스 정의 (api-auth 모듈)
    - **역할**: OAuth Provider 공통 인터페이스 정의
    - **책임**: 
-     * `OAuthProvider` 인터페이스 정의 (`api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthProvider.java`)
+     * `OAuthProvider` 인터페이스 정의 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthProvider.java`)
        - `generateAuthorizationUrl`, `exchangeAccessToken`, `getUserInfo` 메서드
      * `OAuthUserInfo`는 `client/feign` 모듈의 `OAuthDto.OAuthUserInfo`를 import하여 사용
    - **검증 기준**: 
@@ -2785,7 +2785,7 @@ Google, Naver, Kakao OAuth 2.0 로그인 기능을 구현하여 각 Provider별 
      * `docs/oauth-provider-implementation-guide.md`: 통합 전략 및 Redis를 활용한 State 파라미터 저장 설계 (Section 5.3 Step 11)
      * `docs/oauth-feign-client-migration-analysis.md`: AuthService 수정 가이드 (Section 2.2)
      * `docs/oauth-state-storage-research-result.md`: State 파라미터 저장 방법 연구 결과
-     * `api/auth/src/main/java/com/tech/n/ai/api/auth/service/AuthService.java`: 기존 OAuth 메서드
+     * `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/service/AuthService.java`: 기존 OAuth 메서드
    - **주의**: 
      * 기존 코드 구조 유지. Provider별 구현은 인터페이스로 추상화하되, 기존 JWT 토큰 발급 및 Kafka 이벤트 발행 로직은 재사용.
      * Redirect URI는 환경변수에서 가져와야 함. 하드코딩 절대 금지.
@@ -2817,7 +2817,7 @@ Google, Naver, Kakao OAuth 2.0 로그인 기능을 구현하여 각 Provider별 
    - **역할**: OAuth 2.0 State 파라미터를 Redis에 저장하고 검증하는 서비스 구현
    - **책임**: 
      * `OAuthStateService` 클래스 구현
-       - 위치: `api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`
+       - 위치: `api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`
        - `@Service` 어노테이션 사용
        - `RedisTemplate<String, String>` 주입 (`@RequiredArgsConstructor` 사용)
      * `saveState(String state, String providerName)` 메서드 구현
@@ -2978,28 +2978,28 @@ plan task: Redis 최적화 구현
 
 **모듈 구조**:
 - `common-core`: Redis 설정 최적화
-  - `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`: RedisConfig 최적화
+  - `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`: RedisConfig 최적화
   - `common/core/src/main/resources/application-common-core.yml`: Redis 연결 풀 설정 및 공통 설정 제공
 - `api-auth`: Redis 설정 참조
   - `api/auth/src/main/resources/application-auth-api.yml`: `spring.profiles.include: common-core`로 공통 설정 참조
 - `common-kafka`: TTL 설정 일관성 개선
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`: TTL 설정 방법 변경
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`: TTL 설정 방법 변경
 - `common-security`: (선택) Spring Session Data Redis 의존성 제거
   - `common/security/build.gradle`: 불필요한 의존성 제거
 
 **분석 가이드** (plan task 실행 시 필수 확인 사항):
 
 1. **프로젝트 아키텍처 식별**:
-   - `common/core` 모듈 구조 확인 (`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java` 확인)
-   - 현재 Redis 사용 사례 확인 (`api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`, `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`)
+   - `common/core` 모듈 구조 확인 (`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java` 확인)
+   - 현재 Redis 사용 사례 확인 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`, `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`)
    - 기존 Redis 설정 확인 (`common/core/src/main/resources/application-common-core.yml` 공통 설정 파일)
    - Spring Boot Actuator 의존성 확인 (`common/core/build.gradle` 확인)
    - Spring Session Data Redis 의존성 확인 (`common/security/build.gradle` 확인)
 
 2. **기존 코드 확인** (반드시 `codebase_search` 또는 `read_file` 도구 사용):
-   - 현재 RedisConfig 구현 확인 (`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`)
-   - OAuthStateService의 TTL 설정 방법 확인 (`api/auth/src/main/java/com/tech/n/ai/api/auth/oauth/OAuthStateService.java`)
-   - EventConsumer의 TTL 설정 방법 확인 (`common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`)
+   - 현재 RedisConfig 구현 확인 (`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`)
+   - OAuthStateService의 TTL 설정 방법 확인 (`api/auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/oauth/OAuthStateService.java`)
+   - EventConsumer의 TTL 설정 방법 확인 (`common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`)
    - 기존 코드 스타일, 네이밍 규칙, 아키텍처 패턴 확인 및 준수
    - **추측 금지**: 모든 설계 결정은 기존 코드베이스 또는 공식 문서 기반
 
@@ -3089,7 +3089,7 @@ plan task: Redis 최적화 구현
 2. RedisConfig 최적화 (common-core 모듈)
    - **역할**: RedisTemplate 설정 최적화
    - **책임**: 
-     * `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java` 수정
+     * `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java` 수정
      * `setEnableDefaultSerializer(false)` 추가
      * `setEnableTransactionSupport(false)` 명시
    - **변경 사항**:
@@ -3138,7 +3138,7 @@ plan task: Redis 최적화 구현
 3. TTL 설정 일관성 개선 (common-kafka 모듈)
    - **역할**: EventConsumer의 TTL 설정 방법을 OAuthStateService와 일관되게 개선
    - **책임**: 
-     * `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java` 수정
+     * `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java` 수정
      * `PROCESSED_EVENT_TTL_DAYS` (long) → `PROCESSED_EVENT_TTL` (Duration) 변경
      * `Duration.ofDays().toSeconds()` + `TimeUnit.SECONDS` → `Duration` 객체 직접 사용으로 변경
      * `TimeUnit` import 제거
@@ -3484,7 +3484,7 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제**:
         ```java
         // client/feign/domain/{domain}/contract/{Domain}Contract.java
-        package com.tech.n.ai.client.feign.domain.{domain}.contract;
+        package com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract;
         
         public interface {Domain}Contract {
             {Domain}Dto.{Domain}ApiResponse get{Domain}({Domain}Dto.{Domain}ApiRequest request);
@@ -3504,7 +3504,7 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제**:
         ```java
         // client/feign/domain/{domain}/contract/{Domain}Dto.java
-        package com.tech.n.ai.client.feign.domain.{domain}.contract;
+        package com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract;
         
         import lombok.Builder;
         
@@ -3546,9 +3546,9 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제**:
         ```java
         // client/feign/domain/{domain}/client/{Domain}FeignClient.java
-        package com.tech.n.ai.client.feign.domain.{domain}.client;
+        package com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.client;
         
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Dto;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Dto;
         import org.springframework.cloud.openfeign.FeignClient;
         import org.springframework.http.MediaType;
         import org.springframework.web.bind.annotation.GetMapping;
@@ -3595,12 +3595,12 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제**:
         ```java
         // client/feign/domain/{domain}/api/{Domain}Api.java
-        package com.tech.n.ai.client.feign.domain.{domain}.api;
+        package com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.api;
         
-        import com.tech.n.ai.client.feign.domain.{domain}.client.{Domain}FeignClient;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Contract;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiRequest;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiResponse;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.client.{Domain}FeignClient;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Contract;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiRequest;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiResponse;
         import lombok.RequiredArgsConstructor;
         import lombok.extern.slf4j.Slf4j;
         
@@ -3636,11 +3636,11 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제**:
         ```java
         // client/feign/domain/{domain}/mock/{Domain}Mock.java
-        package com.tech.n.ai.client.feign.domain.{domain}.mock;
+        package com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.mock;
         
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Contract;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiRequest;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiResponse;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Contract;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiRequest;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Dto.{Domain}ApiResponse;
         import lombok.extern.slf4j.Slf4j;
         
         @Slf4j
@@ -3673,12 +3673,12 @@ plan task: 외부 API 연동 Client 모듈 구현 (Contract 패턴 적용)
       * **예제 (단순한 경우)**:
         ```java
         // client/feign/config/{Domain}FeignConfig.java
-        package com.tech.n.ai.client.feign.config;
+        package com.ebson.shrimp.tm.demo.client.feign.config;
         
-        import com.tech.n.ai.client.feign.domain.{domain}.api.{Domain}Api;
-        import com.tech.n.ai.client.feign.domain.{domain}.client.{Domain}FeignClient;
-        import com.tech.n.ai.client.feign.domain.{domain}.contract.{Domain}Contract;
-        import com.tech.n.ai.client.feign.domain.{domain}.mock.{Domain}Mock;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.api.{Domain}Api;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.client.{Domain}FeignClient;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.contract.{Domain}Contract;
+        import com.ebson.shrimp.tm.demo.client.feign.domain.{domain}.mock.{Domain}Mock;
         import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
         import org.springframework.cloud.openfeign.EnableFeignClients;
         import org.springframework.context.annotation.Bean;
@@ -4464,7 +4464,7 @@ plan task: Contest 및 News API 모듈 구현 (CQRS 패턴 기반 MongoDB 조회
   - 먼저 기존 코드를 확인한 후 설계를 진행해야 함
   - 기존 코드 확인 없이 설계를 먼저 생성하는 것은 엄격히 금지됨
 - **정확한 검색 전략 사용**:
-  - `read_file`로 `api-auth/src/main/java/com/tech/n/ai/api/auth/` 구조 확인
+  - `read_file`로 `api-auth/src/main/java/com/ebson/shrimp/tm/demo/api/auth/` 구조 확인
   - `codebase_search`로 Controller, Facade, Service 구현 패턴 검색
   - `read_file`로 `domain-mongodb` 모듈의 Repository 인터페이스 확인
 - **기존 코드 확인** (check first, then design):
@@ -4761,8 +4761,8 @@ plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 �
   - 먼저 기존 코드를 확인한 후 설계를 진행해야 함
   - 기존 코드 확인 없이 설계를 먼저 생성하는 것은 엄격히 금지됨
 - **정확한 검색 전략 사용**:
-  - `read_file`로 `batch-source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/` 구조 확인
-  - `read_file`로 `client-feign/src/main/java/com/tech/n/ai/client/feign/config/` 구조 확인
+  - `read_file`로 `batch-source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/` 구조 확인
+  - `read_file`로 `client-feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/config/` 구조 확인
   - `codebase_search`로 JobConfig, PagingItemReader, Processor, Writer 구현 패턴 검색
   - `read_file`로 `api-contest`, `api-news` 모듈의 내부 API 엔드포인트 확인
 - **기존 코드 확인** (check first, then design):
@@ -4905,7 +4905,7 @@ plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 �
       - JobParameter Bean: Job 파라미터 관리
       - Incrementer Bean: Job 실행 제어
     * **패키지 구조**: 
-      - `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/{source-name}/`
+      - `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/{source-name}/`
       - jobconfig/, reader/, processor/, writer/, service/, jobparameter/, incrementer/
   - **PagingItemReader 설계**: 
     * Feign API용: `*PagingItemReader` (예: `GitHubApiPagingItemReader`)
@@ -4923,8 +4923,8 @@ plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 �
     * 에러 처리 및 재시도 로직
   - **DTO 설계**: 
     * DTO 독립성 원칙 준수: 각 모듈에서 독립적으로 DTO 정의
-    * batch-source 모듈의 DTO: `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/{contest|news}/dto/`
-    * client-feign 모듈의 내부 API DTO: `client/feign/src/main/java/com/tech/n/ai/client/feign/domain/internal/contract/InternalApiDto.java`
+    * batch-source 모듈의 DTO: `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/{contest|news}/dto/`
+    * client-feign 모듈의 내부 API DTO: `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/domain/internal/contract/InternalApiDto.java`
     * api-contest/api-news 모듈의 DTO는 이미 구현됨 (9단계에서 완료)
   - **Constants 설계**: 
     * 모든 Job 이름 상수 정의 (Contest 12개, News 8개)
@@ -4979,13 +4979,13 @@ plan task: 배치 잡 통합 및 내부 API 호출 구현 (Spring Batch 기반 �
 - `docs/step2/1. api-endpoint-design.md` (API 엔드포인트 설계)
 - `docs/step2/2. data-model-design.md` (데이터 모델 설계)
 - `json/sources.json` (각 출처의 documentation_url 참고, 필수)
-- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java` (JobConfig 패턴 참고)
-- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java` (Reader 패턴 참고)
-- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/processor/CodeforcesStep1Processor.java` (Processor 패턴 참고)
-- `batch/source/src/main/java/com/tech/n/ai/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java` (Writer 패턴 참고)
-- `client/feign/src/main/java/com/tech/n/ai/client/feign/config/CodeforcesFeignConfig.java` (FeignConfig 패턴 참고)
-- `api/contest/src/main/java/com/tech/n/ai/api/contest/controller/ContestController.java` (내부 API 엔드포인트 참고)
-- `api/news/src/main/java/com/tech/n/ai/api/news/controller/NewsController.java` (내부 API 엔드포인트 참고)
+- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/jobconfig/ContestCodeforcesJobConfig.java` (JobConfig 패턴 참고)
+- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/reader/CodeforcesApiPagingItemReader.java` (Reader 패턴 참고)
+- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/processor/CodeforcesStep1Processor.java` (Processor 패턴 참고)
+- `batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/contest/codeforces/writer/CodeforcesStep1Writer.java` (Writer 패턴 참고)
+- `client/feign/src/main/java/com/ebson/shrimp/tm/demo/client/feign/config/CodeforcesFeignConfig.java` (FeignConfig 패턴 참고)
+- `api/contest/src/main/java/com/ebson/shrimp/tm/demo/api/contest/controller/ContestController.java` (내부 API 엔드포인트 참고)
+- `api/news/src/main/java/com/ebson/shrimp/tm/demo/api/news/controller/NewsController.java` (내부 API 엔드포인트 참고)
 ```
 
 ### 11단계: CQRS 패턴 구현 (Kafka 동기화)
@@ -5145,16 +5145,16 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookma
   * 설계서의 예제 코드 구조와 로직은 참고하되, 의존성 주입은 Repository 인터페이스만 사용
 - **정보 수집 대상**:
   - `docs/step11/cqrs-kafka-sync-design.md` 설계서 전체 내용 (특히 "구현 가이드" 섹션)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java` 현재 구현 상태
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/publisher/EventPublisher.java` 구현 확인
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserCreatedEvent.java` 이벤트 모델 구조
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/UserUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkCreatedEvent.java` 이벤트 모델 구조
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/BookmarkUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/UserProfileRepository.java` 인터페이스
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/BookmarkRepository.java` 인터페이스
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/UserProfileDocument.java` Document 구조
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/BookmarkDocument.java` Document 구조
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java` 현재 구현 상태
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java` 구현 확인
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserCreatedEvent.java` 이벤트 모델 구조
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/UserUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkCreatedEvent.java` 이벤트 모델 구조
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/BookmarkUpdatedEvent.java` 이벤트 모델 구조 (updatedFields 확인)
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java` 인터페이스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java` 인터페이스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java` Document 구조
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java` Document 구조
 
 **4단계: Check Existing Programs and Structures (기존 프로그램 및 구조 확인)**
 - **중요 원칙: "check first, then design"**:
@@ -5162,10 +5162,10 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookma
   - 먼저 기존 코드를 확인한 후 설계를 진행해야 함
   - 기존 코드 확인 없이 설계를 먼저 생성하는 것은 엄격히 금지됨
 - **정확한 검색 전략 사용**:
-  - `read_file`로 `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java` 확인
-  - `read_file`로 `common/kafka/src/main/java/com/tech/n/ai/common/kafka/publisher/EventPublisher.java` 확인
-  - `read_file`로 `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/` 디렉토리의 Repository 인터페이스 확인
-  - `read_file`로 `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/` 디렉토리의 Document 클래스 확인
+  - `read_file`로 `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java` 확인
+  - `read_file`로 `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java` 확인
+  - `read_file`로 `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/` 디렉토리의 Repository 인터페이스 확인
+  - `read_file`로 `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/` 디렉토리의 Document 클래스 확인
 - **기존 코드 확인** (check first, then design):
   - `EventConsumer` 클래스의 현재 구현 상태 상세 분석
     * 멱등성 보장 로직 (`isEventProcessed`, `markEventAsProcessed`)
@@ -5216,7 +5216,7 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookma
     * 인터페이스는 `public` 접근 제어자 사용
     * 각 메서드는 `void` 반환 타입 (비동기 처리)
     * 메서드 파라미터는 구체적인 이벤트 타입 사용 (예: `UserCreatedEvent`, `BookmarkUpdatedEvent`)
-    * 패키지 위치: `common/kafka/src/main/java/com/tech/n/ai/common/kafka/sync/`
+    * 패키지 위치: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/`
   - **의존성 주입 패턴 분석**:
     * `@Service` 어노테이션 사용
     * `@RequiredArgsConstructor` 사용 (Lombok)
@@ -5328,10 +5328,10 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookma
     * Pattern Matching for `instanceof` 사용 (Java 16+)
     * 예외 처리 전략 (예외 전파하여 재시도 메커니즘 활용): try-catch로 예외를 catch하되, `throw e`로 전파
   - **패키지 구조 설계**: 
-    * `common/kafka/src/main/java/com/tech/n/ai/common/kafka/sync/` 패키지 구조
+    * `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/` 패키지 구조
     * 인터페이스: `UserSyncService.java`, `BookmarkSyncService.java`
     * 구현 클래스: `UserSyncServiceImpl.java`, `BookmarkSyncServiceImpl.java`
-    * `EventConsumer` 수정: `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`
+    * `EventConsumer` 수정: `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`
   - **에러 처리 설계**: 
     * 동기화 실패 시 예외 전파 전략:
       - 동기화 서비스에서 `RuntimeException`으로 래핑하여 전파
@@ -5417,23 +5417,23 @@ plan task: CQRS 패턴 기반 Kafka 동기화 서비스 구현 - User 및 Bookma
 
 **모듈 구조**:
 - `common/kafka`: Kafka Producer/Consumer 및 동기화 서비스 구현 (모듈 경로: `common/kafka`)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/sync/`: 동기화 서비스 패키지
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/sync/`: 동기화 서비스 패키지
     * `UserSyncService.java`: User 동기화 서비스 인터페이스 (생성 필요)
     * `UserSyncServiceImpl.java`: User 동기화 서비스 구현 클래스 (생성 필요)
     * `BookmarkSyncService.java`: Bookmark 동기화 서비스 인터페이스 (생성 필요)
     * `BookmarkSyncServiceImpl.java`: Bookmark 동기화 서비스 구현 클래스 (생성 필요)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/consumer/EventConsumer.java`: `processEvent` 메서드 구현 (수정 필요)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/publisher/EventPublisher.java`: 이미 구현 완료 (참고용)
-  - `common/kafka/src/main/java/com/tech/n/ai/common/kafka/event/`: 이벤트 모델 (이미 정의 완료, 참고용)
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/consumer/EventConsumer.java`: `processEvent` 메서드 구현 (수정 필요)
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/publisher/EventPublisher.java`: 이미 구현 완료 (참고용)
+  - `common/kafka/src/main/java/com/ebson/shrimp/tm/demo/common/kafka/event/`: 이벤트 모델 (이미 정의 완료, 참고용)
     * `UserCreatedEvent.java`, `UserUpdatedEvent.java`, `UserDeletedEvent.java`, `UserRestoredEvent.java`
     * `BookmarkCreatedEvent.java`, `BookmarkUpdatedEvent.java`, `BookmarkDeletedEvent.java`, `BookmarkRestoredEvent.java`
 - `domain/mongodb`: MongoDB Repository 및 Document (이미 구현 완료, 참고용, 모듈 경로: `domain/mongodb`)
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/UserProfileRepository.java`: Repository 인터페이스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/UserProfileRepository.java`: Repository 인터페이스
     * **주의**: `deleteByUserTsid(String userTsid)` 메서드가 없으면 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/repository/BookmarkRepository.java`: Repository 인터페이스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/repository/BookmarkRepository.java`: Repository 인터페이스
     * **주의**: `deleteByBookmarkTsid(String bookmarkTsid)` 메서드가 없으면 선언 필요 (Spring Data MongoDB 메서드 네이밍 규칙에 따라 자동 구현됨)
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/UserProfileDocument.java`: Document 클래스
-  - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/BookmarkDocument.java`: Document 클래스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/UserProfileDocument.java`: Document 클래스
+  - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/BookmarkDocument.java`: Document 클래스
 
 **작업 의존성 관계**:
 - **작업 1 (동기화 서비스 인터페이스 생성)**:
@@ -6124,7 +6124,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - `read_file`로 `api/gateway/REF.md` 참고 문서 확인
   - `codebase_search`로 `JwtTokenProvider` 구현 확인
   - `read_file`로 `api/gateway/build.gradle` 확인
-  - `read_file`로 `api/gateway/src/main/java/com/tech/n/ai/api/gateway/` 구조 확인
+  - `read_file`로 `api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/` 구조 확인
   - `read_file`로 기존 API 모듈의 엔드포인트 구조 확인
   - `web_search`로 Spring Cloud Gateway 공식 문서 검색 (불熟悉한 개념이나 기술의 경우)
 - **추측 금지**: 설계서에 명시되지 않은 기능은 구현하지 않음, 공식 문서만 참고
@@ -6143,9 +6143,9 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - 먼저 기존 코드를 확인한 후 설계를 진행해야 함
   - 기존 코드 확인 없이 설계를 먼저 생성하는 것은 엄격히 금지됨
 - **정확한 검색 전략 사용**:
-  - `read_file`로 `api/gateway/src/main/java/com/tech/n/ai/api/gateway/` 구조 확인
+  - `read_file`로 `api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/` 구조 확인
   - `read_file`로 `api/gateway/build.gradle` 확인
-  - `read_file`로 `common-security/src/main/java/com/tech/n/ai/common/security/jwt/JwtTokenProvider.java` 확인
+  - `read_file`로 `common-security/src/main/java/com/ebson/shrimp/tm/demo/common/security/jwt/JwtTokenProvider.java` 확인
   - `codebase_search`로 Gateway 관련 구현 검색
 - **기존 코드 확인** (check first, then design):
   - `api/gateway` 모듈의 현재 구현 상태 상세 분석
@@ -6253,7 +6253,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
     * 설계서에 명시된 클래스, 메서드, 설정을 정확히 구현
     * 설계서에 없는 기능은 추가하지 않음 (오버엔지니어링 금지)
   - **패키지 구조**: 설계서에 명시된 패키지 구조를 정확히 따름
-    * `api/gateway/src/main/java/com/tech/n/ai/api/gateway/`
+    * `api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/`
     * `config/` (GatewayConfig.java, CorsConfig.java 선택)
     * `filter/` (JwtAuthenticationGatewayFilter.java, RequestLoggingFilter.java 선택)
     * `common/exception/` (ApiGatewayExceptionHandler.java - ErrorWebExceptionHandler 구현)
@@ -6459,7 +6459,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 **Notes:** 기존 상수 네이밍 컨벤션 준수 (예: NEWS_GOOGLE_DEVELOPERS)
 
 **Implementation Guide:**
-- 파일: batch/source/src/main/java/com/tech/n/ai/batch/source/common/Constants.java
+- 파일: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/common/Constants.java
 - 추가 내용: `public final static String SOURCES_SYNC = "sources.sync.job";`
 
 **Verification Criteria:**
@@ -6480,7 +6480,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 - @JsonNaming 어노테이션으로 자동 변환
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/dto/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/dto/
 - 파일명: SourceJsonDto.java
 - 어노테이션: @Getter, @Setter, @NoArgsConstructor, @AllArgsConstructor, @Builder, @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 - 필드: name, type, category, url, apiEndpoint, rssFeedUrl, description, priority, reliabilityScore, accessibilityScore, dataQualityScore, legalEthicalScore, totalScore, authenticationRequired, authenticationMethod, rateLimit, documentationUrl, updateFrequency, dataFormat
@@ -6500,7 +6500,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 **Notes:** NewsGoogleDevelopersIncrementer 패턴 준수
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/incrementer/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/incrementer/
 - 파일명: SourcesSyncIncrementer.java
 - extends: RunIdIncrementer
 - 참고: batch/source/.../incrementer/NewsGoogleDevelopersIncrementer.java
@@ -6522,7 +6522,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 - categories 배열 순회 → 각 category의 sources 추출 → source에 category 필드 매핑
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/reader/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/reader/
 - 파일명: SourcesJsonItemReader.java
 - extends: AbstractPagingItemReader<SourceJsonDto>
 - 주요 메서드:
@@ -6548,7 +6548,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 - 기본값 설정: enabled = true, 감사 필드 설정
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/processor/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/processor/
 - 파일명: SourcesSyncProcessor.java
 - implements: ItemProcessor<SourceJsonDto, SourcesDocument>
 - 어노테이션: @Slf4j, @StepScope
@@ -6577,7 +6577,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 - Repository나 Feign 클라이언트 사용 금지
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/writer/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/writer/
 - 파일명: SourcesMongoWriter.java
 - implements: ItemWriter<SourcesDocument>
 - 어노테이션: @Slf4j, @StepScope, @RequiredArgsConstructor
@@ -6603,7 +6603,7 @@ json/sources.json 파일에 정의된 모든 Source 데이터를 MongoDB Atlas C
 **Notes:** NewsGoogleDevelopersRssParserJobConfig 패턴 준수
 
 **Implementation Guide:**
-- 패키지: batch/source/src/main/java/com/tech/n/ai/batch/source/domain/sources/sync/jobconfig/
+- 패키지: batch/source/src/main/java/com/ebson/shrimp/tm/demo/batch/source/domain/sources/sync/jobconfig/
 - 파일명: SourcesSyncJobConfig.java
 - 어노테이션: @Slf4j, @Configuration, @RequiredArgsConstructor
 - 의존성: MongoTemplate
@@ -6767,7 +6767,7 @@ Spring Mail (JavaMailSender)을 사용하여 이메일 발송 기능을 구현�
 
 **Analyze code style and conventions**:
 - **Naming conventions**: camelCase (Java), kebab-case (YAML)
-- **Package structure**: com.tech.n.ai.client.{module}
+- **Package structure**: com.ebson.shrimp.tm.demo.client.{module}
 - **Comment styles**: JavaDoc for public APIs
 - **Error handling**: try-catch with logging, custom exceptions in common-exception
 
@@ -6845,13 +6845,13 @@ analyze_task({
    - 역할: 이메일 클라이언트 모듈 생성
    - 책임: 독립적인 이메일 발송 기능 제공
    - **중요**: settings.gradle 자동 탐색을 위해 `src` 폴더가 반드시 존재해야 함
-   - 패키지 구조: com.tech.n.ai.client.mail
+   - 패키지 구조: com.ebson.shrimp.tm.demo.client.mail
    - 디렉토리 구조 (client/slack 참조):
      ```
      client/mail/
      ├── build.gradle
      └── src/main/
-         ├── java/com/tech/n/ai/client/mail/
+         ├── java/com/ebson/shrimp/tm/demo/client/mail/
          │   ├── config/                 # MailConfig, MailProperties
          │   ├── domain/mail/            # dto/, service/, template/
          │   └── exception/              # EmailSendException
@@ -6915,7 +6915,7 @@ analyze_task({
 
 **패키지 구조 참고** (client/slack 패턴 준수):
 ```
-client/mail/src/main/java/com/tech/n/ai/client/mail/
+client/mail/src/main/java/com/ebson/shrimp/tm/demo/client/mail/
 ├── config/              # MailConfig, MailProperties
 ├── domain/mail/         # 비즈니스 로직
 │   ├── dto/             # EmailMessage
@@ -7396,7 +7396,7 @@ plan task: 테스트 작성 및 Spring REST Docs 기반 API 문서화
    - api/chatbot 모듈 생성
      역할: 챗봇 API 모듈 생성
      책임: 모듈 디렉토리 구조 생성, build.gradle 작성, application-chatbot-api.yml 작성
-     패키지 구조: com.tech.n.ai.api.chatbot
+     패키지 구조: com.ebson.shrimp.tm.demo.api.chatbot
      검증 기준: 모듈이 정상적으로 빌드 가능해야 함, 기존 API 모듈 구조와 일치해야 함
    
    - langchain4j 의존성 추가
@@ -8080,10 +8080,10 @@ spring:
 **MyBatis Mapper 인터페이스 작성 규칙**:
 
 ```java
-// domain/aurora/src/main/java/com/tech/n/ai/domain/aurora/mapper/ContestMapper.java
-package com.tech.n.ai.domain.aurora.mapper;
+// domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/aurora/mapper/ContestMapper.java
+package com.ebson.shrimp.tm.demo.domain.aurora.mapper;
 
-import com.tech.n.ai.domain.aurora.dto.ContestDto;
+import com.ebson.shrimp.tm.demo.domain.aurora.dto.ContestDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.time.LocalDate;

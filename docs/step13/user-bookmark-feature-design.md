@@ -1234,7 +1234,7 @@ bookmarkRepository.save(bookmark);
 
 ```
 api-bookmark/
-  src/main/java/com/tech/n/ai/api/bookmark/
+  src/main/java/com/ebson/shrimp/tm/demo/api/bookmark/
     BookmarkApplication.java
     controller/
       BookmarkController.java

@@ -39,7 +39,7 @@
 
 다음 문서들을 분석하여 현재 프로젝트의 캐시 사용 패턴을 파악했습니다:
 
-- `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`
+- `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`
 - `common/core/src/main/resources/application-common-core.yml`
 - `docs/step6/oauth-state-storage-research-result.md`
 - `docs/step7/redis-optimization-best-practices.md`
@@ -459,7 +459,7 @@
 - `docs/step6/oauth-state-storage-research-result.md`: OAuth State 저장 방법 연구
 - `docs/step7/redis-optimization-best-practices.md`: Redis 최적화 베스트 프랙티스
 - `docs/step17/aws-elasticache-redis-integration-guide.md`: Redis OSS 통합 가이드 (상세)
-- `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`: Redis 설정 코드
+- `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`: Redis 설정 코드
 - `common/core/src/main/resources/application-common-core.yml`: Redis 연결 설정
 
 ---

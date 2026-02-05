@@ -1,7 +1,7 @@
 # API 정의서
 
 **작성일**: 2026-01-21
-**최종 업데이트**: 2026-01-29
+**최종 업데이트**: 2026-02-05
 **대상**: 웹/모바일 클라이언트 개발자
 **버전**: v1
 
@@ -86,6 +86,7 @@
 | `/api/v1/auth/**` | api-auth | 8082 | 불필요 |
 | `/api/v1/bookmark/**` | api-bookmark | 8083 | **필요** |
 | `/api/v1/chatbot/**` | api-chatbot | 8086 | **필요** |
+| `/api/v1/agent/**` | api-agent | 8087 | **필요 (ADMIN)** |
 
 ### CORS 정책
 
@@ -477,11 +478,144 @@ GET /api/v1/auth/oauth2/google/callback?code=auth_code_123&state=state_token_456
 
 ---
 
-## 4. Chatbot API (`/api/v1/chatbot`)
+## 4. Agent API (`/api/v1/agent`)
+
+> Agent API는 **JWT 인증이 필요**하며, **ADMIN 역할만 접근 가능**합니다. Gateway에서 JWT 검증 후 `x-user-id` 헤더를 주입합니다.
+
+### 4.1 Agent 실행
+
+**POST** `/api/v1/agent/run`
+
+**인증**: 필요 (ADMIN)
+
+**설명**: 자연어 목표(Goal)를 입력받아 AI Agent가 자율적으로 Tool을 선택하고 실행합니다.
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+|-----|------|------|------|------|
+| `goal` | String | O | NotBlank | 실행 목표 (자연어) |
+| `sessionId` | String | X | - | 세션 식별자 (미지정 시 자동 생성) |
+
+```json
+{
+  "goal": "최근 AI 업데이트 정보를 수집해주세요.",
+  "sessionId": "admin-session-001"
+}
+```
+
+**Response** (200 OK) `ApiResponse<AgentExecutionResult>`
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "success": true,
+    "summary": "## 수집 결과\n\n### GitHub Releases\n| Provider | 수집 | 신규 | 중복 |\n...",
+    "toolCallCount": 7,
+    "analyticsCallCount": 0,
+    "executionTimeMs": 35033,
+    "errors": []
+  }
+}
+```
+
+**AgentExecutionResult 필드**
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| `success` | Boolean | 실행 성공 여부 |
+| `summary` | String | 마크다운 형식의 결과 요약 |
+| `toolCallCount` | Integer | Tool 호출 횟수 |
+| `analyticsCallCount` | Integer | 분석 Tool 호출 횟수 |
+| `executionTimeMs` | Long | 실행 시간 (ms) |
+| `errors` | String[] | 에러 메시지 목록 |
+
+**Errors**
+- `400` - goal 필드 누락/빈 값
+- `401` - 인증 실패
+- `403` - ADMIN 역할 없음
+
+---
+
+### 4.2 Agent Tool 목록
+
+Agent가 자율적으로 선택하여 사용하는 Tool 목록입니다.
+
+#### 조회 Tool
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|-------------|
+| `fetch_github_releases` | GitHub 저장소 최신 릴리스 조회 | owner, repo |
+| `scrape_web_page` | 웹 페이지 크롤링 | url |
+| `search_emerging_techs` | 저장된 업데이트 키워드 검색 | query, provider |
+| `list_emerging_techs` | 필터 기반 목록 조회 (페이징) | startDate, endDate, provider, updateType, sourceType, status, page, size |
+| `get_emerging_tech_detail` | ID 기반 상세 조회 | id (MongoDB ObjectId) |
+
+#### 분석 Tool
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|-------------|
+| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 | groupBy, startDate, endDate |
+| `analyze_text_frequency` | 키워드 빈도 분석 | provider, updateType, sourceType, startDate, endDate, topN |
+
+#### 수집 Tool
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|-------------|
+| `collect_github_releases` | GitHub 릴리스 수집 및 DB 저장 | owner, repo |
+| `collect_rss_feeds` | OpenAI/Google 블로그 RSS 수집 및 DB 저장 | provider |
+| `collect_scraped_articles` | Anthropic/Meta 블로그 크롤링 및 DB 저장 | provider |
+
+#### 알림 Tool
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|-------------|
+| `send_slack_notification` | Slack 알림 전송 (현재 비활성화 - Mock 응답) | message |
+
+---
+
+### 4.3 지원 Provider 목록
+
+| Provider | GitHub Owner | 지원 소스 |
+|----------|-------------|----------|
+| OPENAI | openai | GitHub, RSS |
+| ANTHROPIC | anthropics | GitHub, Web Scraping |
+| GOOGLE | google, google-gemini | GitHub, RSS |
+| META | meta-llama, facebookresearch | GitHub, Web Scraping |
+| XAI | xai-org | GitHub |
+
+---
+
+### 4.4 Enum 값 정의
+
+**UpdateType**
+- `MODEL_RELEASE`: 모델 출시
+- `API_UPDATE`: API 업데이트
+- `SDK_RELEASE`: SDK 릴리스
+- `PRODUCT_LAUNCH`: 제품 출시
+- `PLATFORM_UPDATE`: 플랫폼 업데이트
+- `BLOG_POST`: 블로그 포스트
+
+**SourceType**
+- `GITHUB_RELEASE`: GitHub 릴리스
+- `RSS`: RSS 피드
+- `WEB_SCRAPING`: 웹 스크래핑
+
+**Status**
+- `DRAFT`: 초안
+- `PENDING`: 검토 대기
+- `PUBLISHED`: 게시됨
+- `REJECTED`: 반려됨
+
+---
+
+## 5. Chatbot API (`/api/v1/chatbot`)
 
 > 모든 Chatbot API는 **JWT 인증이 필요**합니다. Gateway에서 JWT 검증 후 `x-user-id` 헤더를 주입합니다.
 
-### 4.1 채팅 메시지 전송
+### 5.1 채팅 메시지 전송
 
 **POST** `/api/v1/chatbot`
 
@@ -543,7 +677,7 @@ GET /api/v1/auth/oauth2/google/callback?code=auth_code_123&state=state_token_456
 
 ---
 
-### 4.2 대화 세션 목록 조회
+### 5.2 대화 세션 목록 조회
 
 **GET** `/api/v1/chatbot/sessions`
 
@@ -602,7 +736,7 @@ GET /api/v1/chatbot/sessions?page=1&size=20
 
 ---
 
-### 4.3 대화 세션 상세 조회
+### 5.3 대화 세션 상세 조회
 
 **GET** `/api/v1/chatbot/sessions/{sessionId}`
 
@@ -639,7 +773,7 @@ GET /api/v1/chatbot/sessions/507f1f77bcf86cd799439011
 
 ---
 
-### 4.4 대화 메시지 목록 조회
+### 5.4 대화 메시지 목록 조회
 
 **GET** `/api/v1/chatbot/sessions/{sessionId}/messages`
 
@@ -720,7 +854,7 @@ GET /api/v1/chatbot/sessions/507f1f77bcf86cd799439011/messages?page=1&size=50
 
 ---
 
-### 4.5 대화 세션 삭제
+### 5.5 대화 세션 삭제
 
 **DELETE** `/api/v1/chatbot/sessions/{sessionId}`
 
@@ -750,7 +884,7 @@ DELETE /api/v1/chatbot/sessions/507f1f77bcf86cd799439011
 
 ---
 
-## 5. 토큰 갱신 플로우
+## 6. 토큰 갱신 플로우
 
 ### 시나리오 1: Access Token 만료
 
@@ -795,7 +929,7 @@ sequenceDiagram
 
 ---
 
-## 6. 에러 코드
+## 7. 에러 코드
 
 ### HTTP 상태 코드
 
@@ -851,8 +985,9 @@ sequenceDiagram
 | GET | `/api/v1/chatbot/sessions/{sessionId}` | O | 세션 상세 |
 | GET | `/api/v1/chatbot/sessions/{sessionId}/messages` | O | 메시지 목록 |
 | DELETE | `/api/v1/chatbot/sessions/{sessionId}` | O | 세션 삭제 |
+| POST | `/api/v1/agent/run` | O (ADMIN) | Agent 실행 |
 
 ---
 
-**문서 버전**: 2.0
-**최종 업데이트**: 2026-01-29
+**문서 버전**: 2.1
+**최종 업데이트**: 2026-02-05

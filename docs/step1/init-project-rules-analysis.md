@@ -268,7 +268,7 @@ AI Agent: shrimp-rules.md 파일 생성
 
 4. **코드 구조 확인**
    - `list_dir`: 각 모듈의 src 디렉토리 구조 확인
-   - 패키지 구조 파악 (com.tech.n.ai)
+   - 패키지 구조 파악 (com.ebson.shrimp.tm.demo)
    - 도메인 구조 확인 (api/gateway/domain/sample/)
    - Client 구조 확인 (client/feign/domain/sample/)
 
@@ -279,7 +279,7 @@ AI Agent: shrimp-rules.md 파일 생성
 **분석 결과**:
 - 모듈 구조: api/gateway, batch/source, common/core, client/feign, domain/aurora
 - 모듈 네이밍: `{parentDir}-{moduleDir}` 형식 (settings.gradle 자동 검색)
-- 패키지 구조: `com.tech.n.ai.{module}.{domain}`
+- 패키지 구조: `com.ebson.shrimp.tm.demo.{module}.{domain}`
 - Profile 분리: `@Profile("api-domain")`, `@Profile("batch-domain")`
 - 도메인 구조: controller, facade, service, repository/reader, repository/writer
 - Client 구조: contract, api, client, mock

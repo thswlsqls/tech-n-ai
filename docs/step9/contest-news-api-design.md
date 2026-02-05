@@ -49,7 +49,7 @@
 
 ```
 api-contest/
-  src/main/java/com/tech/n/ai/api/contest/
+  src/main/java/com/ebson/shrimp/tm/demo/api/contest/
     ContestApplication.java
     controller/
       ContestController.java
@@ -83,7 +83,7 @@ api-contest/
 
 ```
 api-news/
-  src/main/java/com/tech/n/ai/api/news/
+  src/main/java/com/ebson/shrimp/tm/demo/api/news/
     NewsApplication.java
     controller/
       NewsController.java

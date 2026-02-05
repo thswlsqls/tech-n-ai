@@ -44,16 +44,16 @@
 다음 구현 코드를 **반드시 분석**하여 실제 구현과 일치하는 가이드를 작성합니다:
 
 1. **Aurora 연동 코드**
-   - `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/config/`: 데이터소스 설정 클래스
+   - `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/config/`: 데이터소스 설정 클래스
    - `domain/aurora/src/main/resources/application-api-domain.yml`: API 모듈 연결 설정
    - `domain/aurora/src/main/resources/application-batch-domain.yml`: 배치 모듈 연결 설정
-   - `domain/aurora/src/main/java/com/tech/n/ai/domain/mariadb/entity/`: 엔티티 클래스
+   - `domain/aurora/src/main/java/com/ebson/shrimp/tm/demo/domain/mariadb/entity/`: 엔티티 클래스
 
 2. **MongoDB Atlas 연동 코드**
-   - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/config/MongoClientConfig.java`: MongoDB 클라이언트 설정
+   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/config/MongoClientConfig.java`: MongoDB 클라이언트 설정
    - `domain/mongodb/src/main/resources/application-mongodb-domain.yml`: MongoDB 연결 설정
-   - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/document/`: 도큐먼트 클래스
-   - `domain/mongodb/src/main/java/com/tech/n/ai/domain/mongodb/config/MongoIndexConfig.java`: 인덱스 설정
+   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/document/`: 도큐먼트 클래스
+   - `domain/mongodb/src/main/java/com/ebson/shrimp/tm/demo/domain/mongodb/config/MongoIndexConfig.java`: 인덱스 설정
 
 ## 설계서 구조 및 요구사항
 

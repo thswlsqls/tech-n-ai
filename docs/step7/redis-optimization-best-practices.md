@@ -4,7 +4,7 @@
 
 ### 1.1. 현재 Redis 설정의 문제점
 
-**RedisConfig (`common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java`)**:
+**RedisConfig (`common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java`)**:
 
 1. **연결 풀 설정 없음**
    - Lettuce 기본 설정만 사용
@@ -277,7 +277,7 @@ spring:
 **최적화된 설정**:
 
 ```java
-package com.tech.n.ai.common.core.config;
+package com.ebson.shrimp.tm.demo.common.core.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -434,9 +434,9 @@ redisTemplate.opsForValue().set(
 **개선된 EventConsumer 코드**:
 
 ```java
-package com.tech.n.ai.common.kafka.consumer;
+package com.ebson.shrimp.tm.demo.common.kafka.consumer;
 
-import com.tech.n.ai.common.kafka.event.BaseEvent;
+import com.ebson.shrimp.tm.demo.common.kafka.event.BaseEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -587,7 +587,7 @@ management:
 **구현 예시**:
 
 ```java
-package com.tech.n.ai.common.core.metrics;
+package com.ebson.shrimp.tm.demo.common.core.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -829,7 +829,7 @@ spring:
 #### 2단계: RedisConfig 최적화
 
 **작업 내용**:
-1. `common/core/src/main/java/com/tech/n/ai/common/core/config/RedisConfig.java` 수정
+1. `common/core/src/main/java/com/ebson/shrimp/tm/demo/common/core/config/RedisConfig.java` 수정
 2. `setEnableDefaultSerializer(false)` 추가
 3. `setEnableTransactionSupport(false)` 명시
 
@@ -887,9 +887,9 @@ management:
 **최적화된 EventConsumer (TTL 설정 일관성 개선)**:
 
 ```java
-package com.tech.n.ai.common.kafka.consumer;
+package com.ebson.shrimp.tm.demo.common.kafka.consumer;
 
-import com.tech.n.ai.common.kafka.event.BaseEvent;
+import com.ebson.shrimp.tm.demo.common.kafka.event.BaseEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;

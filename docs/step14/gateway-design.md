@@ -139,7 +139,7 @@ Gateway 서버는 다음 컴포넌트로 구성됩니다:
 
 ```
 api/gateway/
-├── src/main/java/com/tech/n/ai/api/gateway/
+├── src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
 │   ├── GatewayApplication.java                    # Spring Boot 메인 클래스
 │   ├── config/
 │   │   ├── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정
@@ -611,9 +611,9 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
 **필요한 import**:
 ```java
-import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
-import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.tech.n.ai.common.core.dto.MessageCode;
+import com.ebson.shrimp.tm.demo.common.core.constants.ErrorCodeConstants;
+import com.ebson.shrimp.tm.demo.common.core.dto.ApiResponse;
+import com.ebson.shrimp.tm.demo.common.core.dto.MessageCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -999,7 +999,7 @@ jwt:
 logging:
   level:
     root: INFO
-    com.tech.n.ai.api.gateway: DEBUG
+    com.ebson.shrimp.tm.demo.api.gateway: DEBUG
 ```
 
 ### application-local.yml
@@ -1028,7 +1028,7 @@ gateway:
 
 logging:
   level:
-    com.tech.n.ai.api.gateway: DEBUG
+    com.ebson.shrimp.tm.demo.api.gateway: DEBUG
 ```
 
 ### application-dev.yml
@@ -1054,7 +1054,7 @@ gateway:
 
 logging:
   level:
-    com.tech.n.ai.api.gateway: INFO
+    com.ebson.shrimp.tm.demo.api.gateway: INFO
 ```
 
 ### application-beta.yml / application-prod.yml
@@ -1080,7 +1080,7 @@ gateway:
 
 logging:
   level:
-    com.tech.n.ai.api.gateway: WARN
+    com.ebson.shrimp.tm.demo.api.gateway: WARN
 ```
 
 ---

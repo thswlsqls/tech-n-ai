@@ -113,9 +113,9 @@ dependencies {
 **파일**: `api/chatbot/.../service/ReRankingService.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.SearchResult;
 import java.util.List;
 
 /**
@@ -147,9 +147,9 @@ public interface ReRankingService {
 **파일**: `api/chatbot/.../service/CohereReRankingServiceImpl.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.service;
+package com.ebson.shrimp.tm.demo.api.chatbot.service;
 
-import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.SearchResult;
 import dev.langchain4j.model.cohere.CohereScoringModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
@@ -262,10 +262,10 @@ public class CohereReRankingServiceImpl implements ReRankingService {
 **파일**: `api/chatbot/.../chain/ResultRefinementChain.java`
 
 ```java
-package com.tech.n.ai.api.chatbot.chain;
+package com.ebson.shrimp.tm.demo.api.chatbot.chain;
 
-import com.tech.n.ai.api.chatbot.service.ReRankingService;
-import com.tech.n.ai.api.chatbot.service.dto.SearchResult;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.ReRankingService;
+import com.ebson.shrimp.tm.demo.api.chatbot.service.dto.SearchResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
