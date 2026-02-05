@@ -67,6 +67,59 @@
 ### Step 17: 테스트 및 Spring REST Docs 기반 API 문서화
 - MongoDB Atlas Vector Search 구현 가이드 (step18/)
 
+## AI Agent 자동화 파이프라인 설계서
+
+LangChain4j 기반 AI Agent 시스템의 단계별 설계 및 구현 문서입니다.
+
+### 설계 문서 목록
+
+| Phase | 문서명 | 설명 |
+|-------|--------|------|
+| Phase 1 | [데이터 수집 파이프라인 설계서](reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md) | GitHub Release, RSS, Web Scraping 기반 데이터 수집 |
+| Phase 2 | [LangChain4j Tools 설계서](reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md) | Tool 인터페이스 및 Adapter 패턴 설계 |
+| Phase 3 | [AI Agent 통합 설계서](reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md) | OpenAI GPT-4o-mini 기반 Agent 통합 |
+| Phase 4 | [데이터 분석 기능 전환 설계서](reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md) | MongoDB Aggregation 기반 통계/키워드 분석 Tool |
+| Phase 5 | [데이터 수집 Agent 설계서](reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md) | 자율 데이터 수집 Tool (GitHub, RSS, Scraping) |
+| Phase 6 | [Agent Query Tool 개선 설계서](reference/automation-pipeline-to-ai-agent/phase6-agent-query-tool-improvement-design.md) | 목록/상세 조회 Tool, Slack Mock 전환 |
+| Phase 7 | [미지원 요청 처리 설계서](reference/automation-pipeline-to-ai-agent/phase7-unsupported-request-handling-design.md) | System Prompt 기반 미지원 대상 안내 |
+
+### Agent Tool 구성
+
+| Tool | 기능 | 카테고리 |
+|------|------|---------|
+| `fetch_github_releases` | GitHub 릴리스 조회 | 조회 |
+| `scrape_web_page` | 웹 페이지 크롤링 | 조회 |
+| `search_emerging_techs` | 키워드 기반 검색 | 조회 |
+| `list_emerging_techs` | 필터 기반 목록 조회 | 조회 |
+| `get_emerging_tech_detail` | ID 기반 상세 조회 | 조회 |
+| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 | 분석 |
+| `analyze_text_frequency` | 키워드 빈도 분석 | 분석 |
+| `collect_github_releases` | GitHub 릴리스 수집+저장 | 수집 |
+| `collect_rss_feeds` | RSS 수집+저장 | 수집 |
+| `collect_scraped_articles` | 크롤링 수집+저장 | 수집 |
+| `send_slack_notification` | Slack 알림 (Mock 지원) | 알림 |
+
+### 지원 Provider
+
+| Provider | 지원 여부 | 대상 서비스 |
+|----------|----------|------------|
+| OPENAI | O | GPT, ChatGPT, DALL-E, Whisper |
+| ANTHROPIC | O | Claude |
+| GOOGLE | O | Gemini, PaLM, Bard |
+| META | O | LLaMA, Code Llama |
+| XAI | O | Grok |
+
+### 테스트 결과
+
+Agent API 테스트 결과 문서: [tests/](reference/automation-pipeline-to-ai-agent/tests/)
+
+| 테스트 카테고리 | 문서 | 결과 |
+|----------------|------|------|
+| Agent 기본 실행 | [01-agent-run-test-results.md](reference/automation-pipeline-to-ai-agent/tests/01-agent-run-test-results.md) | Pass |
+| 통계/분석 기능 | [02-agent-analytics-test-results.md](reference/automation-pipeline-to-ai-agent/tests/02-agent-analytics-test-results.md) | Pass |
+| 데이터 수집 | [03-agent-data-collection-test-results.md](reference/automation-pipeline-to-ai-agent/tests/03-agent-data-collection-test-results.md) | Pass |
+| 목록/상세 조회 | [04-agent-query-tools-test-results.md](reference/automation-pipeline-to-ai-agent/tests/04-agent-query-tools-test-results.md) | Pass |
+
 
 ## 개발 환경 가이드
 
