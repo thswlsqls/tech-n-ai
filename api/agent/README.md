@@ -400,8 +400,24 @@ dependencies {
 
 ## 참고 자료
 
-- [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md)
+### 설계 문서
+
 - [Phase 3: AI Agent 통합 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
+- [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md)
+- [Phase 5: 데이터 수집 Agent 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md)
+- [Phase 6: Agent Query Tool 개선 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase6-agent-query-tool-improvement-design.md)
+- [Phase 7: 지원하지 않는 요청 처리 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase7-unsupported-request-handling-design.md)
+
+### 테스트 결과
+
+- [Agent 테스트 결과 문서 목록](../../docs/reference/automation-pipeline-to-ai-agent/tests/)
+- [Agent 실행 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/01-agent-run-test-results.md)
+- [Agent 데이터 분석 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/02-agent-analytics-test-results.md)
+- [Agent 데이터 수집 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/03-agent-data-collection-test-results.md)
+- [Agent Query Tool 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/04-agent-query-tools-test-results.md)
+
+### 공식 문서
+
 - [LangChain4j Documentation](https://docs.langchain4j.dev/)
 - [LangChain4j Tools Tutorial](https://docs.langchain4j.dev/tutorials/tools)
 - [LangChain4j AI Services](https://docs.langchain4j.dev/tutorials/ai-services)
