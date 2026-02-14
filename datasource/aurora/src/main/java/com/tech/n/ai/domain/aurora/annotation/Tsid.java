@@ -1,6 +1,6 @@
-package com.tech.n.ai.domain.aurora.annotation;
+package com.tech.n.ai.domain.mariadb.annotation;
 
-import com.tech.n.ai.domain.aurora.generator.TsidGenerator;
+import com.tech.n.ai.domain.mariadb.generator.TsidGenerator;
 import org.hibernate.annotations.IdGeneratorType;
 
 import java.lang.annotation.ElementType;

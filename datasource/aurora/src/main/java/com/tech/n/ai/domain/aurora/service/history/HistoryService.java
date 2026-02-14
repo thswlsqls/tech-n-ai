@@ -1,6 +1,6 @@
-package com.tech.n.ai.domain.aurora.service.history;
+package com.tech.n.ai.domain.mariadb.service.history;
 
-import com.tech.n.ai.domain.aurora.entity.BaseEntity;
+import com.tech.n.ai.domain.mariadb.entity.BaseEntity;
 
 /**
  * HistoryService

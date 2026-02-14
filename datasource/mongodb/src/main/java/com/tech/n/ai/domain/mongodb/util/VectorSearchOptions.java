@@ -60,7 +60,32 @@ public class VectorSearchOptions {
      * - true: ENN(Exact Nearest Neighbor) - 정확하지만 느림, 소규모 데이터에 적합
      */
     boolean exact;
-    
+
+    /**
+     * 파이프라인 내 Score Fusion 활성화 여부
+     * false이면 기존 파이프라인 동작 유지
+     */
+    boolean enableScoreFusion;
+
+    /**
+     * 벡터 유사도 가중치 (Score Fusion용)
+     * 기본값: 0.85 (일반 쿼리), 0.5 (최신성 쿼리)
+     */
+    double vectorWeight;
+
+    /**
+     * 최신성 가중치 (Score Fusion용)
+     * 기본값: 0.15 (일반 쿼리), 0.5 (최신성 쿼리)
+     */
+    double recencyWeight;
+
+    /**
+     * Exponential Decay 계수 (λ)
+     * recencyScore = e^(-λ × daysSincePublished)
+     * 기본값: 1.0/365.0 ≈ 0.00274 (1년 기준)
+     */
+    double recencyDecayLambda;
+
     /**
      * 기본값이 설정된 Builder
      */
@@ -70,6 +95,10 @@ public class VectorSearchOptions {
         private int limit = 5;
         private double minScore = 0.7;
         private boolean exact = false;
+        private boolean enableScoreFusion = false;
+        private double vectorWeight = 0.85;
+        private double recencyWeight = 0.15;
+        private double recencyDecayLambda = 1.0 / 365.0;
     }
     
     /**

@@ -1,6 +1,6 @@
-package com.tech.n.ai.domain.aurora.entity.chatbot;
+package com.tech.n.ai.domain.mariadb.entity.chatbot;
 
-import com.tech.n.ai.domain.aurora.annotation.Tsid;
+import com.tech.n.ai.domain.mariadb.annotation.Tsid;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

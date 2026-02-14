@@ -1,6 +1,6 @@
-package com.tech.n.ai.domain.aurora.repository.reader.bookmark;
+package com.tech.n.ai.domain.mariadb.repository.reader.bookmark;
 
-import com.tech.n.ai.domain.aurora.entity.bookmark.BookmarkEntity;
+import com.tech.n.ai.domain.mariadb.entity.bookmark.BookmarkEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,14 +19,9 @@ import java.util.Optional;
 public interface BookmarkReaderRepository extends JpaRepository<BookmarkEntity, Long>, JpaSpecificationExecutor<BookmarkEntity> {
     
     /**
-     * userId, itemType, itemId로 조회 (중복 검증용)
-     * 
-     * @param userId 사용자 ID
-     * @param itemType 항목 타입
-     * @param itemId 항목 ID
-     * @return BookmarkEntity (Optional)
+     * 중복 검증 (userId + emergingTechId)
      */
-    Optional<BookmarkEntity> findByUserIdAndItemTypeAndItemIdAndIsDeletedFalse(Long userId, String itemType, String itemId);
+    Optional<BookmarkEntity> findByUserIdAndEmergingTechIdAndIsDeletedFalse(Long userId, String emergingTechId);
     
     /**
      * 삭제된 북마크 조회 (페이징)

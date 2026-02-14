@@ -2,12 +2,17 @@ package com.tech.n.ai.domain.mongodb.config;
 
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.SearchIndexModel;
+import com.mongodb.client.model.SearchIndexType;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,6 +34,11 @@ import java.util.concurrent.TimeUnit;
  * - 개발 환경: 애플리케이션 코드로 자동 생성 (권장)
  * - 프로덕션 환경: 코드로 자동 생성 또는 Atlas 웹화면에서 수동 생성 모두 가능
  * - 인덱스 정의 변경 시: 기존 인덱스 삭제 후 재생성 필요
+ *
+ * **Vector Search Index**:
+ * - 일반 인덱스(createIndex)와 달리 Vector Search Index는 createSearchIndexes() API로 생성
+ * - MongoDB Atlas 환경에서만 동작하며, 비-Atlas 환경에서는 경고 로그 후 스킵
+ * - 이미 존재하는 인덱스는 listSearchIndexes()로 확인 후 스킵
  *
  * 참고: MongoDB Java Driver 공식 문서
  * https://www.mongodb.com/docs/drivers/java/sync/current/fundamentals/indexes/
@@ -52,6 +62,7 @@ public class MongoIndexConfig {
         createConversationSessionsIndexes();
         createConversationMessagesIndexes();
         createEmergingTechsIndexes();
+        createVectorSearchIndexes();
 
         log.info("MongoDB 인덱스 생성 완료: 모든 컬렉션의 인덱스가 확인되었습니다.");
     }
@@ -117,6 +128,13 @@ public class MongoIndexConfig {
             Indexes.ascending("status"),
             Indexes.descending("published_at")
         ));
+
+        // update_type + published_at 복합 인덱스 (ESR: E, S)
+        // 소스 B 직접 쿼리에서 update_type 필터 + published_at 정렬 지원
+        collection.createIndex(Indexes.compoundIndex(
+            Indexes.ascending("update_type"),
+            Indexes.descending("published_at")
+        ));
     }
 
     private void createConversationMessagesIndexes() {
@@ -134,5 +152,87 @@ public class MongoIndexConfig {
             Indexes.ascending("created_at"),
             new IndexOptions().expireAfter(365L, TimeUnit.DAYS)
         );
+    }
+
+    /**
+     * MongoDB Atlas Vector Search Index 생성
+     *
+     * 일반 인덱스(createIndex)와 다른 API(createSearchIndexes)를 사용합니다.
+     * MongoDB Atlas 환경에서만 동작하며, 비-Atlas 환경에서는 경고 로그 후 스킵합니다.
+     *
+     * 참고: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/
+     */
+    private void createVectorSearchIndexes() {
+        createEmergingTechsVectorSearchIndex();
+    }
+
+    private void createEmergingTechsVectorSearchIndex() {
+        String indexName = "vector_index_emerging_techs";
+        var collection = mongoTemplate.getCollection("emerging_techs");
+
+        try {
+            // 기존 Vector Search Index 존재 여부 확인
+            List<Document> existingIndexes = collection.listSearchIndexes()
+                .into(new ArrayList<>());
+
+            boolean indexExists = existingIndexes.stream()
+                .anyMatch(idx -> indexName.equals(idx.getString("name")));
+
+            // Vector Search Index 정의 (published_at, update_type filter 포함)
+            Document definition = new Document("fields", List.of(
+                new Document("type", "vector")
+                    .append("path", "embedding_vector")
+                    .append("numDimensions", 1536)
+                    .append("similarity", "cosine"),
+                new Document("type", "filter")
+                    .append("path", "provider"),
+                new Document("type", "filter")
+                    .append("path", "status"),
+                new Document("type", "filter")
+                    .append("path", "published_at"),
+                new Document("type", "filter")
+                    .append("path", "update_type")
+            ));
+
+            if (indexExists) {
+                // 기존 인덱스에 update_type filter가 있는지 확인
+                boolean needsUpdate = existingIndexes.stream()
+                    .filter(idx -> indexName.equals(idx.getString("name")))
+                    .findFirst()
+                    .map(idx -> {
+                        Document latestDef = idx.get("latestDefinition", Document.class);
+                        if (latestDef == null) return true;
+                        @SuppressWarnings("unchecked")
+                        List<Document> fields = (List<Document>) latestDef.get("fields");
+                        if (fields == null) return true;
+                        return fields.stream()
+                            .noneMatch(f -> "filter".equals(f.getString("type"))
+                                && "update_type".equals(f.getString("path")));
+                    })
+                    .orElse(true);
+
+                if (needsUpdate) {
+                    collection.updateSearchIndex(indexName, definition);
+                    log.info("Vector Search Index '{}' 업데이트 요청 완료 (update_type filter 추가)", indexName);
+                } else {
+                    log.info("Vector Search Index '{}' 이미 최신 정의 적용됨.", indexName);
+                }
+                return;
+            }
+
+            SearchIndexModel model = new SearchIndexModel(
+                indexName,
+                definition,
+                SearchIndexType.vectorSearch()
+            );
+
+            collection.createSearchIndexes(List.of(model));
+            log.info("Vector Search Index '{}' 생성 요청 완료 (Atlas에서 빌드 중)", indexName);
+
+        } catch (Exception e) {
+            log.warn("Vector Search Index '{}' 자동 생성 실패: {}", indexName, e.getMessage());
+            log.warn("MongoDB Atlas가 아닌 환경이거나 권한이 부족할 수 있습니다.");
+            log.warn("Atlas UI에서 수동으로 생성하세요: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/");
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.tech.n.ai.domain.aurora.service.history;
+package com.tech.n.ai.domain.mariadb.service.history;
 
 /**
  * History 작업 타입

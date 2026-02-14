@@ -15,11 +15,13 @@ import java.util.List;
  */
 public final class VectorSearchUtil {
     
-    // 기본 컬렉션명
+    // Bookmark 컬렉션
     public static final String COLLECTION_BOOKMARKS = "bookmarks";
-
-    // 기본 Vector Index 이름
     public static final String INDEX_BOOKMARKS = "vector_index_bookmarks";
+
+    // Emerging Tech 컬렉션
+    public static final String COLLECTION_EMERGING_TECHS = "emerging_techs";
+    public static final String INDEX_EMERGING_TECHS = "vector_index_emerging_techs";
     
     private VectorSearchUtil() {
         // 유틸리티 클래스
@@ -134,6 +136,199 @@ public final class VectorSearchUtil {
             new Document("score", new Document("$gte", minScore)));
     }
     
+    /**
+     * Emerging Tech 컬렉션 Vector Search 파이프라인 생성
+     * status: "PUBLISHED" pre-filter 기본 적용
+     *
+     * @param queryVector 쿼리 벡터
+     * @param options 검색 옵션
+     * @return aggregation pipeline
+     */
+    public static List<Document> createEmergingTechSearchPipeline(
+            List<Float> queryVector,
+            VectorSearchOptions options) {
+
+        List<Document> pipeline = new ArrayList<>();
+
+        // status: "PUBLISHED" pre-filter 생성
+        Document statusFilter = new Document("status", "PUBLISHED");
+        Document combinedFilter;
+
+        if (options.getFilter() != null && !options.getFilter().isEmpty()) {
+            combinedFilter = new Document("$and", List.of(statusFilter, options.getFilter()));
+        } else {
+            combinedFilter = statusFilter;
+        }
+
+        // VectorSearchOptions에 filter 적용
+        VectorSearchOptions emergingTechOptions = VectorSearchOptions.builder()
+            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_EMERGING_TECHS)
+            .path(options.getPath())
+            .numCandidates(options.getNumCandidates())
+            .limit(options.getLimit())
+            .minScore(options.getMinScore())
+            .filter(combinedFilter)
+            .exact(options.isExact())
+            .build();
+
+        // 1. $vectorSearch stage
+        pipeline.add(createVectorSearchStage(queryVector, emergingTechOptions));
+
+        // 2. $addFields stage (score 추가)
+        pipeline.add(createScoreAddFieldsStage());
+
+        // 3. $match stage (minScore 필터링)
+        if (options.getMinScore() > 0) {
+            pipeline.add(createScoreFilterStage(options.getMinScore()));
+        }
+
+        return pipeline;
+    }
+
+    // === Score Fusion 메서드 ===
+
+    /**
+     * Score Fusion용 vectorScore 추출 stage
+     * 기존 createScoreAddFieldsStage()의 "score" 대신 "vectorScore" 사용
+     */
+    public static Document createVectorScoreStage() {
+        return new Document("$addFields",
+            new Document("vectorScore", new Document("$meta", "vectorSearchScore")));
+    }
+
+    /**
+     * Score Fusion용 vectorScore 필터링 stage
+     */
+    public static Document createVectorScoreFilterStage(double minScore) {
+        return new Document("$match",
+            new Document("vectorScore", new Document("$gte", minScore)));
+    }
+
+    /**
+     * Recency Score 계산 stage (Exponential Decay)
+     * recencyScore = e^(-λ × daysSincePublished)
+     * published_at이 null이면 기본값 0.5
+     *
+     * 사용 연산자:
+     * - $dateDiff (MongoDB 5.0+): https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateDiff/
+     * - $exp (MongoDB 4.2+): https://www.mongodb.com/docs/manual/reference/operator/aggregation/exp/
+     *
+     * @param decayLambda Exponential Decay 계수 (기본값: 1.0/365.0)
+     */
+    public static Document createRecencyScoreStage(double decayLambda) {
+        Document rawDateDiff = new Document("$dateDiff", new Document()
+            .append("startDate", "$published_at")
+            .append("endDate", "$$NOW")
+            .append("unit", "day"));
+
+        // 미래 날짜(published_at > now)로 인한 음수값 방지 → recencyScore가 항상 [0, 1] 범위 유지
+        Document dateDiff = new Document("$max", List.of(0, rawDateDiff));
+
+        Document exponentialDecay = new Document("$exp",
+            new Document("$multiply", List.of(-decayLambda, dateDiff)));
+
+        Document recencyScore = new Document("$cond", new Document()
+            .append("if", new Document("$ifNull", List.of("$published_at", false)))
+            .append("then", exponentialDecay)
+            .append("else", 0.5));
+
+        return new Document("$addFields", new Document("recencyScore", recencyScore));
+    }
+
+    /**
+     * Score Fusion stage (가중 결합)
+     * combinedScore = vectorScore × vectorWeight + recencyScore × recencyWeight
+     *
+     * @param vectorWeight 벡터 유사도 가중치
+     * @param recencyWeight 최신성 가중치
+     */
+    public static Document createScoreFusionStage(double vectorWeight, double recencyWeight) {
+        Document combinedScore = new Document("$add", List.of(
+            new Document("$multiply", List.of("$vectorScore", vectorWeight)),
+            new Document("$multiply", List.of("$recencyScore", recencyWeight))
+        ));
+
+        return new Document("$addFields", new Document("combinedScore", combinedScore));
+    }
+
+    /**
+     * Score Fusion 결과 정렬 stage
+     */
+    public static Document createFusionSortStage() {
+        return new Document("$sort", new Document("combinedScore", -1));
+    }
+
+    /**
+     * 결과 수 제한 stage
+     */
+    public static Document createLimitStage(int limit) {
+        return new Document("$limit", limit);
+    }
+
+    /**
+     * Emerging Tech 컬렉션 Score Fusion 파이프라인 생성
+     * 기존 createEmergingTechSearchPipeline()을 확장하여 Score Fusion stage 추가
+     *
+     * 파이프라인 구조:
+     * $vectorSearch → $addFields(vectorScore) → $match(minScore)
+     * → $addFields(recencyScore) → $addFields(combinedScore) → $sort → $limit
+     *
+     * @param queryVector 쿼리 벡터
+     * @param options 검색 옵션 (enableScoreFusion=true 필요)
+     * @return aggregation pipeline
+     */
+    public static List<Document> createEmergingTechSearchPipelineWithFusion(
+            List<Float> queryVector,
+            VectorSearchOptions options) {
+
+        List<Document> pipeline = new ArrayList<>();
+
+        // status: "PUBLISHED" pre-filter 생성 (기존 로직 재사용)
+        Document statusFilter = new Document("status", "PUBLISHED");
+        Document combinedFilter;
+
+        if (options.getFilter() != null && !options.getFilter().isEmpty()) {
+            combinedFilter = new Document("$and", List.of(statusFilter, options.getFilter()));
+        } else {
+            combinedFilter = statusFilter;
+        }
+
+        VectorSearchOptions fusionOptions = VectorSearchOptions.builder()
+            .indexName(options.getIndexName() != null ? options.getIndexName() : INDEX_EMERGING_TECHS)
+            .path(options.getPath())
+            .numCandidates(options.getNumCandidates())
+            .limit(options.getLimit())
+            .minScore(options.getMinScore())
+            .filter(combinedFilter)
+            .exact(options.isExact())
+            .build();
+
+        // 1. $vectorSearch stage
+        pipeline.add(createVectorSearchStage(queryVector, fusionOptions));
+
+        // 2. vectorScore 추출 (Score Fusion용 필드명)
+        pipeline.add(createVectorScoreStage());
+
+        // 3. 최소 점수 필터링
+        if (options.getMinScore() > 0) {
+            pipeline.add(createVectorScoreFilterStage(options.getMinScore()));
+        }
+
+        // 4. recencyScore 계산
+        pipeline.add(createRecencyScoreStage(options.getRecencyDecayLambda()));
+
+        // 5. combinedScore 계산
+        pipeline.add(createScoreFusionStage(options.getVectorWeight(), options.getRecencyWeight()));
+
+        // 6. combinedScore 기준 정렬
+        pipeline.add(createFusionSortStage());
+
+        // 7. 최종 결과 수 제한
+        pipeline.add(createLimitStage(options.getLimit()));
+
+        return pipeline;
+    }
+
     /**
      * Bookmark 컬렉션 Vector Search 파이프라인 생성 (userId 필터 포함)
      *

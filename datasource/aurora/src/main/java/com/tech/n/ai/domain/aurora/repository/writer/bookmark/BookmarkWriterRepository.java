@@ -1,10 +1,9 @@
-package com.tech.n.ai.domain.aurora.repository.writer.bookmark;
+package com.tech.n.ai.domain.mariadb.repository.writer.bookmark;
 
-import com.tech.n.ai.domain.aurora.entity.bookmark.BookmarkEntity;
-import com.tech.n.ai.domain.aurora.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.domain.aurora.repository.writer.BaseWriterRepository;
-import com.tech.n.ai.domain.aurora.service.history.HistoryService;
-import com.tech.n.ai.domain.aurora.service.history.OperationType;
+import com.tech.n.ai.domain.mariadb.entity.bookmark.BookmarkEntity;
+import com.tech.n.ai.domain.mariadb.repository.writer.BaseWriterRepository;
+import com.tech.n.ai.domain.mariadb.service.history.HistoryService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,8 @@ import org.springframework.stereotype.Service;
 public class BookmarkWriterRepository extends BaseWriterRepository<BookmarkEntity> {
 
     private final BookmarkWriterJpaRepository bookmarkWriterJpaRepository;
-    private final UserReaderRepository userReaderRepository;
     private final HistoryService historyService;
+    private final EntityManager entityManager;
 
     @Override
     protected JpaRepository<BookmarkEntity, Long> getJpaRepository() {
@@ -31,25 +30,17 @@ public class BookmarkWriterRepository extends BaseWriterRepository<BookmarkEntit
     }
 
     @Override
+    protected EntityManager getEntityManager() {
+        return entityManager;
+    }
+
+    @Override
+    protected Class<BookmarkEntity> getEntityClass() {
+        return BookmarkEntity.class;
+    }
+
+    @Override
     protected String getEntityName() {
         return "Bookmark";
-    }
-
-    @Override
-    public BookmarkEntity save(BookmarkEntity entity) {
-        validateUserId(entity);
-        return super.save(entity);
-    }
-
-    @Override
-    public BookmarkEntity saveAndFlush(BookmarkEntity entity) {
-        validateUserId(entity);
-        return super.saveAndFlush(entity);
-    }
-
-    private void validateUserId(BookmarkEntity entity) {
-        if (entity.getUserId() != null && !userReaderRepository.existsById(entity.getUserId())) {
-            throw new IllegalArgumentException("User with id " + entity.getUserId() + " does not exist");
-        }
     }
 }

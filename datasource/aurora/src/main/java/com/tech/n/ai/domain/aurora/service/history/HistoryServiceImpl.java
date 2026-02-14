@@ -1,10 +1,11 @@
-package com.tech.n.ai.domain.aurora.service.history;
+package com.tech.n.ai.domain.mariadb.service.history;
 
-import com.tech.n.ai.domain.aurora.entity.BaseEntity;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tech.n.ai.domain.mariadb.entity.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.datatype.hibernate7.Hibernate7Module;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,14 +20,17 @@ import java.util.List;
 public class HistoryServiceImpl implements HistoryService {
 
     private static final ObjectMapper objectMapper = createObjectMapper();
-    
+
     private final List<HistoryEntityFactory> historyEntityFactories;
-    
+
     private static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
+        // Jackson 3: ObjectMapper is immutable, use JsonMapper.builder()
+        // Jackson 3 defaults: WRITE_DATES_AS_TIMESTAMPS=false (ISO-8601)
+        return JsonMapper.builder()
+                .addModule(new Hibernate7Module())
+                // null 필드도 항상 포함하여 히스토리 복구 시 null 값도 복원 가능하도록 함
+                .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.ALWAYS))
+                .build();
     }
 
     @Override
@@ -58,7 +62,7 @@ public class HistoryServiceImpl implements HistoryService {
         }
         try {
             return objectMapper.writeValueAsString(data);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Failed to serialize to JSON", e);
         }
     }

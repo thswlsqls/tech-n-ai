@@ -50,6 +50,14 @@ public class VectorSearchIndexConfig {
                 {
                   "type": "filter",
                   "path": "status"
+                },
+                {
+                  "type": "filter",
+                  "path": "published_at"
+                },
+                {
+                  "type": "filter",
+                  "path": "update_type"
                 }
               ]
             }
@@ -84,22 +92,14 @@ public class VectorSearchIndexConfig {
     }
 
     /**
-     * 애플리케이션 시작 시 Vector Search Index 생성 가이드 로깅
+     * 애플리케이션 시작 시 Vector Search Index 정보 로깅
+     *
+     * Vector Search Index는 MongoIndexConfig에서 자동 생성됩니다.
+     * 자동 생성 실패 시 Atlas UI에서 수동 생성이 필요합니다.
      */
     @PostConstruct
-    public void logIndexCreationGuide() {
-        log.info("==================================================");
-        log.info("MongoDB Atlas Vector Search Index 생성 가이드");
-        log.info("==================================================");
-        log.info("Vector Search Index는 MongoDB Atlas에서만 생성 가능합니다.");
-        log.info("Atlas UI 또는 Atlas CLI를 사용하여 Index를 생성하세요.");
-        log.info("");
-        log.info("필요한 Vector Search Index:");
-        log.info("  1. {} (emerging_techs 컬렉션)", INDEX_NAME_EMERGING_TECHS);
-        log.info("");
-        log.info("가이드 문서: docs/step1/6. mongodb-atlas-integration-guide.md");
-        log.info("공식 문서: https://www.mongodb.com/docs/atlas/atlas-vector-search/create-index/");
-        log.info("==================================================");
+    public void logIndexInfo() {
+        log.info("Vector Search Index '{}': MongoIndexConfig에서 자동 생성됩니다.", INDEX_NAME_EMERGING_TECHS);
     }
 
     /**

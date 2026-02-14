@@ -23,7 +23,7 @@ public class MongoClientConfig extends AbstractMongoClientConfiguration {
     @Value("${spring.data.mongodb.uri}")
     private String connectionString;
     
-    @Value("${spring.data.mongodb.database:shrimp_task_manager}")
+    @Value("${spring.data.mongodb.database:tech_n_ai}")
     private String databaseName;
     
     @Override

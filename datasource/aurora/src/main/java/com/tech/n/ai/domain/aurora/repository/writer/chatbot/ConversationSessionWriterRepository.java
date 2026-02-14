@@ -1,6 +1,6 @@
-package com.tech.n.ai.domain.aurora.repository.writer.chatbot;
+package com.tech.n.ai.domain.mariadb.repository.writer.chatbot;
 
-import com.tech.n.ai.domain.aurora.entity.chatbot.ConversationSessionEntity;
+import com.tech.n.ai.domain.mariadb.entity.chatbot.ConversationSessionEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

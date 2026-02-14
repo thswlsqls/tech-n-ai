@@ -1,11 +1,11 @@
-package com.tech.n.ai.domain.aurora.config;
+package com.tech.n.ai.domain.mariadb.config;
 
 
 import java.util.Properties;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -23,15 +23,15 @@ import lombok.extern.slf4j.Slf4j;
 @Profile("batch-domain")
 @Configuration
 @EnableJpaRepositories(basePackages = {
-    "com.tech.n.ai.domain.aurora.repository",
+    "com.tech.n.ai.domain.mariadb.repository",
 }
     , transactionManagerRef = "jpaTransactionManagerAutoCommitF"
     , entityManagerFactoryRef = "secondaryEMF")
 @EntityScan(basePackages = {
-    "com.tech.n.ai.domain.aurora.entity"
+    "com.tech.n.ai.domain.mariadb.entity"
 })
 @ComponentScan(basePackages = {
-    "com.tech.n.ai.domain.aurora",
+    "com.tech.n.ai.domain.mariadb",
 })
 public class BatchEntityManagerConfig {
 
@@ -58,7 +58,7 @@ public class BatchEntityManagerConfig {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(batchBusinessWriterDataSource);
         em.setPackagesToScan(new String[] {
-            "com.tech.n.ai.domain.aurora.entity",
+            "com.tech.n.ai.domain.mariadb.entity",
         });
         em.setPersistenceUnitName("batch-writer-primary");
 
@@ -81,7 +81,7 @@ public class BatchEntityManagerConfig {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(batchBusinessWriterDataSource);
         em.setPackagesToScan(new String[] {
-           "com.tech.n.ai.domain.aurora.entity",
+           "com.tech.n.ai.domain.mariadb.entity",
             });
         em.setPersistenceUnitName("batch-writer-secondary");
 

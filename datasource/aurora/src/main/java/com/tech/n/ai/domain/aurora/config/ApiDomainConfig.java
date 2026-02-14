@@ -1,4 +1,4 @@
-package com.tech.n.ai.domain.aurora.config;
+package com.tech.n.ai.domain.mariadb.config;
 
 
 import com.querydsl.jpa.JPQLTemplates;
@@ -7,7 +7,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 
 import jakarta.persistence.PersistenceContext;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -25,10 +25,10 @@ import lombok.RequiredArgsConstructor;
 @Profile("api-domain")
 @EnableTransactionManagement
 @EnableJpaRepositories(
-    basePackages = {"com.tech.n.ai.domain.aurora.repository"}
+    basePackages = {"com.tech.n.ai.domain.mariadb.repository"}
 )
-@EntityScan(value = {"com.tech.n.ai.domain.aurora.entity"})
-@ComponentScan(basePackages = {"com.tech.n.ai.domain.aurora"})
+@EntityScan(value = {"com.tech.n.ai.domain.mariadb.entity"})
+@ComponentScan(basePackages = {"com.tech.n.ai.domain.mariadb"})
 @Import({
     ApiDataSourceConfig.class,
     ApiMybatisConfig.class

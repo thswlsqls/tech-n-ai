@@ -1,8 +1,9 @@
-package com.tech.n.ai.domain.aurora.repository.writer.auth;
+package com.tech.n.ai.domain.mariadb.repository.writer.auth;
 
-import com.tech.n.ai.domain.aurora.entity.auth.AdminEntity;
-import com.tech.n.ai.domain.aurora.repository.writer.BaseWriterRepository;
-import com.tech.n.ai.domain.aurora.service.history.HistoryService;
+import com.tech.n.ai.domain.mariadb.entity.auth.AdminEntity;
+import com.tech.n.ai.domain.mariadb.repository.writer.BaseWriterRepository;
+import com.tech.n.ai.domain.mariadb.service.history.HistoryService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class AdminWriterRepository extends BaseWriterRepository<AdminEntity> {
 
     private final AdminWriterJpaRepository adminWriterJpaRepository;
     private final HistoryService historyService;
+    private final EntityManager entityManager;
 
     @Override
     protected JpaRepository<AdminEntity, Long> getJpaRepository() {
@@ -25,6 +27,16 @@ public class AdminWriterRepository extends BaseWriterRepository<AdminEntity> {
     @Override
     protected HistoryService getHistoryService() {
         return historyService;
+    }
+
+    @Override
+    protected EntityManager getEntityManager() {
+        return entityManager;
+    }
+
+    @Override
+    protected Class<AdminEntity> getEntityClass() {
+        return AdminEntity.class;
     }
 
     @Override
