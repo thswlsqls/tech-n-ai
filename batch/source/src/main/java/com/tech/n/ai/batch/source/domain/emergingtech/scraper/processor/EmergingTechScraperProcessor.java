@@ -8,7 +8,7 @@ import com.tech.n.ai.domain.mongodb.enums.SourceType;
 import com.tech.n.ai.domain.mongodb.enums.TechProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.lang.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -39,7 +39,7 @@ public class EmergingTechScraperProcessor implements ItemProcessor<ScrapedTechAr
             .url(article.url())
             .publishedAt(article.publishedDate())
             .sourceType(SourceType.WEB_SCRAPING.name())
-            .status(PostStatus.DRAFT.name())
+            .status(PostStatus.PUBLISHED.name())
             .externalId("scraper:" + generateHash(article.url()))
             .metadata(EmergingTechCreateRequest.EmergingTechMetadataRequest.builder()
                 .author(Objects.requireNonNullElse(article.author(), ""))

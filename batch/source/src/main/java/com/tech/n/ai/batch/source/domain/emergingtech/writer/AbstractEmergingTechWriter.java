@@ -4,13 +4,12 @@ import com.tech.n.ai.batch.source.domain.emergingtech.dto.request.EmergingTechCr
 import com.tech.n.ai.client.feign.domain.internal.contract.EmergingTechInternalContract;
 import com.tech.n.ai.client.feign.domain.internal.contract.InternalApiDto;
 import com.tech.n.ai.common.core.dto.ApiResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.Chunk;
-import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.infrastructure.item.Chunk;
+import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.LinkedHashMap;
@@ -172,9 +171,8 @@ public abstract class AbstractEmergingTechWriter implements ItemWriter<EmergingT
     }
 
     private static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
+        // Jackson 3: ObjectMapper is immutable, use JsonMapper.builder()
+        // Jackson 3 defaults: WRITE_DATES_AS_TIMESTAMPS=false (ISO-8601)
+        return JsonMapper.builder().build();
     }
 }

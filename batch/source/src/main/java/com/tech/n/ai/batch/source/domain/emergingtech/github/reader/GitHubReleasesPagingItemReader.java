@@ -3,7 +3,7 @@ package com.tech.n.ai.batch.source.domain.emergingtech.github.reader;
 import com.tech.n.ai.batch.source.domain.emergingtech.github.service.GitHubReleasesService;
 import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.database.AbstractPagingItemReader;
+import org.springframework.batch.infrastructure.item.database.AbstractPagingItemReader;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;

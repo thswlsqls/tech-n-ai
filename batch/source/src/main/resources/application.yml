@@ -8,17 +8,9 @@ spring:
       - batch-domain
       - mongodb-domain
       # Client Feign Profiles
-      - feign-codeforces
-      - feign-devto
       - feign-github
-      - feign-hackernews
-      - feign-kaggle
-      - feign-newsapi
       - feign-oauth
-      - feign-producthunt
-      - feign-reddit
       - feign-internal
-      - feign-sample
       # Client Modules Profiles
       - rss
       - scraper
@@ -43,7 +35,7 @@ spring:
       # Spring Cloud Reactive Discovery 관련 (Batch에서 불필요, WebFlux 의존성 없음)
       - org.springframework.cloud.client.discovery.simple.reactive.SimpleReactiveDiscoveryClientAutoConfiguration
       # Flyway 관련 (Multi-DataSource 환경에서 불필요, JPA ddl-auto=none 사용)
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
 
 module:
   aurora:

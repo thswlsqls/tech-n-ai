@@ -3,7 +3,7 @@ package com.tech.n.ai.batch.source.domain.emergingtech.rss.reader;
 import com.tech.n.ai.batch.source.domain.emergingtech.rss.service.EmergingTechRssService;
 import com.tech.n.ai.client.rss.dto.RssFeedItem;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.database.AbstractPagingItemReader;
+import org.springframework.batch.infrastructure.item.database.AbstractPagingItemReader;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;

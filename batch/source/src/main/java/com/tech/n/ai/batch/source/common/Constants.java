@@ -5,7 +5,7 @@ public class Constants {
     // Job - Emerging Tech
     public final static String EMERGING_TECH_GITHUB = "emerging-tech.github.job";
     public final static String EMERGING_TECH_RSS = "emerging-tech.rss.job";
-    public final static String EMERGING_TECH_SCRAPER = "emerging-tech.scraper.job";
+    public final static String EMERGING_TECH_SCRAPER = "op";
 
     // Job Parameter
     public final static String PARAMETER = ".parameter";

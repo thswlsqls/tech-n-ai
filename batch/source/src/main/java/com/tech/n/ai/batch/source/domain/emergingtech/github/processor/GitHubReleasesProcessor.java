@@ -8,7 +8,7 @@ import com.tech.n.ai.domain.mongodb.enums.PostStatus;
 import com.tech.n.ai.domain.mongodb.enums.SourceType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
@@ -64,7 +64,7 @@ public class GitHubReleasesProcessor implements ItemProcessor<GitHubReleaseWithR
             .url(release.htmlUrl())
             .publishedAt(parsePublishedAt(release.publishedAt()))
             .sourceType(SourceType.GITHUB_RELEASE.name())
-            .status(PostStatus.DRAFT.name())
+            .status(PostStatus.PUBLISHED.name())
             .externalId("github:" + release.id())
             .metadata(buildMetadata(item))
             .build();

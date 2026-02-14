@@ -1,9 +1,9 @@
 package com.tech.n.ai.batch.source.domain.emergingtech.rss.incrementer;
 
 import com.tech.n.ai.batch.source.common.incrementer.UniqueRunIdIncrementer;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.job.parameters.RunIdIncrementer;
 
 /**
  * Emerging Tech RSS Job Incrementer
