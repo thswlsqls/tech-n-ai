@@ -65,8 +65,10 @@ public class AnalyticsToolAdapter {
 
     /**
      * 텍스트 빈도 분석 (MongoDB 서버사이드 집계)
+     * provider, updateType, sourceType 조합으로 필터링 가능
      */
-    public WordFrequencyDto analyzeTextFrequency(String provider, String startDate, String endDate, int topN) {
+    public WordFrequencyDto analyzeTextFrequency(String provider, String updateType, String sourceType,
+                                                  String startDate, String endDate, int topN) {
         try {
             LocalDateTime start = parseDate(startDate, true);
             LocalDateTime end = parseDate(endDate, false);
@@ -76,7 +78,7 @@ public class AnalyticsToolAdapter {
 
             // 서버사이드 단어 빈도 집계 (unigram)
             List<WordFrequencyResult> wordResults = aggregationService.aggregateWordFrequency(
-                provider, start, end, stopWords, topN);
+                provider, updateType, sourceType, start, end, stopWords, topN);
 
             List<WordFrequencyDto.WordCount> topWords = wordResults.stream()
                 .map(r -> new WordFrequencyDto.WordCount(r.getId(), r.getCount()))
@@ -86,12 +88,12 @@ public class AnalyticsToolAdapter {
             List<WordFrequencyDto.WordCount> topBigrams = List.of();
 
             // 전체 도큐먼트 수
-            long totalDocs = aggregationService.countDocuments(provider, start, end);
+            long totalDocs = aggregationService.countDocuments(provider, updateType, sourceType, start, end);
 
             String period = buildPeriodString(startDate, endDate);
             return new WordFrequencyDto(totalDocs, period, topWords, topBigrams);
         } catch (Exception e) {
-            log.error("텍스트 빈도 분석 실패: provider={}", provider, e);
+            log.error("텍스트 빈도 분석 실패: provider={}, updateType={}, sourceType={}", provider, updateType, sourceType, e);
             return new WordFrequencyDto(0, "", List.of(), List.of());
         }
     }

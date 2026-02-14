@@ -6,15 +6,20 @@ langchain4j:
       model-name: gpt-4o-mini
       temperature: 0.3
       max-tokens: 4096
-      timeout: 120s
+      timeout: 120
 
-# AI Update 내부 API 설정
+# Emerging Tech 내부 API 설정
 internal-api:
-  ai-update:
-    api-key: ${AI_UPDATE_INTERNAL_API_KEY:}
+  emerging-tech:
+    api-key: ${EMERGING_TECH_INTERNAL_API_KEY:}
 
-# AI Update Agent 스케줄러 설정
+# Emerging Tech Agent 스케줄러 설정
 agent:
   scheduler:
     enabled: ${AGENT_SCHEDULER_ENABLED:false}
     cron: "0 0 */6 * * *"
+  analytics:
+    default-top-n: 20
+    max-top-n: 100
+  slack:
+    enabled: false    # Slack 발송 비활성화 (true로 변경 시 실제 발송)

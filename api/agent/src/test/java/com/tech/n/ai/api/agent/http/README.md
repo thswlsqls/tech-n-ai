@@ -31,7 +31,7 @@ http/
 ```json
 {
   "local": {
-    "baseUrl": "http://localhost:8087",
+    "baseUrl": "http://localhost:8086",
     "gatewayUrl": "http://localhost:8081",
     "userId": "admin-user-001"
   }

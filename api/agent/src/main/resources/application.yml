@@ -1,5 +1,5 @@
 server:
-  port: 8087
+  port: 8086
 
 spring:
   application:
@@ -8,7 +8,9 @@ spring:
     include:
       - common-core
       - agent-api
+      - mongodb-domain
       - feign-github
       - feign-internal
       - slack
       - scraper
+      - rss

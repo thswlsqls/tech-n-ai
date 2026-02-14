@@ -1,0 +1,213 @@
+###
+# POST /api/v1/agent/run - Agent 통계 분석 및 키워드 빈도 분석 테스트
+# Description: Agent의 통계 집계(get_emerging_tech_statistics) 및 키워드 빈도 분석(analyze_text_frequency) Tool 테스트
+# Authentication: Gateway에서 JWT ADMIN 역할 검증 후 x-user-id 헤더 주입
+# @no-cookie-jar
+###
+
+### ============================================
+### 통계 분석 기능 테스트 (get_emerging_tech_statistics)
+### ============================================
+
+### 1. 통계 분석 - Provider별 통계 집계 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "Provider별 수집 현황을 통계로 보여주세요."
+}
+
+> {%
+    client.test("Provider별 통계 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+
+    client.test("통계 분석 - AgentExecutionResult 구조 확인", function() {
+        var data = response.body.data;
+        client.assert(typeof data.success === "boolean", "success가 boolean이어야 합니다");
+        client.assert(typeof data.summary === "string", "summary가 문자열이어야 합니다");
+        client.assert(typeof data.toolCallCount === "number", "toolCallCount가 숫자여야 합니다");
+        client.assert(typeof data.analyticsCallCount === "number", "analyticsCallCount가 숫자여야 합니다");
+        client.assert(typeof data.executionTimeMs === "number", "executionTimeMs가 숫자여야 합니다");
+        client.assert(Array.isArray(data.errors), "errors가 배열이어야 합니다");
+    });
+%}
+
+### 2. 통계 분석 - SourceType별 통계 집계 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "SourceType별 데이터 수집 현황을 통계로 보여주세요."
+}
+
+> {%
+    client.test("SourceType별 통계 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 3. 통계 분석 - UpdateType별 통계 집계 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "UpdateType별 데이터 분포를 통계로 보여주세요."
+}
+
+> {%
+    client.test("UpdateType별 통계 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 4. 통계 분석 - 기간 지정 통계 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "2025년 1월부터 현재까지 Provider별 수집 현황을 통계와 차트로 보여주세요."
+}
+
+> {%
+    client.test("기간 지정 통계 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### ============================================
+### 키워드 빈도 분석 기능 테스트 (analyze_text_frequency)
+### ============================================
+
+### 5. 키워드 빈도 분석 - 전체 키워드 분석 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "수집된 데이터의 주요 키워드를 빈도 분석해주세요."
+}
+
+> {%
+    client.test("키워드 빈도 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+
+    client.test("키워드 분석 - AgentExecutionResult 구조 확인", function() {
+        var data = response.body.data;
+        client.assert(typeof data.success === "boolean", "success가 boolean이어야 합니다");
+        client.assert(typeof data.summary === "string", "summary가 문자열이어야 합니다");
+        client.assert(typeof data.toolCallCount === "number", "toolCallCount가 숫자여야 합니다");
+        client.assert(Array.isArray(data.errors), "errors가 배열이어야 합니다");
+    });
+%}
+
+### 6. 키워드 빈도 분석 - Provider 필터링 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "OpenAI 관련 데이터에서 키워드 빈도를 분석해주세요."
+}
+
+> {%
+    client.test("Provider별 키워드 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 7. 키워드 빈도 분석 - UpdateType 필터링 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "SDK 릴리스에서 많이 나오는 키워드를 분석해주세요."
+}
+
+> {%
+    client.test("UpdateType별 키워드 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 8. 키워드 빈도 분석 - SourceType 필터링 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "RSS에서 수집된 기사의 키워드 트렌드를 분석해주세요."
+}
+
+> {%
+    client.test("SourceType별 키워드 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### 9. 키워드 빈도 분석 - 복합 필터 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "Anthropic의 블로그 포스트에서 키워드 빈도를 분석해주세요."
+}
+
+> {%
+    client.test("복합 필터 키워드 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+%}
+
+### ============================================
+### 복합 분석 테스트 (통계 + 키워드)
+### ============================================
+
+### 10. 복합 분석 - 통계와 키워드 동시 요청
+POST {{gatewayUrl}}/api/v1/agent/run
+Content-Type: application/json
+x-user-id: {{adminId}}
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "goal": "Provider별 수집 통계를 보여주고, 전체 키워드 빈도 TOP 10도 함께 분석해주세요."
+}
+
+> {%
+    client.test("복합 분석 요청 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code가 2000이어야 합니다");
+    });
+
+    client.test("복합 분석 - 데이터 구조 확인", function() {
+        var data = response.body.data;
+        client.assert(typeof data.success === "boolean", "success가 boolean이어야 합니다");
+        client.assert(typeof data.summary === "string", "summary가 문자열이어야 합니다");
+        client.assert(typeof data.toolCallCount === "number", "toolCallCount가 숫자여야 합니다");
+    });
+%}

@@ -79,8 +79,11 @@ public final class ToolErrorHandlers {
         log.warn("존재하지 않는 Tool 호출 시도: {}", toolName);
 
         String errorMessage = String.format("Error: Tool '%s'은(는) 존재하지 않습니다. " +
-                        "사용 가능한 Tool: fetch_github_releases, scrape_web_page, search_emerging_techs, " +
-                        "get_emerging_tech_statistics, analyze_text_frequency, send_slack_notification",
+                        "사용 가능한 Tool: fetch_github_releases, scrape_web_page, " +
+                        "list_emerging_techs, get_emerging_tech_detail, search_emerging_techs, " +
+                        "get_emerging_tech_statistics, analyze_text_frequency, " +
+                        "send_slack_notification, " +
+                        "collect_github_releases, collect_rss_feeds, collect_scraped_articles",
                 toolName);
 
         return ToolExecutionResultMessage.from(request, errorMessage);

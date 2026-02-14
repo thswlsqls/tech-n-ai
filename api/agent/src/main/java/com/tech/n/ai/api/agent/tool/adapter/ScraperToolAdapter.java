@@ -47,9 +47,10 @@ public class ScraperToolAdapter {
             String baseUrl = uri.getScheme() + "://" + uri.getHost();
             String path = uri.getPath();
 
-            if (!robotsTxtChecker.isAllowed(baseUrl, path)) {
-                log.warn("Robots.txt에 의해 크롤링 차단: {}", url);
-                return new ScrapedContentDto(null, "Robots.txt에 의해 차단됨", url);
+            RobotsTxtChecker.CheckResult checkResult = robotsTxtChecker.check(baseUrl, path);
+            if (checkResult != RobotsTxtChecker.CheckResult.ALLOWED) {
+                log.warn("크롤링 차단: {} (사유: {})", url, checkResult.getMessage());
+                return new ScrapedContentDto(null, checkResult.getMessage(), url);
             }
 
             WebClient webClient = webClientBuilder.build();

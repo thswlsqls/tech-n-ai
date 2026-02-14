@@ -1,6 +1,6 @@
 ###
 # POST /api/v1/agent/run - Emerging Tech Agent 수동 실행 API 테스트
-# Description: Emerging Tech Agent를 수동으로 실행하여 AI 업데이트 정보를 수집합니다.
+# Description: Agent 엔드포인트의 정상/실패/엣지 케이스 테스트
 # Authentication: Gateway에서 JWT ADMIN 역할 검증 후 x-user-id 헤더 주입
 # @no-cookie-jar
 ###
@@ -59,7 +59,7 @@ Authorization: Bearer {{adminAccessToken}}
 
 {
   "goal": "GitHub에서 최신 AI 프레임워크 릴리스 정보를 확인해주세요.",
-  "sessionId": "test-session-001"
+  "sessionId": "admin-563108741828608000-4636218e"
 }
 
 > {%
@@ -272,10 +272,11 @@ Authorization: Bearer {{adminAccessToken}}
     });
 %}
 
-### 13. 실패 케이스 - x-user-id 헤더 누락
+### 13. 엣지 케이스 - x-user-id 헤더 누락 (Gateway 경유)
+# Gateway가 JWT에서 userId를 추출하여 x-user-id 헤더를 자동 주입하므로 200 반환
+# 직접 호출(baseUrl) 시에는 MissingRequestHeaderException → 400 반환
 POST {{gatewayUrl}}/api/v1/agent/run
 Content-Type: application/json
-x-user-id: {{adminId}}
 Authorization: Bearer {{adminAccessToken}}
 
 {
@@ -283,8 +284,8 @@ Authorization: Bearer {{adminAccessToken}}
 }
 
 > {%
-    client.test("x-user-id 누락 - HTTP 400", function() {
-        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    client.test("x-user-id 누락 (Gateway) - HTTP 200 (JWT에서 자동 주입)", function() {
+        client.assert(response.status === 200, "Gateway가 JWT에서 x-user-id를 주입하므로 200이어야 합니다");
     });
 %}
 
@@ -316,8 +317,12 @@ goal=AI 업데이트 정보를 수집해주세요.
 
 > {%
     client.test("잘못된 Content-Type - HTTP 415", function() {
-        client.assert(response.status === 415 || response.status === 400,
-            "응답 상태 코드가 415 또는 400이어야 합니다");
+        client.assert(response.status === 415, "응답 상태 코드가 415여야 합니다");
+    });
+
+    client.test("잘못된 Content-Type - 에러 코드 확인", function() {
+        client.assert(response.body.code === "4150", "code가 4150(UNSUPPORTED_MEDIA_TYPE)이어야 합니다");
+        client.assert(response.body.messageCode.code === "UNSUPPORTED_MEDIA_TYPE", "messageCode.code가 UNSUPPORTED_MEDIA_TYPE이어야 합니다");
     });
 %}
 
@@ -635,6 +640,11 @@ Authorization: Bearer {{adminAccessToken}}
     client.test("GET Method - HTTP 405", function() {
         client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
     });
+
+    client.test("GET Method - 에러 코드 확인", function() {
+        client.assert(response.body.code === "4050", "code가 4050(METHOD_NOT_ALLOWED)이어야 합니다");
+        client.assert(response.body.messageCode.code === "METHOD_NOT_ALLOWED", "messageCode.code가 METHOD_NOT_ALLOWED여야 합니다");
+    });
 %}
 
 ### 34. 엣지 케이스 - HTTP Method 오류 (PUT)
@@ -651,6 +661,10 @@ Authorization: Bearer {{adminAccessToken}}
     client.test("PUT Method - HTTP 405", function() {
         client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
     });
+
+    client.test("PUT Method - 에러 코드 확인", function() {
+        client.assert(response.body.code === "4050", "code가 4050(METHOD_NOT_ALLOWED)이어야 합니다");
+    });
 %}
 
 ### 35. 엣지 케이스 - HTTP Method 오류 (DELETE)
@@ -661,6 +675,10 @@ Authorization: Bearer {{adminAccessToken}}
 > {%
     client.test("DELETE Method - HTTP 405", function() {
         client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+
+    client.test("DELETE Method - 에러 코드 확인", function() {
+        client.assert(response.body.code === "4050", "code가 4050(METHOD_NOT_ALLOWED)이어야 합니다");
     });
 %}
 
@@ -677,6 +695,10 @@ Authorization: Bearer {{adminAccessToken}}
 > {%
     client.test("PATCH Method - HTTP 405", function() {
         client.assert(response.status === 405, "응답 상태 코드가 405여야 합니다");
+    });
+
+    client.test("PATCH Method - 에러 코드 확인", function() {
+        client.assert(response.body.code === "4050", "code가 4050(METHOD_NOT_ALLOWED)이어야 합니다");
     });
 %}
 

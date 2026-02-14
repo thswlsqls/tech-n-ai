@@ -8,7 +8,9 @@ import com.tech.n.ai.api.agent.tool.adapter.GitHubToolAdapter;
 import com.tech.n.ai.api.agent.tool.adapter.ScraperToolAdapter;
 import com.tech.n.ai.api.agent.tool.adapter.SlackToolAdapter;
 import com.tech.n.ai.api.agent.tool.dto.DataCollectionResultDto;
+import com.tech.n.ai.api.agent.tool.dto.EmergingTechDetailDto;
 import com.tech.n.ai.api.agent.tool.dto.EmergingTechDto;
+import com.tech.n.ai.api.agent.tool.dto.EmergingTechListDto;
 import com.tech.n.ai.api.agent.tool.dto.GitHubReleaseDto;
 import com.tech.n.ai.api.agent.tool.dto.ScrapedContentDto;
 import com.tech.n.ai.api.agent.tool.dto.StatisticsDto;
@@ -81,16 +83,22 @@ public class EmergingTechAgentTools {
             @P("저장소 이름 (예: openai-python, anthropic-sdk-python)") String repo
     ) {
         metrics().incrementToolCall();
-        log.info("Tool 호출: fetch_github_releases(owner={}, repo={})", owner, repo);
 
-        String validationError = ToolInputValidator.validateGitHubRepo(owner, repo);
+        String correctedOwner = ToolInputValidator.correctGitHubOwner(owner);
+        if (!correctedOwner.equals(owner)) {
+            log.info("Tool 호출: fetch_github_releases(owner={} → {}, repo={})", owner, correctedOwner, repo);
+        } else {
+            log.info("Tool 호출: fetch_github_releases(owner={}, repo={})", owner, repo);
+        }
+
+        String validationError = ToolInputValidator.validateGitHubRepo(correctedOwner, repo);
         if (validationError != null) {
             metrics().incrementValidationError();
             log.warn("Tool 입력값 검증 실패: {}", validationError);
             return List.of();
         }
 
-        return githubAdapter.getReleases(owner, repo);
+        return githubAdapter.getReleases(correctedOwner, repo);
     }
 
     /**
@@ -144,6 +152,99 @@ public class EmergingTechAgentTools {
     }
 
     /**
+     * 기간/필터별 Emerging Tech 목록 조회
+     */
+    @Tool(name = "list_emerging_techs",
+          value = "MongoDB Atlas emerging_techs 컬렉션에서 조건에 맞는 도큐먼트 목록을 조회합니다. "
+                + "published_at 기준 기간 필터, provider, update_type, source_type, status 필터를 조합할 수 있습니다.")
+    public EmergingTechListDto listEmergingTechs(
+        @P("조회 시작일 (YYYY-MM-DD 형식, 빈 문자열이면 제한 없음)") String startDate,
+        @P("조회 종료일 (YYYY-MM-DD 형식, 빈 문자열이면 제한 없음)") String endDate,
+        @P("Provider 필터 (OPENAI, ANTHROPIC, GOOGLE, META, XAI 또는 빈 문자열이면 전체)") String provider,
+        @P("UpdateType 필터 (MODEL_RELEASE, API_UPDATE, SDK_RELEASE, PRODUCT_LAUNCH, PLATFORM_UPDATE, BLOG_POST 또는 빈 문자열이면 전체)") String updateType,
+        @P("SourceType 필터 (GITHUB_RELEASE, RSS, WEB_SCRAPING 또는 빈 문자열이면 전체)") String sourceType,
+        @P("Status 필터 (DRAFT, PENDING, PUBLISHED, REJECTED 또는 빈 문자열이면 전체)") String status,
+        @P("페이지 번호 (1부터 시작, 기본값 1)") int page,
+        @P("페이지 크기 (기본값 20, 최대 100)") int size
+    ) {
+        metrics().incrementToolCall();
+        log.info("Tool 호출: list_emerging_techs(startDate={}, endDate={}, provider={}, updateType={}, sourceType={}, status={}, page={}, size={})",
+                startDate, endDate, provider, updateType, sourceType, status, page, size);
+
+        // 입력값 검증
+        String startDateError = ToolInputValidator.validateDateOptional(startDate, "startDate");
+        if (startDateError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", startDateError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        String endDateError = ToolInputValidator.validateDateOptional(endDate, "endDate");
+        if (endDateError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", endDateError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        String providerError = ToolInputValidator.validateProviderOptional(provider);
+        if (providerError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", providerError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        String updateTypeError = ToolInputValidator.validateUpdateTypeOptional(updateType);
+        if (updateTypeError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", updateTypeError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        String sourceTypeError = ToolInputValidator.validateSourceTypeOptional(sourceType);
+        if (sourceTypeError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", sourceTypeError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        String statusError = ToolInputValidator.validateStatusOptional(status);
+        if (statusError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", statusError);
+            return EmergingTechListDto.empty(page, size, "전체");
+        }
+
+        // 페이지 정규화
+        int normalizedPage = ToolInputValidator.normalizePage(page);
+        int normalizedSize = ToolInputValidator.normalizeSize(size);
+
+        return emergingTechAdapter.list(startDate, endDate, provider, updateType,
+                                         sourceType, status, normalizedPage, normalizedSize);
+    }
+
+    /**
+     * Emerging Tech 상세 조회 (ID 기반)
+     */
+    @Tool(name = "get_emerging_tech_detail",
+          value = "Emerging Tech 도큐먼트의 상세 정보를 ID로 조회합니다. "
+                + "목록 조회나 검색 결과에서 얻은 ID를 사용합니다.")
+    public EmergingTechDetailDto getEmergingTechDetail(
+        @P("조회할 도큐먼트 ID (MongoDB ObjectId)") String id
+    ) {
+        metrics().incrementToolCall();
+        log.info("Tool 호출: get_emerging_tech_detail(id={})", id);
+
+        String validationError = ToolInputValidator.validateObjectId(id);
+        if (validationError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", validationError);
+            return EmergingTechDetailDto.notFound(id);
+        }
+
+        return emergingTechAdapter.getDetail(id);
+    }
+
+    /**
      * Provider/SourceType/UpdateType별 통계 집계
      */
     @Tool(name = "get_emerging_tech_statistics",
@@ -155,6 +256,7 @@ public class EmergingTechAgentTools {
         @P("조회 종료일 (YYYY-MM-DD 형식, 빈 문자열이면 전체 기간)") String endDate
     ) {
         metrics().incrementToolCall();
+        metrics().incrementAnalyticsCall();
         log.info("Tool 호출: get_emerging_tech_statistics(groupBy={}, startDate={}, endDate={})",
                 groupBy, startDate, endDate);
 
@@ -190,21 +292,39 @@ public class EmergingTechAgentTools {
      */
     @Tool(name = "analyze_text_frequency",
           value = "EmergingTech 도큐먼트의 title, summary에서 주요 키워드 빈도를 분석합니다. "
+                + "Provider, UpdateType, SourceType으로 필터링할 수 있습니다. "
                 + "Mermaid 차트나 Word Cloud 형태로 결과를 정리할 수 있습니다.")
     public WordFrequencyDto analyzeTextFrequency(
-        @P("Provider 필터 (OPENAI, ANTHROPIC 등, 빈 문자열이면 전체)") String provider,
+        @P("Provider 필터 (OPENAI, ANTHROPIC, GOOGLE, META, XAI 또는 빈 문자열이면 전체)") String provider,
+        @P("UpdateType 필터 (MODEL_RELEASE, API_UPDATE, SDK_RELEASE, PRODUCT_LAUNCH, PLATFORM_UPDATE, BLOG_POST 또는 빈 문자열이면 전체)") String updateType,
+        @P("SourceType 필터 (GITHUB_RELEASE, RSS, WEB_SCRAPING 또는 빈 문자열이면 전체)") String sourceType,
         @P("조회 시작일 (YYYY-MM-DD 형식, 빈 문자열이면 전체 기간)") String startDate,
         @P("조회 종료일 (YYYY-MM-DD 형식, 빈 문자열이면 전체 기간)") String endDate,
         @P("상위 키워드 개수 (기본값 20)") int topN
     ) {
         metrics().incrementToolCall();
-        log.info("Tool 호출: analyze_text_frequency(provider={}, startDate={}, endDate={}, topN={})",
-                provider, startDate, endDate, topN);
+        metrics().incrementAnalyticsCall();
+        log.info("Tool 호출: analyze_text_frequency(provider={}, updateType={}, sourceType={}, startDate={}, endDate={}, topN={})",
+                provider, updateType, sourceType, startDate, endDate, topN);
 
         String providerError = ToolInputValidator.validateProviderOptional(provider);
         if (providerError != null) {
             metrics().incrementValidationError();
             log.warn("Tool 입력값 검증 실패: {}", providerError);
+            return new WordFrequencyDto(0, "", List.of(), List.of());
+        }
+
+        String updateTypeError = ToolInputValidator.validateUpdateTypeOptional(updateType);
+        if (updateTypeError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", updateTypeError);
+            return new WordFrequencyDto(0, "", List.of(), List.of());
+        }
+
+        String sourceTypeError = ToolInputValidator.validateSourceTypeOptional(sourceType);
+        if (sourceTypeError != null) {
+            metrics().incrementValidationError();
+            log.warn("Tool 입력값 검증 실패: {}", sourceTypeError);
             return new WordFrequencyDto(0, "", List.of(), List.of());
         }
 
@@ -223,7 +343,7 @@ public class EmergingTechAgentTools {
         }
 
         int effectiveTopN = (topN > 0 && topN <= 100) ? topN : 20;
-        return analyticsAdapter.analyzeTextFrequency(provider, startDate, endDate, effectiveTopN);
+        return analyticsAdapter.analyzeTextFrequency(provider, updateType, sourceType, startDate, endDate, effectiveTopN);
     }
 
     /**

@@ -23,6 +23,9 @@ public final class ToolInputValidator {
 
     private static final Set<String> VALID_PROVIDERS = Set.of("OPENAI", "ANTHROPIC", "GOOGLE", "META", "XAI");
     private static final Set<String> VALID_UPDATE_TYPES = Set.of("MODEL_RELEASE", "API_UPDATE", "SDK_RELEASE", "PRODUCT_LAUNCH", "PLATFORM_UPDATE", "BLOG_POST");
+    private static final Set<String> VALID_SOURCE_TYPES = Set.of("GITHUB_RELEASE", "RSS", "WEB_SCRAPING");
+    private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PENDING", "PUBLISHED", "REJECTED");
+    private static final Pattern OBJECT_ID_PATTERN = Pattern.compile("^[a-fA-F0-9]{24}$");
 
     /**
      * LLM이 자주 틀리는 GitHub org 이름 교정 맵
@@ -215,6 +218,26 @@ public final class ToolInputValidator {
     }
 
     /**
+     * UpdateType 검증 (선택적, 빈 문자열 허용)
+     */
+    public static String validateUpdateTypeOptional(String updateType) {
+        if (updateType == null || updateType.isBlank()) {
+            return null;
+        }
+        return validateEnum(updateType, "updateType", VALID_UPDATE_TYPES);
+    }
+
+    /**
+     * SourceType 검증 (선택적, 빈 문자열 허용)
+     */
+    public static String validateSourceTypeOptional(String sourceType) {
+        if (sourceType == null || sourceType.isBlank()) {
+            return null;
+        }
+        return validateEnum(sourceType, "sourceType", VALID_SOURCE_TYPES);
+    }
+
+    /**
      * 날짜 형식 검증 (YYYY-MM-DD, 빈 문자열 허용)
      *
      * @param date 검증할 날짜 문자열
@@ -234,6 +257,45 @@ public final class ToolInputValidator {
         } catch (java.time.format.DateTimeParseException e) {
             return String.format("Error: %s는 유효한 날짜가 아닙니다 (입력값: %s)", fieldName, date);
         }
+    }
+
+    /**
+     * Status 검증 (선택적, 빈 문자열 허용)
+     */
+    public static String validateStatusOptional(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        return validateEnum(status, "status", VALID_STATUSES);
+    }
+
+    /**
+     * MongoDB ObjectId 검증
+     */
+    public static String validateObjectId(String id) {
+        String requiredError = validateRequired(id, "id");
+        if (requiredError != null) {
+            return requiredError;
+        }
+        if (!OBJECT_ID_PATTERN.matcher(id).matches()) {
+            return String.format("Error: id는 24자리 16진수(MongoDB ObjectId)여야 합니다 (입력값: %s)", id);
+        }
+        return null;
+    }
+
+    /**
+     * 페이지 번호 정규화 (1 미만이면 1)
+     */
+    public static int normalizePage(int page) {
+        return Math.max(1, page);
+    }
+
+    /**
+     * 페이지 크기 정규화 (0 이하면 20, 100 초과면 100)
+     */
+    public static int normalizeSize(int size) {
+        if (size <= 0) return 20;
+        return Math.min(size, 100);
     }
 
     /**
