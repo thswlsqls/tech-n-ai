@@ -29,6 +29,8 @@ public final class ErrorCodeConstants {
     public static final String NOT_FOUND = "4004";
     public static final String CONFLICT = "4005";
     public static final String VALIDATION_ERROR = "4006";
+    public static final String METHOD_NOT_ALLOWED = "4050";
+    public static final String UNSUPPORTED_MEDIA_TYPE = "4150";
     public static final String RATE_LIMIT_EXCEEDED = "4029";
     
     /**
@@ -52,6 +54,8 @@ public final class ErrorCodeConstants {
     public static final String MESSAGE_CODE_CONFLICT = "CONFLICT";
     public static final String MESSAGE_CODE_VALIDATION_ERROR = "VALIDATION_ERROR";
     public static final String MESSAGE_CODE_RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
+    public static final String MESSAGE_CODE_METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
+    public static final String MESSAGE_CODE_UNSUPPORTED_MEDIA_TYPE = "UNSUPPORTED_MEDIA_TYPE";
     public static final String MESSAGE_CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
     public static final String MESSAGE_CODE_DATABASE_ERROR = "DATABASE_ERROR";
     public static final String MESSAGE_CODE_EXTERNAL_API_ERROR = "EXTERNAL_API_ERROR";

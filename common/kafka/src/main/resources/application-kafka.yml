@@ -17,7 +17,7 @@ spring:
     
     # Consumer 설정
     consumer:
-      group-id: ${spring.application.name:shrimp-tm-group}
+      group-id: ${spring.application.name:tech-n-ai-group}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
@@ -28,7 +28,7 @@ spring:
         isolation.level: read_committed
         max.poll.interval.ms: 600000
       # Consumer가 구독할 Topic 목록
-      topics: shrimp-tm.conversation.session.created,shrimp-tm.conversation.session.updated,shrimp-tm.conversation.session.deleted,shrimp-tm.conversation.message.created
+      topics: tech-n-ai.conversation.session.created,tech-n-ai.conversation.session.updated,tech-n-ai.conversation.session.deleted,tech-n-ai.conversation.message.created
     
     # Listener 설정
     listener:

@@ -1,6 +1,6 @@
 package com.tech.n.ai.common.kafka.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -34,7 +34,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
     
-    @Value("${spring.kafka.consumer.group-id:shrimp-tm-group}")
+    @Value("${spring.kafka.consumer.group-id:tech-n-ai-group}")
     private String groupId;
     
     @Value("${spring.kafka.consumer.auto-offset-reset:earliest}")
@@ -109,11 +109,9 @@ public class KafkaConfig {
         configProps.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         
         // JsonDeserializer 설정
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, 
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
             "com.tech.n.ai.common.kafka.event,com.tech.n.ai.*.event");
-        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, 
-            "com.tech.n.ai.common.kafka.event.BaseEvent");
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         
         return new DefaultKafkaConsumerFactory<>(configProps);
     }

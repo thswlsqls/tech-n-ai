@@ -19,8 +19,8 @@ public class EventConsumer {
     private final EventHandlerRegistry eventHandlerRegistry;
     
     @KafkaListener(
-        topics = "#{'${spring.kafka.consumer.topics:shrimp-tm.conversation.session.created,shrimp-tm.conversation.session.updated,shrimp-tm.conversation.session.deleted,shrimp-tm.conversation.message.created}'.split(',')}",
-        groupId = "${spring.kafka.consumer.group-id:shrimp-tm-group}",
+        topics = "#{'${spring.kafka.consumer.topics:tech-n-ai.conversation.session.created,tech-n-ai.conversation.session.updated,tech-n-ai.conversation.session.deleted,tech-n-ai.conversation.message.created}'.split(',')}",
+        groupId = "${spring.kafka.consumer.group-id:tech-n-ai-group}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     public void consume(

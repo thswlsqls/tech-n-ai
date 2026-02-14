@@ -6,7 +6,7 @@ import com.tech.n.ai.common.core.dto.MessageCode;
 import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
 import com.tech.n.ai.common.security.jwt.JwtTokenProvider;
 import com.tech.n.ai.common.security.principal.UserPrincipal;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

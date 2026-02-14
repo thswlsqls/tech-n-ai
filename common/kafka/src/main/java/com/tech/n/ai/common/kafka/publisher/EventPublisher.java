@@ -28,7 +28,7 @@ public class EventPublisher {
      * 
      * @param topic Kafka 토픽
      * @param event 이벤트 객체
-     * @param partitionKey Partition Key (이벤트 순서 보장용, userId, archiveId 등)
+     * @param partitionKey Partition Key (이벤트 순서 보장용, userId, bookmarkId 등)
      */
     public void publish(String topic, BaseEvent event, String partitionKey) {
         try {

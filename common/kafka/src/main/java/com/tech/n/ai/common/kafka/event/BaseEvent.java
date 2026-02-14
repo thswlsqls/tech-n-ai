@@ -13,7 +13,7 @@ public interface BaseEvent {
     String eventId();
     
     /**
-     * 이벤트 타입 (예: "USER_CREATED", "ARCHIVE_CREATED")
+     * 이벤트 타입 (예: "USER_CREATED", "BOOKMARK_CREATED")
      */
     String eventType();
     
