@@ -374,7 +374,7 @@ spring:
 **application-local.yml**:
 - 프로필: local
 - 서버 포트: 8081
-- 백엔드 서비스 URL: localhost (8082, 8083, 8084, 8085, 8086)
+- 백엔드 서비스 URL: localhost (8082, 8083, 8084, 8085, 8086) - emerging-tech, auth, chatbot, bookmark, agent 순서
 - 로그 레벨: DEBUG
 
 **application-dev.yml**:

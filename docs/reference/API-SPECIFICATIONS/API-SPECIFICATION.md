@@ -83,10 +83,11 @@
 
 | 경로 패턴 | 대상 서버 | 포트 | 인증 필요 |
 |----------|---------|------|---------|
-| `/api/v1/auth/**` | api-auth | 8082 | 불필요 |
-| `/api/v1/bookmark/**` | api-bookmark | 8083 | **필요** |
-| `/api/v1/chatbot/**` | api-chatbot | 8086 | **필요** |
-| `/api/v1/agent/**` | api-agent | 8087 | **필요 (ADMIN)** |
+| `/api/v1/emerging-tech/**` | api-emerging-tech | 8082 | 불필요 |
+| `/api/v1/auth/**` | api-auth | 8083 | 불필요 |
+| `/api/v1/chatbot/**` | api-chatbot | 8084 | **필요** |
+| `/api/v1/bookmark/**` | api-bookmark | 8085 | **필요** |
+| `/api/v1/agent/**` | api-agent | 8086 | **필요 (ADMIN)** |
 
 ### CORS 정책
 

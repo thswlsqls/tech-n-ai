@@ -94,10 +94,10 @@ redis-cli ping
 # API Gateway (포트 8081)
 ./gradlew :api-gateway:bootRun --args='--spring.profiles.active=local'
 
-# Auth API (포트 8082)
+# Auth API (포트 8083)
 ./gradlew :api-auth:bootRun --args='--spring.profiles.active=local'
 
-# Chatbot API (포트 8086)
+# Chatbot API (포트 8084)
 ./gradlew :api-chatbot:bootRun --args='--spring.profiles.active=local'
 
 # Batch Source
@@ -296,11 +296,11 @@ redis-cli FLUSHALL
 | 모듈 | 포트 | 설명 |
 |------|------|------|
 | api-gateway | 8081 | API Gateway |
-| api-auth | 8082 | 인증 서비스 |
-| api-bookmark | 8083 | 북마크 서비스 |
-| api-contest | 8084 | 콘테스트 서비스 |
-| api-news | 8085 | 뉴스 서비스 |
-| api-chatbot | 8086 | 챗봇 서비스 |
+| api-emerging-tech | 8082 | Emerging Tech 서비스 |
+| api-auth | 8083 | 인증 서비스 |
+| api-chatbot | 8084 | 챗봇 서비스 |
+| api-bookmark | 8085 | 북마크 서비스 |
+| api-agent | 8086 | AI Agent 서비스 |
 | kafka-ui | 8080 | Kafka 모니터링 UI |
 
 ---

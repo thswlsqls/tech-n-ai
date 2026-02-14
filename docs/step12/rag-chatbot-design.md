@@ -4293,7 +4293,7 @@ spring:
       database: ${MONGODB_ATLAS_DATABASE:shrimp_task_manager}
 
 server:
-  port: 8085
+  port: 8084
 
 langchain4j:
   anthropic:

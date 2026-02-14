@@ -7,7 +7,7 @@
 - `docs/reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md`
 
 ### 1.2 대상 모듈
-- `api/agent` (AI Agent 모듈, 포트 8087)
+- `api/agent` (AI Agent 모듈, 포트 8086)
 
 ### 1.3 관련 파일
 - `api/agent/src/main/java/com/ebson/shrimp/tm/demo/api/agent/config/AgentPromptConfig.java`

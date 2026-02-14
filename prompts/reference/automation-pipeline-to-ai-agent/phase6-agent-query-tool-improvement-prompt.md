@@ -9,10 +9,10 @@
 - `docs/reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md`
 
 ### 1.2 대상 모듈
-- `api/agent` (AI Agent 모듈, 포트 8087)
+- `api/agent` (AI Agent 모듈, 포트 8086)
 
 ### 1.3 참조 모듈
-- `api/emerging-tech` (Emerging Tech API 모듈, 포트 8088)
+- `api/emerging-tech` (Emerging Tech API 모듈, 포트 8082)
 - `domain/mongodb` (MongoDB 도메인 모듈)
 
 ---

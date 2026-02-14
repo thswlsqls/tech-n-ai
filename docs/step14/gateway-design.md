@@ -283,16 +283,16 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: emerging-tech-route
+          uri: http://localhost:8082  # api-emerging-tech 서버 포트
         - id: auth-route
-          uri: http://localhost:8082  # api-auth 서버 포트
-        - id: bookmark-route
-          uri: http://localhost:8083   # api-bookmark 서버 포트
-        - id: contest-route
-          uri: http://localhost:8084  # api-contest 서버 포트
-        - id: news-route
-          uri: http://localhost:8085   # api-news 서버 포트
+          uri: http://localhost:8083  # api-auth 서버 포트
         - id: chatbot-route
-          uri: http://localhost:8086  # api-chatbot 서버 포트
+          uri: http://localhost:8084  # api-chatbot 서버 포트
+        - id: bookmark-route
+          uri: http://localhost:8085  # api-bookmark 서버 포트
+        - id: agent-route
+          uri: http://localhost:8086  # api-agent 서버 포트
 ```
 
 #### Dev/Beta/Prod 환경
@@ -912,46 +912,46 @@ spring:
     gateway:
       # 라우팅 설정
       routes:
+        - id: emerging-tech-route
+          uri: ${gateway.routes.emerging-tech.uri:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/emerging-tech/**
+          filters:
+            - name: JwtAuthentication
+              args:
+                requireAuth: false
+
         - id: auth-route
-          uri: ${gateway.routes.auth.uri:http://localhost:8082}
+          uri: ${gateway.routes.auth.uri:http://localhost:8083}
           predicates:
             - Path=/api/v1/auth/**
           filters:
             - name: JwtAuthentication
               args:
                 requireAuth: false
-        
+
+        - id: chatbot-route
+          uri: ${gateway.routes.chatbot.uri:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/chatbot/**
+          filters:
+            - name: JwtAuthentication
+              args:
+                requireAuth: true
+
         - id: bookmark-route
-          uri: ${gateway.routes.bookmark.uri:http://localhost:8083}
+          uri: ${gateway.routes.bookmark.uri:http://localhost:8085}
           predicates:
             - Path=/api/v1/bookmark/**
           filters:
             - name: JwtAuthentication
               args:
                 requireAuth: true
-        
-        - id: contest-route
-          uri: ${gateway.routes.contest.uri:http://localhost:8084}
+
+        - id: agent-route
+          uri: ${gateway.routes.agent.uri:http://localhost:8086}
           predicates:
-            - Path=/api/v1/contest/**
-          filters:
-            - name: JwtAuthentication
-              args:
-                requireAuth: false
-        
-        - id: news-route
-          uri: ${gateway.routes.news.uri:http://localhost:8085}
-          predicates:
-            - Path=/api/v1/news/**
-          filters:
-            - name: JwtAuthentication
-              args:
-                requireAuth: false
-        
-        - id: chatbot-route
-          uri: ${gateway.routes.chatbot.uri:http://localhost:8086}
-          predicates:
-            - Path=/api/v1/chatbot/**
+            - Path=/api/v1/agent/**
           filters:
             - name: JwtAuthentication
               args:
@@ -1015,15 +1015,15 @@ server:
 
 gateway:
   routes:
-    auth:
+    emerging-tech:
       uri: http://localhost:8082
-    bookmark:
+    auth:
       uri: http://localhost:8083
-    contest:
-      uri: http://localhost:8084
-    news:
-      uri: http://localhost:8085
     chatbot:
+      uri: http://localhost:8084
+    bookmark:
+      uri: http://localhost:8085
+    agent:
       uri: http://localhost:8086
 
 logging:

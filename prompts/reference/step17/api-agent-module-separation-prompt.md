@@ -173,7 +173,7 @@ public class ServerConfig {
 #### 3.3 resources/application.yml
 ```yaml
 server:
-  port: 8087
+  port: 8086
 
 spring:
   application:
@@ -267,7 +267,7 @@ spring:
         # 기존 라우팅 유지...
 
         - id: agent-route
-          uri: ${gateway.routes.agent.uri:http://localhost:8087}  # chatbot → agent
+          uri: ${gateway.routes.agent.uri:http://localhost:8086}  # chatbot → agent
           predicates:
             - Path=/api/v1/agent/**
 ```
@@ -276,18 +276,16 @@ spring:
 ```yaml
 gateway:
   routes:
-    auth:
+    emerging-tech:
       uri: http://localhost:8082
-    bookmark:
+    auth:
       uri: http://localhost:8083
-    contest:
-      uri: http://localhost:8084
-    news:
-      uri: http://localhost:8085
     chatbot:
-      uri: http://localhost:8086
+      uri: http://localhost:8084
+    bookmark:
+      uri: http://localhost:8085
     agent:
-      uri: http://localhost:8087  # 신규 추가
+      uri: http://localhost:8086
 ```
 
 #### 5.3 다른 환경 설정 파일도 동일하게 수정
@@ -303,7 +301,7 @@ gateway:
 - [ ] api-chatbot 모듈 빌드 성공: `./gradlew :api-chatbot:build`
 - [ ] api-gateway 모듈 빌드 성공: `./gradlew :api-gateway:build`
 - [ ] 전체 프로젝트 빌드 성공: `./gradlew build`
-- [ ] api-agent 애플리케이션 시작 확인 (포트 8087)
+- [ ] api-agent 애플리케이션 시작 확인 (포트 8086)
 - [ ] `/api/v1/agent/run` 엔드포인트 정상 동작
 - [ ] Gateway를 통한 Agent 라우팅 정상 동작
 

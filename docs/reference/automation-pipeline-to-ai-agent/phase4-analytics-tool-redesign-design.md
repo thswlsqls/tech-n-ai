@@ -1056,7 +1056,7 @@ public class ServerConfig {
 
 ```yaml
 server:
-  port: 8087
+  port: 8086
 
 spring:
   application:
