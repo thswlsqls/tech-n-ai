@@ -6,6 +6,15 @@ emerging-tech:
   internal:
     api-key: ${EMERGING_TECH_INTERNAL_API_KEY:default-emerging-tech-api-key}
 
+# 임베딩 설정 (OpenAI text-embedding-3-small)
+langchain4j:
+  open-ai:
+    embedding-model:
+      api-key: ${OPENAI_API_KEY:}
+      model-name: text-embedding-3-small
+      dimensions: 1536
+      timeout: 30s
+
 # Slack 알림 설정 (기본 비활성화)
 slack:
   emerging-tech:

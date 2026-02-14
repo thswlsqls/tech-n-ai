@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ComponentScan(basePackages = {
     "com.tech.n.ai.api.emergingtech",
-    "com.tech.n.ai.domain.mongodb"
+    "com.tech.n.ai.domain.mongodb",
+    "com.tech.n.ai.common.core",
+    "com.tech.n.ai.common.exception"
 })
 @Import({
     MongoClientConfig.class,

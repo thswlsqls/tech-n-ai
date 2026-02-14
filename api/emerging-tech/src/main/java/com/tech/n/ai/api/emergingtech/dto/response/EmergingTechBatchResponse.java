@@ -11,6 +11,8 @@ import java.util.List;
 public record EmergingTechBatchResponse(
     int totalCount,
     int successCount,
+    int newCount,
+    int duplicateCount,
     int failureCount,
     List<String> failureMessages
 ) {}

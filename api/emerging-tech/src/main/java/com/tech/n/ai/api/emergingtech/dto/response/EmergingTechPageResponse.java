@@ -6,10 +6,10 @@ import lombok.Builder;
 import java.util.List;
 
 /**
- * Emerging Tech 검색 응답 DTO
+ * Emerging Tech 페이지네이션 응답 DTO (목록/검색 공통)
  */
 @Builder
-public record EmergingTechSearchResponse(
+public record EmergingTechPageResponse(
     int pageSize,
     int pageNumber,
     int totalCount,
@@ -17,10 +17,10 @@ public record EmergingTechSearchResponse(
 ) {
 
     /**
-     * PageData → SearchResponse 변환
+     * PageData → PageResponse 변환
      */
-    public static EmergingTechSearchResponse from(PageData<EmergingTechDetailResponse> pageData) {
-        return EmergingTechSearchResponse.builder()
+    public static EmergingTechPageResponse from(PageData<EmergingTechDetailResponse> pageData) {
+        return EmergingTechPageResponse.builder()
             .pageSize(pageData.pageSize())
             .pageNumber(pageData.pageNumber())
             .totalCount(pageData.totalSize())

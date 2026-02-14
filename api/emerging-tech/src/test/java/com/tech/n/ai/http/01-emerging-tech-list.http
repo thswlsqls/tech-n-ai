@@ -196,3 +196,279 @@ GET {{gatewayUrl}}/api/v1/emerging-tech
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
     });
 %}
+
+### ============================================
+### Phase 6: startDate/endDate 기간 필터 테스트
+### ============================================
+
+### 17. 기간 필터 - startDate만 지정
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2025-01-01
+
+> {%
+    client.test("startDate만 지정 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+%}
+
+### 18. 기간 필터 - endDate만 지정
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&endDate=2026-12-31
+
+> {%
+    client.test("endDate만 지정 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+%}
+
+### 19. 기간 필터 - startDate + endDate 범위 지정
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2025-01-01&endDate=2026-12-31
+
+> {%
+    client.test("startDate + endDate 범위 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+
+    client.test("기간 필터 결과 구조 확인", function() {
+        var data = response.body.data;
+        client.assert(data.items !== undefined, "items가 존재해야 합니다");
+        client.assert(data.totalCount !== undefined, "totalCount가 존재해야 합니다");
+    });
+%}
+
+### 20. 기간 필터 - 결과 없는 미래 기간
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2099-01-01&endDate=2099-12-31
+
+> {%
+    client.test("결과 없는 미래 기간 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("빈 결과 확인", function() {
+        var data = response.body.data;
+        client.assert(data.items.length === 0, "미래 기간 결과는 비어있어야 합니다");
+        client.assert(data.totalCount === 0, "totalCount가 0이어야 합니다");
+    });
+%}
+
+### 21. 기간 필터 - 잘못된 startDate 형식
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=invalid-date
+
+> {%
+    client.test("잘못된 startDate 형식 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 22. 기간 필터 - 잘못된 endDate 형식
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&endDate=2025/01/01
+
+> {%
+    client.test("잘못된 endDate 형식 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 23. 기간 필터 - startDate가 endDate보다 나중 (빈 결과)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2026-12-31&endDate=2025-01-01
+
+> {%
+    client.test("startDate > endDate - 200 반환 (빈 결과)", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("역순 기간 - 빈 결과 확인", function() {
+        var data = response.body.data;
+        client.assert(data.items.length === 0, "역순 기간은 빈 결과여야 합니다");
+    });
+%}
+
+### 24. 기간 필터 - 동일한 startDate와 endDate (하루 조회)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2026-02-05&endDate=2026-02-05
+
+> {%
+    client.test("동일 날짜 하루 조회 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+%}
+
+### ============================================
+### Phase 6: sourceType 필터 테스트
+### ============================================
+
+### 25. 필터 - sourceType별 조회 (GITHUB_RELEASE)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sourceType=GITHUB_RELEASE
+
+> {%
+    client.test("sourceType GITHUB_RELEASE 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("sourceType 필터 결과 필드 확인", function() {
+        var data = response.body.data;
+        if (data.items && data.items.length > 0) {
+            var firstItem = data.items[0];
+            client.assert(firstItem.id !== undefined, "id가 존재해야 합니다");
+            client.assert(firstItem.provider !== undefined, "provider가 존재해야 합니다");
+            client.assert(firstItem.title !== undefined, "title이 존재해야 합니다");
+            client.assert(firstItem.sourceType === "GITHUB_RELEASE", "sourceType이 GITHUB_RELEASE여야 합니다");
+        }
+    });
+%}
+
+### 26. 필터 - sourceType별 조회 (RSS)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sourceType=RSS
+
+> {%
+    client.test("sourceType RSS 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("sourceType RSS 필터 결과 확인", function() {
+        var data = response.body.data;
+        if (data.items && data.items.length > 0) {
+            client.assert(data.items[0].sourceType === "RSS", "sourceType이 RSS여야 합니다");
+        }
+    });
+%}
+
+### 27. 필터 - sourceType별 조회 (WEB_SCRAPING)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sourceType=WEB_SCRAPING
+
+> {%
+    client.test("sourceType WEB_SCRAPING 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("sourceType WEB_SCRAPING 필터 결과 확인", function() {
+        var data = response.body.data;
+        if (data.items && data.items.length > 0) {
+            client.assert(data.items[0].sourceType === "WEB_SCRAPING", "sourceType이 WEB_SCRAPING이어야 합니다");
+        }
+    });
+%}
+
+### 28. 엣지 케이스 - 존재하지 않는 sourceType 값
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sourceType=INVALID_SOURCE
+
+> {%
+    client.test("잘못된 sourceType 값 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### ============================================
+### Phase 6: 복합 필터 조합 테스트
+### ============================================
+
+### 29. 복합 필터 - provider + sourceType
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=OPENAI&sourceType=GITHUB_RELEASE
+
+> {%
+    client.test("provider + sourceType 복합 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("복합 필터 결과 확인", function() {
+        var data = response.body.data;
+        if (data.items && data.items.length > 0) {
+            client.assert(data.items[0].provider === "OPENAI", "provider가 OPENAI여야 합니다");
+            client.assert(data.items[0].sourceType === "GITHUB_RELEASE", "sourceType이 GITHUB_RELEASE여야 합니다");
+        }
+    });
+%}
+
+### 30. 복합 필터 - provider + updateType + sourceType
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&provider=ANTHROPIC&updateType=BLOG_POST&sourceType=WEB_SCRAPING
+
+> {%
+    client.test("provider + updateType + sourceType 복합 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 31. 복합 필터 - 기간 + provider + updateType
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&startDate=2025-01-01&endDate=2026-12-31&provider=ANTHROPIC&updateType=BLOG_POST
+
+> {%
+    client.test("기간 + provider + updateType 복합 필터 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+%}
+
+### 32. 복합 필터 - 모든 필터 조합 (기간 + provider + updateType + sourceType + status + sort)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=10&startDate=2025-01-01&endDate=2026-12-31&provider=OPENAI&updateType=SDK_RELEASE&sourceType=GITHUB_RELEASE&status=DRAFT&sort=publishedAt,desc
+
+> {%
+    client.test("모든 필터 조합 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "응답 코드가 2000이어야 합니다");
+    });
+%}
+
+### 33. 복합 필터 - 기간 + sourceType + 페이지네이션
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=2&size=5&startDate=2025-01-01&sourceType=RSS
+
+> {%
+    client.test("기간 + sourceType + 페이지네이션 - 200 반환", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("페이지 정보 확인", function() {
+        var data = response.body.data;
+        client.assert(data.pageSize === 5, "pageSize가 5여야 합니다");
+        client.assert(data.pageNumber === 2, "pageNumber가 2여야 합니다");
+    });
+%}
+
+### ============================================
+### Phase 6: 정렬 검증 엣지 케이스
+### ============================================
+
+### 34. 엣지 케이스 - 존재하지 않는 정렬 필드
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sort=invalidField,desc
+
+> {%
+    client.test("잘못된 정렬 필드 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 35. 엣지 케이스 - 잘못된 정렬 방향
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sort=publishedAt,invalid
+
+> {%
+    client.test("잘못된 정렬 방향 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 36. 엣지 케이스 - 정렬 형식 오류 (구분자 없음)
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&sort=publishedAt
+
+> {%
+    client.test("정렬 형식 오류 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 37. 엣지 케이스 - 존재하지 않는 updateType 값
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&updateType=INVALID_TYPE
+
+> {%
+    client.test("잘못된 updateType 값 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}
+
+### 38. 엣지 케이스 - 존재하지 않는 status 값
+GET {{gatewayUrl}}/api/v1/emerging-tech?page=1&size=20&status=INVALID_STATUS
+
+> {%
+    client.test("잘못된 status 값 - 400 반환", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+    });
+%}

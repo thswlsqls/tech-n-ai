@@ -6,12 +6,17 @@ import com.tech.n.ai.api.emergingtech.dto.request.EmergingTechListRequest;
 import com.tech.n.ai.api.emergingtech.dto.request.EmergingTechSearchRequest;
 import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechBatchResponse;
 import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechDetailResponse;
-import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechListResponse;
-import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechSearchResponse;
-import com.tech.n.ai.api.emergingtech.service.EmergingTechService;
+import com.tech.n.ai.api.emergingtech.dto.response.EmergingTechPageResponse;
+import com.tech.n.ai.api.emergingtech.service.EmergingTechCommandService;
+import com.tech.n.ai.api.emergingtech.service.EmergingTechQueryService;
+import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
 import com.tech.n.ai.common.core.dto.PageData;
+import com.tech.n.ai.common.core.exception.BusinessException;
 import com.tech.n.ai.domain.mongodb.document.EmergingTechDocument;
+import com.tech.n.ai.domain.mongodb.enums.EmergingTechType;
 import com.tech.n.ai.domain.mongodb.enums.PostStatus;
+import com.tech.n.ai.domain.mongodb.enums.SourceType;
+import com.tech.n.ai.domain.mongodb.enums.TechProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,106 +26,107 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Emerging Tech Facade
- * Controller와 Service 사이의 중간 계층
+ * Controller와 Service 사이의 오케스트레이션 계층
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmergingTechFacade {
 
-    private final EmergingTechService emergingTechService;
+    private static final String DEFAULT_SORT_FIELD = "publishedAt";
+    private static final Sort.Direction DEFAULT_SORT_DIRECTION = Sort.Direction.DESC;
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+        "publishedAt", "createdAt", "updatedAt", "title", "provider"
+    );
+
+    private final EmergingTechQueryService queryService;
+    private final EmergingTechCommandService commandService;
 
     /**
-     * Emerging Tech 목록 조회
+     * 목록 조회
      */
-    public EmergingTechListResponse getEmergingTechList(EmergingTechListRequest request) {
+    public EmergingTechPageResponse getEmergingTechList(EmergingTechListRequest request) {
+        validateFilters(request.provider(), request.updateType(), request.status(), request.sourceType());
+
         Pageable pageable = PageRequest.of(
             request.page() - 1,
             request.size(),
             parseSort(request.sort())
         );
 
-        Page<EmergingTechDocument> page = emergingTechService.findEmergingTechs(
+        Page<EmergingTechDocument> page = queryService.findEmergingTechs(
             request.provider(),
             request.updateType(),
             request.status(),
+            request.sourceType(),
+            request.startDate(),
+            request.endDate(),
             pageable
         );
 
-        List<EmergingTechDetailResponse> list = page.getContent().stream()
-            .map(EmergingTechDetailResponse::from)
-            .toList();
-
-        PageData<EmergingTechDetailResponse> pageData = PageData.of(
-            request.size(),
-            request.page(),
-            (int) page.getTotalElements(),
-            list
-        );
-
-        return EmergingTechListResponse.from(pageData);
+        return toPageResponse(page, request.page(), request.size());
     }
 
     /**
-     * Emerging Tech 상세 조회
+     * 상세 조회
      */
     public EmergingTechDetailResponse getEmergingTechDetail(String id) {
-        EmergingTechDocument document = emergingTechService.findEmergingTechById(id);
+        EmergingTechDocument document = queryService.findEmergingTechById(id);
         return EmergingTechDetailResponse.from(document);
     }
 
     /**
-     * Emerging Tech 검색
+     * 검색
      */
-    public EmergingTechSearchResponse searchEmergingTech(EmergingTechSearchRequest request) {
+    public EmergingTechPageResponse searchEmergingTech(EmergingTechSearchRequest request) {
         Pageable pageable = PageRequest.of(
             request.page() - 1,
             request.size()
         );
 
-        Page<EmergingTechDocument> page = emergingTechService.searchEmergingTech(
+        Page<EmergingTechDocument> page = queryService.searchEmergingTech(
             request.q(),
             pageable
         );
 
-        List<EmergingTechDetailResponse> list = page.getContent().stream()
-            .map(EmergingTechDetailResponse::from)
-            .toList();
-
-        PageData<EmergingTechDetailResponse> pageData = PageData.of(
-            request.size(),
-            request.page(),
-            (int) page.getTotalElements(),
-            list
-        );
-
-        return EmergingTechSearchResponse.from(pageData);
+        return toPageResponse(page, request.page(), request.size());
     }
 
     /**
-     * Emerging Tech 생성 (단건)
+     * 단건 생성
      */
     public EmergingTechDetailResponse createEmergingTech(EmergingTechCreateRequest request) {
-        EmergingTechDocument document = emergingTechService.saveEmergingTech(request);
-        return EmergingTechDetailResponse.from(document);
+        EmergingTechCommandService.SaveResult result = commandService.saveEmergingTech(request);
+        EmergingTechDetailResponse response = EmergingTechDetailResponse.from(result.document());
+        log.info("Emerging Tech 생성 완료: id={}, title={}, provider={}, isNew={}",
+            response.id(), response.title(), response.provider(), result.isNew());
+        return response;
     }
 
     /**
-     * Emerging Tech 다건 생성 (부분 롤백)
+     * 다건 생성 (부분 성공 허용)
      */
     public EmergingTechBatchResponse createEmergingTechBatch(EmergingTechBatchRequest request) {
-        int successCount = 0;
+        int newCount = 0;
+        int duplicateCount = 0;
         int failureCount = 0;
         List<String> failureMessages = new ArrayList<>();
 
         for (EmergingTechCreateRequest item : request.items()) {
             try {
-                emergingTechService.saveEmergingTech(item);
-                successCount++;
+                EmergingTechCommandService.SaveResult result = commandService.saveEmergingTech(item);
+                if (result.isNew()) {
+                    newCount++;
+                } else {
+                    duplicateCount++;
+                }
             } catch (Exception e) {
                 failureCount++;
                 String errorMessage = String.format(
@@ -132,45 +138,122 @@ public class EmergingTechFacade {
             }
         }
 
+        log.info("Emerging Tech 다건 생성 완료: total={}, new={}, duplicate={}, failure={}",
+            request.items().size(), newCount, duplicateCount, failureCount);
+
         return EmergingTechBatchResponse.builder()
             .totalCount(request.items().size())
-            .successCount(successCount)
+            .successCount(newCount + duplicateCount)
+            .newCount(newCount)
+            .duplicateCount(duplicateCount)
             .failureCount(failureCount)
             .failureMessages(failureMessages)
             .build();
     }
 
     /**
-     * Emerging Tech 승인
+     * 승인
      */
     public EmergingTechDetailResponse approveEmergingTech(String id) {
-        EmergingTechDocument document = emergingTechService.updateStatus(id, PostStatus.PUBLISHED.name());
+        EmergingTechDocument document = commandService.updateStatus(id, PostStatus.PUBLISHED);
         return EmergingTechDetailResponse.from(document);
     }
 
     /**
-     * Emerging Tech 거부
+     * 거부
      */
     public EmergingTechDetailResponse rejectEmergingTech(String id) {
-        EmergingTechDocument document = emergingTechService.updateStatus(id, PostStatus.REJECTED.name());
+        EmergingTechDocument document = commandService.updateStatus(id, PostStatus.REJECTED);
         return EmergingTechDetailResponse.from(document);
     }
 
     /**
-     * 정렬 문자열 파싱
+     * Page → PageResponse 변환 (공통 헬퍼)
+     */
+    private EmergingTechPageResponse toPageResponse(Page<EmergingTechDocument> page, int pageNumber, int pageSize) {
+        List<EmergingTechDetailResponse> list = page.getContent().stream()
+            .map(EmergingTechDetailResponse::from)
+            .toList();
+
+        PageData<EmergingTechDetailResponse> pageData = PageData.of(
+            pageSize,
+            pageNumber,
+            (int) page.getTotalElements(),
+            list
+        );
+
+        return EmergingTechPageResponse.from(pageData);
+    }
+
+    /**
+     * 필터 값 유효성 검증
+     */
+    private void validateFilters(String provider, String updateType, String status, String sourceType) {
+        if (provider != null) {
+            validateEnumValue(TechProvider.class, provider, "provider");
+        }
+        if (updateType != null) {
+            validateEnumValue(EmergingTechType.class, updateType, "updateType");
+        }
+        if (status != null) {
+            validateEnumValue(PostStatus.class, status, "status");
+        }
+        if (sourceType != null) {
+            validateEnumValue(SourceType.class, sourceType, "sourceType");
+        }
+    }
+
+    /**
+     * enum 값 유효성 검증
+     */
+    private <E extends Enum<E>> void validateEnumValue(Class<E> enumClass, String value, String fieldName) {
+        try {
+            Enum.valueOf(enumClass, value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            String validValues = Arrays.toString(enumClass.getEnumConstants());
+            throw new BusinessException(
+                ErrorCodeConstants.BAD_REQUEST,
+                ErrorCodeConstants.MESSAGE_CODE_BAD_REQUEST,
+                String.format("유효하지 않은 %s 값입니다: '%s'. 허용된 값: %s", fieldName, value, validValues)
+            );
+        }
+    }
+
+    /**
+     * 정렬 문자열 파싱 및 검증
      */
     private Sort parseSort(String sort) {
         if (sort == null || sort.isBlank()) {
-            return Sort.by(Sort.Direction.DESC, "publishedAt");
+            return Sort.by(DEFAULT_SORT_DIRECTION, DEFAULT_SORT_FIELD);
         }
 
         String[] parts = sort.split(",");
         if (parts.length != 2) {
-            return Sort.by(Sort.Direction.DESC, "publishedAt");
+            throw new BusinessException(
+                ErrorCodeConstants.BAD_REQUEST,
+                ErrorCodeConstants.MESSAGE_CODE_BAD_REQUEST,
+                "정렬 형식이 올바르지 않습니다. 올바른 형식: 'field,direction' (예: publishedAt,desc)"
+            );
         }
 
         String field = parts[0].trim();
         String direction = parts[1].trim().toLowerCase();
+
+        if (!ALLOWED_SORT_FIELDS.contains(field)) {
+            throw new BusinessException(
+                ErrorCodeConstants.BAD_REQUEST,
+                ErrorCodeConstants.MESSAGE_CODE_BAD_REQUEST,
+                String.format("유효하지 않은 정렬 필드입니다: '%s'. 허용된 필드: %s", field, ALLOWED_SORT_FIELDS)
+            );
+        }
+
+        if (!"asc".equals(direction) && !"desc".equals(direction)) {
+            throw new BusinessException(
+                ErrorCodeConstants.BAD_REQUEST,
+                ErrorCodeConstants.MESSAGE_CODE_BAD_REQUEST,
+                String.format("유효하지 않은 정렬 방향입니다: '%s'. 허용된 값: [asc, desc]", direction)
+            );
+        }
 
         Sort.Direction sortDirection = "asc".equals(direction)
             ? Sort.Direction.ASC

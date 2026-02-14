@@ -8,13 +8,14 @@ import jakarta.validation.constraints.NotBlank;
  * Emerging Tech 검색 요청 DTO
  */
 public record EmergingTechSearchRequest(
-    @NotBlank String q,  // 검색어
-    @Min(1) int page,
-    @Min(1) @Max(100) int size
+    @NotBlank(message = "검색어는 필수입니다.") String q,
+    @Min(value = 1, message = "page는 1 이상이어야 합니다.") Integer page,
+    @Min(value = 1, message = "size는 1 이상이어야 합니다.")
+    @Max(value = 100, message = "size는 100 이하여야 합니다.") Integer size
 ) {
+    // 파라미터 미제공 시 기본값 적용
     public EmergingTechSearchRequest {
-        if (page < 1) page = 1;
-        if (size < 1) size = 20;
-        if (size > 100) size = 100;
+        if (page == null) page = 1;
+        if (size == null) size = 20;
     }
 }
