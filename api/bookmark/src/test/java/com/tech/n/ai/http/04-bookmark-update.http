@@ -5,14 +5,14 @@
 # @no-cookie-jar
 ###
 
-### 1. 북마크 수정 성공 (tag + memo)
+### 1. 북마크 수정 성공 (다중 태그 + memo)
 PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "tag": "태그 업데이트 2",
-  "memo": "메모 업데이트 2"
+  "tags": ["업데이트태그1", "업데이트태그2"],
+  "memo": "메모 업데이트"
 }
 
 > {%
@@ -23,23 +23,79 @@ Authorization: Bearer {{accessToken}}
 
     client.test("수정된 데이터 확인", function() {
         var data = response.body.data;
-        client.assert(data.tag === "수정된 태그", "tag가 수정되어야 합니다");
-        client.assert(data.memo === "수정된 메모입니다", "memo가 수정되어야 합니다");
+        client.assert(Array.isArray(data.tags), "tags가 배열이어야 합니다");
+        client.assert(data.tags.length === 2, "tags 배열 길이가 2여야 합니다");
+        client.assert(data.tags[0] === "업데이트태그1", "첫 번째 태그가 일치해야 합니다");
+        client.assert(data.tags[1] === "업데이트태그2", "두 번째 태그가 일치해야 합니다");
+        client.assert(data.memo === "메모 업데이트", "memo가 수정되어야 합니다");
     });
 %}
 
-### 2. 북마크 수정 성공 (tag만)
+### 1-1. 북마크 수정 성공 (단일 태그로 변경)
 PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "tag": "새로운 태그"
+  "tags": ["단일태그"],
+  "memo": "단일 태그로 변경"
 }
 
 > {%
-    client.test("tag만 수정 성공", function() {
+    client.test("단일 태그 수정 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("단일 태그 확인", function() {
+        var data = response.body.data;
+        client.assert(Array.isArray(data.tags), "tags가 배열이어야 합니다");
+        client.assert(data.tags.length === 1, "tags 배열 길이가 1이어야 합니다");
+        client.assert(data.tags[0] === "단일태그", "태그 값이 일치해야 합니다");
+    });
+%}
+
+### 1-2. 북마크 수정 성공 (빈 배열로 태그 삭제)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tags": [],
+  "memo": "태그 삭제"
+}
+
+> {%
+    client.test("빈 배열로 태그 삭제 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("태그 삭제 확인", function() {
+        var data = response.body.data;
+        client.assert(Array.isArray(data.tags), "tags가 배열이어야 합니다");
+        client.assert(data.tags.length === 0, "tags 배열이 비어있어야 합니다");
+    });
+%}
+
+### 2. 북마크 수정 성공 (tags만)
+PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tags": ["새로운", "태그"]
+}
+
+> {%
+    client.test("tags만 수정 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("tags 배열 확인", function() {
+        var data = response.body.data;
+        client.assert(Array.isArray(data.tags), "tags가 배열이어야 합니다");
+        client.assert(data.tags.length === 2, "tags 배열 길이가 2여야 합니다");
     });
 %}
 
@@ -77,7 +133,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "tag": "테스트"
+  "tags": ["테스트"]
 }
 
 > {%
@@ -92,7 +148,7 @@ PUT {{gatewayUrl}}/api/v1/bookmark/{{testBookmarkId}}
 Content-Type: application/json
 
 {
-  "tag": "테스트"
+  "tags": ["테스트"]
 }
 
 > {%
@@ -107,7 +163,7 @@ Content-Type: application/json
 Authorization: Bearer invalid_token_here
 
 {
-  "tag": "테스트"
+  "tags": ["테스트"]
 }
 
 > {%
@@ -122,7 +178,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "tag": "테스트"
+  "tags": ["테스트"]
 }
 
 > {%
@@ -138,7 +194,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "tag": "테스트"
+  "tags": ["테스트"]
 }
 
 > {%

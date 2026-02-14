@@ -40,7 +40,17 @@ Authorization: Bearer {{accessToken}}
     });
 %}
 
-### 4. 검색 - 결과 없는 검색어
+### 4. 검색 + searchField=title 지정
+GET {{gatewayUrl}}/api/v1/bookmark/search?q=openai&searchField=title
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("searchField=title 검색 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+%}
+
+### 5. 검색 - 결과 없는 검색어
 GET {{gatewayUrl}}/api/v1/bookmark/search?q=zzzzzznonexistentkeyword
 Authorization: Bearer {{accessToken}}
 

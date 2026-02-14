@@ -76,7 +76,7 @@ public class BookmarkCommandServiceImpl implements BookmarkCommandService {
         bookmark.setProvider(emergingTech.getProvider());
         bookmark.setSummary(emergingTech.getSummary());
         bookmark.setPublishedAt(emergingTech.getPublishedAt());
-        bookmark.setTag(request.tag());
+        bookmark.setTagsAsList(request.tags());
         bookmark.setMemo(request.memo());
         return bookmark;
     }
@@ -87,7 +87,7 @@ public class BookmarkCommandServiceImpl implements BookmarkCommandService {
         Long bookmarkId = parseBookmarkId(bookmarkTsid);
         BookmarkEntity bookmark = findAndValidateBookmark(userId, bookmarkId);
 
-        bookmark.updateContent(request.tag(), request.memo());
+        bookmark.updateContent(request.tags(), request.memo());
         BookmarkEntity updatedBookmark = bookmarkWriterRepository.save(bookmark);
 
         log.info("Bookmark updated: id={}, userId={}", bookmarkId, userId);

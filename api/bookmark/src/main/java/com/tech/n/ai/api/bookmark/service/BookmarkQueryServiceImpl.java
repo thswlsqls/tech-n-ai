@@ -75,14 +75,18 @@ public class BookmarkQueryServiceImpl implements BookmarkQueryService {
         String searchTerm = request.q();
         String searchField = request.searchField();
         
-        if ("tag".equals(searchField)) {
-            spec = spec.and((root, query, cb) -> 
+        if ("title".equals(searchField)) {
+            spec = spec.and((root, query, cb) ->
+                cb.like(cb.lower(root.get("title")), "%" + searchTerm.toLowerCase() + "%"));
+        } else if ("tag".equals(searchField)) {
+            spec = spec.and((root, query, cb) ->
                 cb.like(cb.lower(root.get("tag")), "%" + searchTerm.toLowerCase() + "%"));
         } else if ("memo".equals(searchField)) {
-            spec = spec.and((root, query, cb) -> 
+            spec = spec.and((root, query, cb) ->
                 cb.like(cb.lower(root.get("memo")), "%" + searchTerm.toLowerCase() + "%"));
         } else {
             spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("title")), "%" + searchTerm.toLowerCase() + "%"),
                 cb.like(cb.lower(root.get("tag")), "%" + searchTerm.toLowerCase() + "%"),
                 cb.like(cb.lower(root.get("memo")), "%" + searchTerm.toLowerCase() + "%")
             ));

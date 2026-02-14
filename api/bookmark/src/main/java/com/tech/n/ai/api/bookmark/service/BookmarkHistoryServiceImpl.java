@@ -11,8 +11,8 @@ import com.tech.n.ai.domain.mariadb.repository.reader.bookmark.BookmarkHistoryRe
 import com.tech.n.ai.domain.mariadb.repository.reader.bookmark.BookmarkReaderRepository;
 import com.tech.n.ai.domain.mariadb.repository.writer.bookmark.BookmarkWriterRepository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -155,7 +155,7 @@ public class BookmarkHistoryServiceImpl implements BookmarkHistoryService {
             @SuppressWarnings("unchecked")
             Map<String, Object> afterDataMap = objectMapper.readValue(history.getAfterData(), Map.class);
             return afterDataMap;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to parse history after_data: bookmarkId={}, historyId={}", entityId, historyId, e);
             throw new BookmarkValidationException("히스토리 데이터 파싱 중 오류가 발생했습니다: " + e.getMessage());
         }

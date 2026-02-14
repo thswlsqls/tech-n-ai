@@ -3,6 +3,7 @@ package com.tech.n.ai.api.bookmark.dto.response;
 import com.tech.n.ai.domain.mariadb.entity.bookmark.BookmarkEntity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 북마크 상세 조회 응답 DTO
@@ -16,7 +17,7 @@ public record BookmarkDetailResponse(
     String provider,
     String summary,
     LocalDateTime publishedAt,
-    String tag,
+    List<String> tags,
     String memo,
     LocalDateTime createdAt,
     String createdBy,
@@ -37,7 +38,7 @@ public record BookmarkDetailResponse(
             entity.getProvider(),
             entity.getSummary(),
             entity.getPublishedAt(),
-            entity.getTag(),
+            entity.getTagsAsList(),
             entity.getMemo(),
             entity.getCreatedAt(),
             entity.getCreatedBy() != null ? entity.getCreatedBy().toString() : null,

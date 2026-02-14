@@ -22,6 +22,7 @@ Authorization: Bearer {{accessToken}}
         client.assert(data.url !== undefined, "url이 존재해야 합니다");
         client.assert(data.provider !== undefined, "provider가 존재해야 합니다");
         client.assert(data.createdAt !== undefined, "createdAt이 존재해야 합니다");
+        client.assert(Array.isArray(data.tags), "tags가 배열이어야 합니다");
     });
 %}
 

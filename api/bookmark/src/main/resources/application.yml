@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 8085
 
 spring:
   application:
@@ -9,4 +9,5 @@ spring:
       - common-core
       - kafka
       - api-domain
+      - mongodb-domain
       - bookmark-api
