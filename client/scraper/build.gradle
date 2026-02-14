@@ -21,6 +21,11 @@ dependencies {
 	// Resilience4j (재시도 로직)
 	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
 	implementation 'io.github.resilience4j:resilience4j-reactor:2.1.0'
+
+	// Selenium (SPA/Cloudflare 크롤링용)
+	implementation 'org.seleniumhq.selenium:selenium-java:4.18.1'
+	implementation 'org.seleniumhq.selenium:selenium-chrome-driver:4.18.1'
+	implementation 'io.github.bonigarcia:webdrivermanager:5.7.0'
 	
 	// Configuration Processor (application.yml 자동완성)
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

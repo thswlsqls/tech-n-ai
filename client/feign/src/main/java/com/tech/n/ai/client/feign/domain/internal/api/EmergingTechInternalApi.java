@@ -39,6 +39,29 @@ public class EmergingTechInternalApi implements EmergingTechInternalContract {
     }
 
     @Override
+    public ApiResponse<Object> listEmergingTechs(
+            String apiKey,
+            String provider,
+            String updateType,
+            String status,
+            String sourceType,
+            String startDate,
+            String endDate,
+            int page,
+            int size,
+            String sort) {
+        return feignClient.listEmergingTechs(apiKey, provider, updateType, status,
+                sourceType, startDate, endDate, page, size, sort);
+    }
+
+    @Override
+    public ApiResponse<Object> getEmergingTechDetail(
+            String apiKey,
+            String id) {
+        return feignClient.getEmergingTechDetail(apiKey, id);
+    }
+
+    @Override
     public ApiResponse<Object> approveEmergingTech(
             String apiKey,
             String id) {

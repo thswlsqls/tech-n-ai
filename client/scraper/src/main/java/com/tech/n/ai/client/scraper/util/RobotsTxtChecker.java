@@ -1,5 +1,6 @@
 package com.tech.n.ai.client.scraper.util;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -14,52 +15,77 @@ import crawlercommons.robots.SimpleRobotRulesParser;
 @Component
 @Slf4j
 public class RobotsTxtChecker {
-    
+
     private final WebClient.Builder webClientBuilder;
-    
+
     public RobotsTxtChecker(@Qualifier("scraperWebClientBuilder") WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
     }
-    
+
+    /**
+     * robots.txt 확인 결과
+     */
+    @Getter
+    public enum CheckResult {
+        ALLOWED("허용"),
+        BLOCKED_BY_ROBOTS("Robots.txt에 의해 차단됨"),
+        FETCH_FAILED("사이트에 접속할 수 없습니다");
+
+        private final String message;
+
+        CheckResult(String message) {
+            this.message = message;
+        }
+    }
+
     /**
      * robots.txt를 확인하여 특정 경로의 스크래핑이 허용되는지 확인
-     * 
+     *
      * @param baseUrl 기본 URL
      * @param path 확인할 경로
      * @return 스크래핑이 허용되면 true, 아니면 false
      */
     public boolean isAllowed(String baseUrl, String path) {
+        return check(baseUrl, path) == CheckResult.ALLOWED;
+    }
+
+    /**
+     * robots.txt 확인 결과를 상세하게 반환
+     *
+     * @param baseUrl 기본 URL
+     * @param path 확인할 경로
+     * @return 확인 결과 (ALLOWED, BLOCKED_BY_ROBOTS, FETCH_FAILED)
+     */
+    public CheckResult check(String baseUrl, String path) {
         try {
-            String robotsTxtUrl = baseUrl.endsWith("/") 
-                ? baseUrl + "robots.txt" 
+            String robotsTxtUrl = baseUrl.endsWith("/")
+                ? baseUrl + "robots.txt"
                 : baseUrl + "/robots.txt";
-            
+
             log.debug("Checking robots.txt for {}: {}", baseUrl, robotsTxtUrl);
-            
+
             String robotsTxt = webClientBuilder.build()
                 .get()
                 .uri(robotsTxtUrl)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-            
+
             if (robotsTxt == null || robotsTxt.isEmpty()) {
                 log.warn("Empty robots.txt for {}", baseUrl);
-                // 보수적으로 접근: robots.txt를 가져올 수 없으면 스크래핑 자제
-                return false;
+                return CheckResult.BLOCKED_BY_ROBOTS;
             }
-            
+
             SimpleRobotRulesParser parser = new SimpleRobotRulesParser();
             BaseRobotRules rules = parser.parseContent(robotsTxtUrl, robotsTxt.getBytes(), "text/plain", "ShrimpTM-Demo/1.0");
-            
+
             boolean allowed = rules.isAllowed(path);
             log.debug("robots.txt check for {}: path={}, allowed={}", baseUrl, path, allowed);
-            
-            return allowed;
+
+            return allowed ? CheckResult.ALLOWED : CheckResult.BLOCKED_BY_ROBOTS;
         } catch (Exception e) {
             log.warn("Failed to check robots.txt for {}: {}", baseUrl, e.getMessage());
-            // 보수적으로 접근: robots.txt를 가져올 수 없으면 스크래핑 자제
-            return false;
+            return CheckResult.FETCH_FAILED;
         }
     }
 }
