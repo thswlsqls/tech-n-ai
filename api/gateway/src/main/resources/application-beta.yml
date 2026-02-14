@@ -7,16 +7,14 @@ gateway:
   routes:
     auth:
       uri: http://api-auth-service:8080
-    archive:
-      uri: http://api-archive-service:8080
-    contest:
-      uri: http://api-contest-service:8080
-    news:
-      uri: http://api-news-service:8080
+    bookmark:
+      uri: http://api-bookmark-service:8080
     chatbot:
       uri: http://api-chatbot-service:8080
     agent:
       uri: http://api-agent-service:8080
+    emerging-tech:
+      uri: http://api-emerging-tech-service:8080
 
 spring:
   cloud:

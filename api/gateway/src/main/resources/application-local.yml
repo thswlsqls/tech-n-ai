@@ -2,26 +2,6 @@ spring:
   config:
     activate:
       on-profile: local
-
-server:
-  port: 8081
-
-gateway:
-  routes:
-    auth:
-      uri: http://localhost:8082
-    archive:
-      uri: http://localhost:8083
-    contest:
-      uri: http://localhost:8084
-    news:
-      uri: http://localhost:8085
-    chatbot:
-      uri: http://localhost:8086
-    agent:
-      uri: http://localhost:8087
-
-spring:
   cloud:
     gateway:
       server:
@@ -36,6 +16,23 @@ spring:
                 allowedHeaders: "*"
                 allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
                 maxAge: 3600
+
+server:
+  port: 8081
+
+gateway:
+  routes:
+    auth:
+      uri: http://localhost:8083
+    bookmark:
+      uri: http://localhost:8085
+    chatbot:
+      uri: http://localhost:8084
+    agent:
+      uri: http://localhost:8086
+    emerging-tech:
+      uri: http://localhost:8082
+
 
 jwt:
   secret-key: ${JWT_SECRET_KEY:default-secret-key-change-in-production-minimum-256-bits}

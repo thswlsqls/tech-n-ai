@@ -5,7 +5,7 @@ import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.core.dto.MessageCode;
 import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
 import com.tech.n.ai.common.security.jwt.JwtTokenProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * JWT 인증 Gateway Filter
- * 
+ *
  * 인증이 필요한 경로에 대해 JWT 토큰을 검증하고, 사용자 정보를 헤더에 주입합니다.
  */
 @Slf4j
@@ -68,13 +68,19 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
         // 사용자 정보 추출 및 헤더 주입
         try {
             JwtTokenPayload payload = jwtTokenProvider.getPayloadFromToken(token);
+
+            // 관리자 전용 경로 검증
+            if (isAdminOnlyPath(path) && !"ADMIN".equals(payload.role())) {
+                return handleForbidden(exchange);
+            }
+
             ServerHttpRequest modifiedRequest = request.mutate()
                 .header(USER_ID_HEADER, payload.userId())
                 .header(USER_EMAIL_HEADER, payload.email())
                 .header(USER_ROLE_HEADER, payload.role())
-                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + token) // Forward JWT token to backend
+                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + token)
                 .build();
-            
+
             log.debug("JWT authentication successful for user: {}", payload.userId());
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
         } catch (Exception e) {
@@ -90,9 +96,16 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
      * @return 인증 불필요 경로이면 true
      */
     private boolean isPublicPath(String path) {
+        // /api/v1/auth/admin/login은 공개 (관리자 로그인)
+        if (path.equals("/api/v1/auth/admin/login")) {
+            return true;
+        }
+        // /api/v1/auth/admin은 인증 필요
+        if (path.startsWith("/api/v1/auth/admin")) {
+            return false;
+        }
         return path.startsWith("/api/v1/auth") ||
-               path.startsWith("/api/v1/agent") ||          // 내부 API Key 인증 사용
-               path.startsWith("/api/v1/emerging-tech") ||   // 공개 API
+               path.startsWith("/api/v1/emerging-tech") ||
                path.startsWith("/actuator");
     }
     
@@ -116,6 +129,42 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
      * @param exchange ServerWebExchange
      * @return Mono<Void>
      */
+    /**
+     * 관리자 전용 경로 확인
+     */
+    private boolean isAdminOnlyPath(String path) {
+        return path.startsWith("/api/v1/agent") ||
+               path.startsWith("/api/v1/auth/admin");
+    }
+
+    /**
+     * 권한 부족 시 403 Forbidden 응답 반환
+     */
+    private Mono<Void> handleForbidden(ServerWebExchange exchange) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.FORBIDDEN);
+        response.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        MessageCode messageCode = new MessageCode(
+            ErrorCodeConstants.MESSAGE_CODE_FORBIDDEN,
+            "권한이 없습니다."
+        );
+        ApiResponse<Void> errorResponse = ApiResponse.error(
+            ErrorCodeConstants.FORBIDDEN,
+            messageCode
+        );
+
+        DataBufferFactory bufferFactory = response.bufferFactory();
+        try {
+            String jsonResponse = objectMapper.writeValueAsString(errorResponse);
+            DataBuffer buffer = bufferFactory.wrap(jsonResponse.getBytes(StandardCharsets.UTF_8));
+            return response.writeWith(Mono.just(buffer));
+        } catch (Exception e) {
+            log.error("Error writing forbidden response", e);
+            return response.setComplete();
+        }
+    }
+
     private Mono<Void> handleUnauthorized(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);

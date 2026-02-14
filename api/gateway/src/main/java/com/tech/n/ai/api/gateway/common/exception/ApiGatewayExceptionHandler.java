@@ -3,7 +3,7 @@ package com.tech.n.ai.api.gateway.common.exception;
 import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
 import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.core.dto.MessageCode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Gateway 예외 처리 핸들러
- * 
+ *
  * Spring Cloud Gateway는 Reactive 기반이므로 WebExceptionHandler 인터페이스를 구현합니다.
  * @ControllerAdvice는 사용할 수 없습니다.
  */

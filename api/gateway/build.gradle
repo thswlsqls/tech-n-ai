@@ -7,6 +7,18 @@ jar.enabled = false
 
 apply from: "${rootDir.absolutePath}/docs.gradle"
 
+// Gateway는 Reactive(Netty) 기반이므로 Servlet/Tomcat 관련 의존성 전역 제외
+configurations.all {
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-web'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-data-rest'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-data-redis'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-security'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-oauth2-authorization-server'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-oauth2-client'
+	exclude group: 'org.springframework.boot', module: 'spring-boot-starter-oauth2-resource-server'
+	exclude group: 'org.apache.tomcat.embed'
+}
+
 dependencies {
 	implementation project(':common-core')
 	implementation project(':common-security')

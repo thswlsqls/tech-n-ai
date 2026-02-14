@@ -3,33 +3,21 @@ package com.tech.n.ai.api.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
-import org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration;
-import org.springframework.boot.actuate.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration;
 
 
-@SpringBootApplication(exclude = {
-	DataSourceAutoConfiguration.class,
-	FlywayAutoConfiguration.class,
-	MongoAutoConfiguration.class,
-	MongoDataAutoConfiguration.class,
-	MongoReactiveAutoConfiguration.class,
-	MongoReactiveDataAutoConfiguration.class,
-	RedisAutoConfiguration.class,
-	RedisReactiveAutoConfiguration.class,
-	SecurityAutoConfiguration.class,
-	ReactiveSecurityAutoConfiguration.class,
-	ReactiveUserDetailsServiceAutoConfiguration.class,
-	ReactiveManagementWebSecurityAutoConfiguration.class
+@SpringBootApplication(excludeName = {
+	"org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
+	"org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration",
+	"org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration",
+	"org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration",
+	"org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration",
+	"org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
+	"org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration",
+	"org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration",
+	"org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration",
+	"org.springframework.boot.security.autoconfigure.web.reactive.ReactiveWebSecurityAutoConfiguration",
+	"org.springframework.boot.security.autoconfigure.ReactiveUserDetailsServiceAutoConfiguration",
+	"org.springframework.boot.actuator.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration"
 })
 public class GatewayApplication {
 

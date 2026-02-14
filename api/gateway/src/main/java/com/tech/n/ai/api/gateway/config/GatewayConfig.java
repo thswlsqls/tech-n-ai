@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Gateway 설정 클래스
- * 
+ *
  * Spring Cloud Gateway의 라우팅 및 필터 설정을 관리합니다.
  */
 @Configuration
