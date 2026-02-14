@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConversationMessageServiceImpl implements ConversationMessageService {
 
-    private static final String TOPIC_MESSAGE_CREATED = "shrimp-tm.conversation.message.created";
+    private static final String TOPIC_MESSAGE_CREATED = "tech-n-ai.conversation.message.created";
     
     private final ConversationMessageWriterRepository conversationMessageWriterRepository;
     private final com.tech.n.ai.domain.mariadb.repository.writer.chatbot.ConversationMessageWriterJpaRepository conversationMessageWriterJpaRepository;

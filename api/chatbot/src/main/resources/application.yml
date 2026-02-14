@@ -1,5 +1,5 @@
 server:
-  port: 8086
+  port: 8084
 
 spring:
   application:
@@ -10,4 +10,5 @@ spring:
       - kafka
       - api-domain
       - mongodb-domain
+      - feign-internal
       - chatbot-api

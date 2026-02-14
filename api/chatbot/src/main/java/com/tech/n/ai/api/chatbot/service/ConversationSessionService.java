@@ -71,8 +71,18 @@ public interface ConversationSessionService {
     int expireInactiveSessions(int expirationDays);
     
     /**
+     * 세션 타이틀 업데이트
+     *
+     * @param sessionId 세션 ID (TSID String)
+     * @param userId    사용자 ID (소유권 검증용)
+     * @param title     새 타이틀
+     * @return 업데이트된 세션 정보
+     */
+    SessionResponse updateSessionTitle(String sessionId, Long userId, String title);
+
+    /**
      * 세션 삭제
-     * 
+     *
      * @param sessionId 세션 ID (TSID String)
      * @param userId 사용자 ID
      */

@@ -35,7 +35,7 @@ http/
 {
   "local": {
     "baseUrl": "http://localhost:8080",
-    "chatbotUrl": "http://localhost:8086"
+    "chatbotUrl": "http://localhost:8084"
   }
 }
 ```

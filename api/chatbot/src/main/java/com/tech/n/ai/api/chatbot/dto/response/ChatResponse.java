@@ -11,5 +11,6 @@ import java.util.List;
 public record ChatResponse(
     String response,
     String conversationId,
+    String title,
     List<SourceResponse> sources
 ) {}

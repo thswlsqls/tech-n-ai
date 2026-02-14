@@ -33,9 +33,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ConversationSessionServiceImpl implements ConversationSessionService {
 
-    private static final String TOPIC_SESSION_CREATED = "shrimp-tm.conversation.session.created";
-    private static final String TOPIC_SESSION_UPDATED = "shrimp-tm.conversation.session.updated";
-    private static final String TOPIC_SESSION_DELETED = "shrimp-tm.conversation.session.deleted";
+    private static final String TOPIC_SESSION_CREATED = "tech-n-ai.conversation.session.created";
+    private static final String TOPIC_SESSION_UPDATED = "tech-n-ai.conversation.session.updated";
+    private static final String TOPIC_SESSION_DELETED = "tech-n-ai.conversation.session.deleted";
 
     private final ConversationSessionWriterRepository conversationSessionWriterRepository;
     private final ConversationSessionReaderRepository conversationSessionReaderRepository;
@@ -74,22 +74,7 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     @Override
     @Transactional(readOnly = true)
     public SessionResponse getSession(String sessionId, Long userId) {
-        Long sessionIdLong = parseSessionId(sessionId);
-        ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
-            .orElseThrow(() -> new ConversationSessionNotFoundException("세션을 찾을 수 없습니다: " + sessionId));
-        
-        // 세션 소유권 검증 (보안)
-        if (!session.getUserId().equals(userId)) {
-            log.warn("Unauthorized session access attempt: sessionId={}, requestedUserId={}, actualUserId={}", 
-                sessionId, userId, session.getUserId());
-            throw new UnauthorizedException("세션에 대한 접근 권한이 없습니다.");
-        }
-        
-        // Soft Delete 확인
-        if (Boolean.TRUE.equals(session.getIsDeleted())) {
-            throw new ConversationSessionNotFoundException("삭제된 세션입니다: " + sessionId);
-        }
-        
+        ConversationSessionEntity session = validateSessionAccess(sessionId, userId);
         return toResponse(session);
     }
     
@@ -110,23 +95,14 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
             }
             
             ConversationSessionEntity updatedSession = conversationSessionWriterRepository.save(session);
-            
-            // Kafka 이벤트 발행 (업데이트)
+
             Map<String, Object> updatedFields = new HashMap<>();
             updatedFields.put("lastMessageAt", updatedSession.getLastMessageAt());
             if (wasInactive) {
                 updatedFields.put("isActive", true);
             }
-            
-            ConversationSessionUpdatedEvent.ConversationSessionUpdatedPayload updatePayload = 
-                new ConversationSessionUpdatedEvent.ConversationSessionUpdatedPayload(
-                    sessionId,
-                    updatedSession.getUserId().toString(),
-                    updatedFields
-                );
-            
-            ConversationSessionUpdatedEvent updateEvent = new ConversationSessionUpdatedEvent(updatePayload);
-            eventPublisher.publish(TOPIC_SESSION_UPDATED, updateEvent, sessionId);
+
+            publishSessionUpdatedEvent(sessionId, updatedSession.getUserId().toString(), updatedFields);
         });
     }
     
@@ -180,21 +156,25 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
     
     @Override
     @Transactional
+    public SessionResponse updateSessionTitle(String sessionId, Long userId, String title) {
+        ConversationSessionEntity session = validateSessionAccess(sessionId, userId);
+
+        session.setTitle(title);
+        session.setUpdatedAt(LocalDateTime.now());
+        ConversationSessionEntity updatedSession = conversationSessionWriterRepository.save(session);
+
+        publishSessionUpdatedEvent(sessionId, userId.toString(), Map.of("title", title));
+
+        log.info("Session title updated: sessionId={}, title={}", sessionId, title);
+
+        return toResponse(updatedSession);
+    }
+
+    @Override
+    @Transactional
     public void deleteSession(String sessionId, Long userId) {
-        Long sessionIdLong = parseSessionId(sessionId);
-        ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
-            .orElseThrow(() -> new ConversationSessionNotFoundException("세션을 찾을 수 없습니다: " + sessionId));
-        
-        if (!session.getUserId().equals(userId)) {
-            log.warn("Unauthorized session deletion attempt: sessionId={}, requestedUserId={}, actualUserId={}", 
-                sessionId, userId, session.getUserId());
-            throw new UnauthorizedException("세션에 대한 접근 권한이 없습니다.");
-        }
-        
-        if (Boolean.TRUE.equals(session.getIsDeleted())) {
-            throw new ConversationSessionNotFoundException("이미 삭제된 세션입니다: " + sessionId);
-        }
-        
+        ConversationSessionEntity session = validateSessionAccess(sessionId, userId);
+
         session.setIsDeleted(true);
         session.setUpdatedAt(LocalDateTime.now());
         conversationSessionWriterRepository.save(session);
@@ -212,6 +192,34 @@ public class ConversationSessionServiceImpl implements ConversationSessionServic
         log.info("Session deleted: sessionId={}, userId={}", sessionId, userId);
     }
     
+    private ConversationSessionEntity validateSessionAccess(String sessionId, Long userId) {
+        Long sessionIdLong = parseSessionId(sessionId);
+        ConversationSessionEntity session = conversationSessionReaderRepository.findById(sessionIdLong)
+            .orElseThrow(() -> new ConversationSessionNotFoundException(
+                "세션을 찾을 수 없습니다: " + sessionId));
+
+        if (!session.getUserId().equals(userId)) {
+            log.warn("Unauthorized session access: sessionId={}, requestedUserId={}, actualUserId={}",
+                sessionId, userId, session.getUserId());
+            throw new UnauthorizedException("세션에 대한 접근 권한이 없습니다.");
+        }
+
+        if (Boolean.TRUE.equals(session.getIsDeleted())) {
+            throw new ConversationSessionNotFoundException("삭제된 세션입니다: " + sessionId);
+        }
+
+        return session;
+    }
+
+    private void publishSessionUpdatedEvent(String sessionId, String userId,
+                                             Map<String, Object> updatedFields) {
+        ConversationSessionUpdatedEvent.ConversationSessionUpdatedPayload payload =
+            new ConversationSessionUpdatedEvent.ConversationSessionUpdatedPayload(
+                sessionId, userId, updatedFields);
+        ConversationSessionUpdatedEvent event = new ConversationSessionUpdatedEvent(payload);
+        eventPublisher.publish(TOPIC_SESSION_UPDATED, event, sessionId);
+    }
+
     private SessionResponse toResponse(ConversationSessionEntity entity) {
         return SessionResponse.builder()
             .sessionId(entity.getId().toString())

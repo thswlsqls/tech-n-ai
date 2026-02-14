@@ -15,5 +15,5 @@ public interface ChatbotService {
      * @param userId JWT에서 추출한 사용자 ID
      * @return 챗봇 응답
      */
-    ChatResponse generateResponse(ChatRequest request, Long userId);
+    ChatResponse generateResponse(ChatRequest request, Long userId, String userRole);
 }

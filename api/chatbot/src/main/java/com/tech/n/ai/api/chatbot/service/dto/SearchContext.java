@@ -11,6 +11,9 @@ import java.util.Set;
 public class SearchContext {
 
     private final Set<String> collections = new HashSet<>();
+    private final List<String> detectedProviders = new ArrayList<>();
+    private final List<String> detectedUpdateTypes = new ArrayList<>();
+    private boolean recencyDetected;
 
     public void addCollection(String collection) {
         collections.add(collection);
@@ -20,11 +23,35 @@ public class SearchContext {
         return new ArrayList<>(collections);
     }
 
-    public boolean includesBookmarks() {
-        return collections.contains("bookmarks");
-    }
-
     public boolean includesEmergingTechs() {
         return collections.contains("emerging_techs");
+    }
+
+    public List<String> getDetectedProviders() {
+        return detectedProviders;
+    }
+
+    public void addDetectedProvider(String provider) {
+        if (!detectedProviders.contains(provider)) {
+            detectedProviders.add(provider);
+        }
+    }
+
+    public List<String> getDetectedUpdateTypes() {
+        return detectedUpdateTypes;
+    }
+
+    public void addDetectedUpdateType(String updateType) {
+        if (!detectedUpdateTypes.contains(updateType)) {
+            detectedUpdateTypes.add(updateType);
+        }
+    }
+
+    public boolean isRecencyDetected() {
+        return recencyDetected;
+    }
+
+    public void setRecencyDetected(boolean recencyDetected) {
+        this.recencyDetected = recencyDetected;
     }
 }

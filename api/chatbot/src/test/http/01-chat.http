@@ -2,10 +2,11 @@
 # POST /api/v1/chatbot - 챗봇 채팅 API 테스트
 # Description: 사용자 메시지를 전송하고 AI 응답을 받습니다.
 # Authentication: Required (Bearer Token)
+# @no-cookie-jar
 ###
 
 ### 1. 새 대화 시작 (conversationId 없이)
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -16,7 +17,7 @@ Authorization: Bearer {{accessToken}}
 > {%
     client.test("채팅 응답 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
 
     client.test("채팅 응답 데이터 확인", function() {
@@ -29,7 +30,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 2. 기존 대화 이어서 진행
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -41,7 +42,7 @@ Authorization: Bearer {{accessToken}}
 > {%
     client.test("대화 이어가기 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
 
     client.test("동일 세션 확인", function() {
@@ -52,7 +53,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 3. 다양한 질문 테스트 - 대회 검색
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -67,7 +68,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 4. 다양한 질문 테스트 - 뉴스 검색
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -82,7 +83,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 5. 다양한 질문 테스트 - 일반 대화
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -97,7 +98,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 6. 실패 케이스 - 메시지 누락
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -112,7 +113,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 7. 실패 케이스 - 빈 메시지
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -127,7 +128,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 8. 실패 케이스 - 공백만 있는 메시지
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -142,12 +143,12 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 9. 실패 케이스 - 메시지 길이 초과 (500자 초과)
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "message": "이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다."
+  "message": "이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다. 이것은 매우 긴 메시지입니다."
 }
 
 > {%
@@ -157,7 +158,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 10. 실패 케이스 - 인증 없이 요청
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 
 {
@@ -171,7 +172,7 @@ Content-Type: application/json
 %}
 
 ### 11. 실패 케이스 - 잘못된 토큰
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer invalid_token_here
 
@@ -186,7 +187,7 @@ Authorization: Bearer invalid_token_here
 %}
 
 ### 12. 실패 케이스 - 존재하지 않는 세션 ID
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 

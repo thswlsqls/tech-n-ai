@@ -1,0 +1,64 @@
+###
+# POST /api/v1/chatbot - Agent 명령 테스트
+# Description: Chatbot을 통한 Agent 명령 실행
+# Authentication: Required (Bearer Token)
+# @no-cookie-jar
+###
+
+### 1. Agent 명령 - 관리자 권한으로 성공
+POST {{baseUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "message": "@agent 최신 GitHub 릴리즈 확인해줘"
+}
+
+> {%
+    client.test("Agent 명령 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("응답 내용 확인", function() {
+        var data = response.body.data;
+        client.assert(data.response !== undefined, "response가 존재해야 합니다");
+        client.assert(data.conversationId !== undefined, "conversationId가 존재해야 합니다");
+    });
+%}
+
+### 2. Agent 명령 - 일반 사용자 (안내 메시지)
+POST {{baseUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "@agent 새 기술 수집해줘"
+}
+
+> {%
+    client.test("일반 사용자 Agent 명령", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+    });
+
+    client.test("권한 안내 메시지 확인", function() {
+        var data = response.body.data;
+        client.assert(data.response.includes("관리자"), "관리자 권한 안내 메시지가 포함되어야 합니다");
+    });
+%}
+
+### 3. 일반 채팅 - 일반 사용자 (Agent 명령이 아닌 경우)
+POST {{baseUrl}}/api/v1/chatbot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "안녕하세요, 최근 AI 뉴스 알려줘"
+}
+
+> {%
+    client.test("일반 채팅 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+%}

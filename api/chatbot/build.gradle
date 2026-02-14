@@ -10,24 +10,25 @@ apply from: "${rootDir.absolutePath}/jpa.gradle"
 
 dependencies {
     // langchain4j Core
-    implementation 'dev.langchain4j:langchain4j:0.35.0'
+    implementation 'dev.langchain4j:langchain4j:1.10.0'
 
-    // langchain4j MongoDB Atlas
-    implementation 'dev.langchain4j:langchain4j-mongodb-atlas:0.35.0'
+    // langchain4j MongoDB Atlas (Integration module - beta version)
+    implementation 'dev.langchain4j:langchain4j-mongodb-atlas:1.10.0-beta18'
 
     // langchain4j OpenAI (LLM Provider - 기본 선택)
-    implementation 'dev.langchain4j:langchain4j-open-ai:0.35.0'
+    implementation 'dev.langchain4j:langchain4j-open-ai:1.10.0'
 
-    // langchain4j Cohere (Re-Ranking)
-    implementation 'dev.langchain4j:langchain4j-cohere:0.35.0'
+    // langchain4j Cohere (Re-Ranking, Integration module - beta version)
+    implementation 'dev.langchain4j:langchain4j-cohere:1.10.0-beta18'
     
     // 프로젝트 모듈 의존성
     implementation project(':common-core')
     implementation project(':common-exception')
-    implementation project(':common-kafka')
     implementation project(':common-security')
+    implementation project(':common-kafka')
     implementation project(':datasource-aurora')
     implementation project(':datasource-mongodb')
+    implementation project(':client-feign')
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }

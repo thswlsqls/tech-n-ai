@@ -18,9 +18,15 @@ public class IntentClassificationServiceImpl implements IntentClassificationServ
     );
 
     private static final Set<String> RAG_KEYWORDS = Set.of(
-        "대회", "contest", "뉴스", "news", "기사", "북마크", "bookmark",
+        "대회", "contest", "뉴스", "news", "기사",
         "검색", "찾아", "알려", "정보", "어떤", "무엇",
-        "kaggle", "codeforces", "leetcode", "hackathon"
+        "kaggle", "codeforces", "leetcode", "hackathon",
+        // Emerging Tech 키워드
+        "ai", "인공지능", "llm", "gpt", "claude", "gemini", "모델",
+        "api", "sdk", "릴리즈", "release", "업데이트", "update",
+        "openai", "anthropic", "google", "meta", "xai",
+        "기술", "tech", "트렌드", "trend", "동향",
+        "출시", "발표", "버전"
     );
 
     // Web 검색이 필요한 최신/실시간 정보 키워드
@@ -37,20 +43,28 @@ public class IntentClassificationServiceImpl implements IntentClassificationServ
         "write", "create", "translate", "summarize", "explain"
     );
 
+    private static final String AGENT_COMMAND_PREFIX = "@agent";
+
     @Override
     public Intent classifyIntent(String preprocessedInput) {
-        String lowerInput = preprocessedInput.toLowerCase();
+        String lowerInput = preprocessedInput.toLowerCase().trim();
 
-        // 1. Web 검색 키워드 체크 (최우선)
-        if (containsWebSearchKeywords(lowerInput)) {
-            log.info("Intent: WEB_SEARCH_REQUIRED - {}", truncateForLog(preprocessedInput));
-            return Intent.WEB_SEARCH_REQUIRED;
+        // 0. @agent 프리픽스 감지 (명시적 명령만)
+        if (lowerInput.startsWith(AGENT_COMMAND_PREFIX)) {
+            log.info("Intent: AGENT_COMMAND - {}", truncateForLog(preprocessedInput));
+            return Intent.AGENT_COMMAND;
         }
 
-        // 2. RAG 키워드 체크
+        // 1. RAG 키워드 체크 (기술 관련 최신 정보는 벡터 검색 우선)
         if (containsRagKeywords(lowerInput)) {
             log.info("Intent: RAG_REQUIRED - {}", truncateForLog(preprocessedInput));
             return Intent.RAG_REQUIRED;
+        }
+
+        // 2. Web 검색 키워드 체크
+        if (containsWebSearchKeywords(lowerInput)) {
+            log.info("Intent: WEB_SEARCH_REQUIRED - {}", truncateForLog(preprocessedInput));
+            return Intent.WEB_SEARCH_REQUIRED;
         }
 
         // 3. 질문 형태 체크 (RAG 관련 질문일 가능성)

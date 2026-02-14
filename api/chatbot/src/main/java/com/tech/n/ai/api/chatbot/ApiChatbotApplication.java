@@ -3,13 +3,11 @@ package com.tech.n.ai.api.chatbot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
 
-@SpringBootApplication(exclude = {
-	DataSourceAutoConfiguration.class,
-	FlywayAutoConfiguration.class
+@SpringBootApplication(excludeName = {
+	"org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
+	"org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
 })
 public class ApiChatbotApplication {
 

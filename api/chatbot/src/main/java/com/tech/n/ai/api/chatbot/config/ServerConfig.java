@@ -1,6 +1,8 @@
 package com.tech.n.ai.api.chatbot.config;
 
 
+import com.tech.n.ai.client.feign.config.AgentFeignConfig;
+import com.tech.n.ai.client.feign.config.OpenFeignConfig;
 import com.tech.n.ai.common.core.config.RedisConfig;
 import com.tech.n.ai.common.kafka.config.KafkaConfig;
 import com.tech.n.ai.common.security.config.SecurityConfig;
@@ -27,7 +29,9 @@ import org.springframework.context.annotation.Import;
     MongoIndexConfig.class,
     KafkaConfig.class,
     RedisConfig.class,
-    SecurityConfig.class
+    SecurityConfig.class,
+    OpenFeignConfig.class,
+    AgentFeignConfig.class
 })
 public class ServerConfig {
 

@@ -14,7 +14,7 @@ public class ChatbotFacade {
     
     private final ChatbotService chatbotService;
     
-    public ChatResponse chat(ChatRequest request, Long userId) {
-        return chatbotService.generateResponse(request, userId);
+    public ChatResponse chat(ChatRequest request, Long userId, String userRole) {
+        return chatbotService.generateResponse(request, userId, userRole);
     }
 }

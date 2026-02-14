@@ -3,6 +3,7 @@ package com.tech.n.ai.api.chatbot.controller;
 import com.tech.n.ai.api.chatbot.dto.request.ChatRequest;
 import com.tech.n.ai.api.chatbot.dto.request.MessageListRequest;
 import com.tech.n.ai.api.chatbot.dto.request.SessionListRequest;
+import com.tech.n.ai.api.chatbot.dto.request.UpdateSessionTitleRequest;
 import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
 import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
 import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
@@ -36,7 +37,7 @@ public class ChatbotController {
     public ResponseEntity<ApiResponse<ChatResponse>> chat(
             @Valid @RequestBody ChatRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        ChatResponse response = chatbotFacade.chat(request, userPrincipal.userId());
+        ChatResponse response = chatbotFacade.chat(request, userPrincipal.userId(), userPrincipal.role());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -66,6 +67,16 @@ public class ChatbotController {
         Pageable pageable = createPageable(request.page() - 1, request.size(), Sort.by(Sort.Direction.ASC, "sequenceNumber"));
         Page<MessageResponse> messages = conversationMessageService.getMessages(sessionId, pageable);
         return ResponseEntity.ok(ApiResponse.success(messages));
+    }
+
+    @PatchMapping("/sessions/{sessionId}/title")
+    public ResponseEntity<ApiResponse<SessionResponse>> updateSessionTitle(
+            @PathVariable String sessionId,
+            @Valid @RequestBody UpdateSessionTitleRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        SessionResponse response = conversationSessionService.updateSessionTitle(
+            sessionId, userPrincipal.userId(), request.title());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @DeleteMapping("/sessions/{sessionId}")

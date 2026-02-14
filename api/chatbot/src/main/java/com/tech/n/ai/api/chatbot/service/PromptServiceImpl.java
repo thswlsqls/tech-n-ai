@@ -32,17 +32,34 @@ public class PromptServiceImpl implements PromptService {
         
         // 2. 프롬프트 템플릿 구성
         StringBuilder prompt = new StringBuilder();
-        prompt.append("다음 문서들을 참고하여 질문에 답변해주세요.\n\n");
+        prompt.append("당신은 최신 AI/기술 동향 전문가입니다. ");
+        prompt.append("다음 기술 업데이트 문서들을 참고하여 질문에 답변해주세요.\n\n");
         prompt.append("질문: ").append(query).append("\n\n");
         prompt.append("참고 문서:\n");
-        
+
         for (int i = 0; i < truncatedResults.size(); i++) {
             SearchResult result = truncatedResults.get(i);
-            prompt.append(String.format("[문서 %d]\n", i + 1));
+            prompt.append(String.format("[문서 %d]", i + 1));
+
+            // 메타데이터 추출 (Document 타입인 경우)
+            if (result.metadata() instanceof org.bson.Document doc) {
+                String title = doc.getString("title");
+                String provider = doc.getString("provider");
+                Object publishedAt = doc.get("published_at");
+
+                String url = doc.getString("url");
+
+                if (title != null) prompt.append(" ").append(title);
+                if (provider != null) prompt.append(" (").append(provider).append(")");
+                if (publishedAt != null) prompt.append(" [").append(publishedAt).append("]");
+                if (url != null) prompt.append(" URL: ").append(url);
+            }
+            prompt.append("\n");
             prompt.append(result.text()).append("\n\n");
         }
-        
-        prompt.append("위 문서들을 바탕으로 질문에 정확하고 간결하게 답변해주세요.");
+
+        prompt.append("위 문서들을 바탕으로 질문에 정확하고 간결하게 답변해주세요. ");
+        prompt.append("답변에 출처(provider, 문서 제목)를 포함해주세요.");
 
         // 3. 토큰 수 검증
         tokenService.validateInputTokens(prompt.toString());

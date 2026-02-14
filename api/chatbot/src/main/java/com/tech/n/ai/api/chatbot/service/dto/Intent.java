@@ -11,5 +11,8 @@ public enum Intent {
     RAG_REQUIRED,
 
     /** Web 검색 요청 (최신/실시간 정보 필요) */
-    WEB_SEARCH_REQUIRED
+    WEB_SEARCH_REQUIRED,
+
+    /** AI Agent 작업 지시 */
+    AGENT_COMMAND
 }

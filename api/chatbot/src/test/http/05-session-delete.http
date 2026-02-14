@@ -5,7 +5,7 @@
 ###
 
 ### 0. [사전 작업] 삭제용 새 세션 생성
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -25,18 +25,18 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 1. 세션 삭제 성공
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
 Authorization: Bearer {{accessToken}}
 
 > {%
     client.test("세션 삭제 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
 %}
 
 ### 2. 삭제된 세션 조회 시도 (삭제 확인)
-GET {{chatbotUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
+GET {{gatewayUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -46,7 +46,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 3. 실패 케이스 - 존재하지 않는 세션 삭제
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/non-existent-session-id-12345
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/non-existent-session-id-12345
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -56,7 +56,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 4. 실패 케이스 - 이미 삭제된 세션 다시 삭제
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/{{deleteSessionId}}
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -66,7 +66,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 5. 실패 케이스 - 인증 없이 삭제 요청
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
 
 > {%
     client.test("인증 필요 오류", function() {
@@ -75,7 +75,7 @@ DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
 %}
 
 ### 6. 실패 케이스 - 잘못된 토큰으로 삭제 요청
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/{{testSessionId}}
 Authorization: Bearer invalid_token_here
 
 > {%
@@ -85,7 +85,7 @@ Authorization: Bearer invalid_token_here
 %}
 
 ### 7. 실패 케이스 - 다른 사용자의 세션 삭제 시도
-DELETE {{chatbotUrl}}/api/v1/chatbot/sessions/other-user-session-id
+DELETE {{gatewayUrl}}/api/v1/chatbot/sessions/other-user-session-id
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -96,7 +96,7 @@ Authorization: Bearer {{accessToken}}
 %}
 
 ### 8. [보너스] 세션 삭제 후 해당 세션으로 채팅 시도
-POST {{chatbotUrl}}/api/v1/chatbot
+POST {{gatewayUrl}}/api/v1/chatbot
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
