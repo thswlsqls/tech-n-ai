@@ -1,0 +1,61 @@
+###
+# POST /api/v1/auth/admin/login - 관리자 로그인 API 테스트
+# Description: 관리자 이메일과 비밀번호로 로그인 후 Access Token과 Refresh Token 받기
+# @no-cookie-jar
+###
+
+### 1. 관리자 로그인 성공
+POST {{gatewayUrl}}/api/v1/auth/admin/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("관리자 로그인 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("토큰 발급 확인", function() {
+        var data = response.body.data;
+        client.assert(data.accessToken !== undefined, "accessToken이 존재해야 합니다");
+        client.assert(data.refreshToken !== undefined, "refreshToken이 존재해야 합니다");
+
+        // 환경 변수에 관리자 토큰 저장
+        client.global.set("adminAccessToken", data.accessToken);
+        client.global.set("adminRefreshToken", data.refreshToken);
+    });
+%}
+
+### 2. 실패 케이스 - 존재하지 않는 이메일
+POST {{gatewayUrl}}/api/v1/auth/admin/login
+Content-Type: application/json
+
+{
+  "email": "notexist@example.com",
+  "password": "Admin123!"
+}
+
+> {%
+    client.test("인증 실패", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 잘못된 비밀번호
+POST {{gatewayUrl}}/api/v1/auth/admin/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "WrongPassword!"
+}
+
+> {%
+    client.test("인증 실패", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+    });
+%}

@@ -30,7 +30,7 @@ Authorization: Bearer {{accessToken}}
 > {%
     client.test("로그아웃 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
     
     // 로그아웃 후 토큰 제거

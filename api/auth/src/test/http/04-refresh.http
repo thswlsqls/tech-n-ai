@@ -28,7 +28,7 @@ Content-Type: application/json
 > {%
     client.test("토큰 갱신 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
     
     client.test("새 토큰 발급 확인", function() {

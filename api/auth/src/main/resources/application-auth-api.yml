@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8083
 
 module:
   aurora:
@@ -56,9 +56,6 @@ spring:
     activate:
       on-profile: local
   
-  # Spring Session 비활성화 (local 환경에서는 불필요)
-  session:
-    store-type: none
 
 logging:
   level:

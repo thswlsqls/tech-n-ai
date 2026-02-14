@@ -4,11 +4,11 @@ import com.tech.n.ai.api.auth.dto.*;
 import com.tech.n.ai.common.exception.exception.ConflictException;
 import com.tech.n.ai.common.exception.exception.ResourceNotFoundException;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
-import com.tech.n.ai.datasource.mariadb.entity.auth.RefreshTokenEntity;
-import com.tech.n.ai.datasource.mariadb.entity.auth.UserEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.RefreshTokenReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.auth.UserWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.auth.RefreshTokenEntity;
+import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.RefreshTokenReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.UserReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.auth.UserWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -102,7 +102,12 @@ public class AuthService {
         // 3. 모든 RefreshToken 삭제
         deleteAllRefreshTokens(user.getId());
         
-        // 4. User 엔티티 Soft Delete
+        // 4. Unique 컬럼 익명화 (재가입 시 unique constraint 충돌 방지)
+        String suffix = "deleted_" + System.currentTimeMillis() + "_";
+        user.setEmail(suffix + user.getEmail());
+        user.setUsername(suffix + user.getUsername());
+
+        // 5. User 엔티티 Soft Delete
         user.setDeletedBy(user.getId());
         userWriterRepository.delete(user);
         

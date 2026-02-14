@@ -9,12 +9,12 @@ import com.tech.n.ai.client.mail.domain.mail.template.EmailTemplateService;
 import com.tech.n.ai.common.exception.exception.ConflictException;
 import com.tech.n.ai.common.exception.exception.ResourceNotFoundException;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
-import com.tech.n.ai.datasource.mariadb.entity.auth.EmailVerificationEntity;
-import com.tech.n.ai.datasource.mariadb.entity.auth.UserEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.EmailVerificationReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.auth.EmailVerificationWriterRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.auth.UserWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.auth.EmailVerificationEntity;
+import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.EmailVerificationReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.UserReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.auth.EmailVerificationWriterRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.auth.UserWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -154,7 +154,7 @@ public class EmailVerificationService {
     
     private void sendVerificationEmail(String email, String token) {
         try {
-            String verifyUrl = mailProperties.getBaseUrl() + "/api/v1/auth/verify-email?token=" + token;
+            String verifyUrl = mailProperties.getBaseUrl() + "/verify-email?token=" + token;
             String htmlContent = emailTemplateService.renderVerificationEmail(email, token, verifyUrl);
             
             EmailMessage message = EmailMessage.builder()
@@ -173,7 +173,7 @@ public class EmailVerificationService {
     
     private void sendPasswordResetEmail(String email, String token) {
         try {
-            String resetUrl = mailProperties.getBaseUrl() + "/api/v1/auth/reset-password?token=" + token;
+            String resetUrl = mailProperties.getBaseUrl() + "/reset-password?token=" + token;
             String htmlContent = emailTemplateService.renderPasswordResetEmail(email, token, resetUrl);
             
             EmailMessage message = EmailMessage.builder()

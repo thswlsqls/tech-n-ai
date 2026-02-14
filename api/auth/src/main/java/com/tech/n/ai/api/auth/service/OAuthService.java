@@ -8,11 +8,11 @@ import com.tech.n.ai.api.auth.oauth.OAuthProviderFactory;
 import com.tech.n.ai.api.auth.oauth.OAuthStateService;
 import com.tech.n.ai.common.exception.exception.ResourceNotFoundException;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
-import com.tech.n.ai.datasource.mariadb.entity.auth.ProviderEntity;
-import com.tech.n.ai.datasource.mariadb.entity.auth.UserEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.ProviderReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.auth.UserWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.auth.ProviderEntity;
+import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.ProviderReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.UserReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.auth.UserWriterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,7 +57,7 @@ public class OAuthService {
         OAuthUserInfo userInfo = fetchOAuthUserInfo(providerName, code, provider);
         UserEntity user = findOrCreateUser(provider, userInfo);
         
-        return tokenService.generateTokens(user.getId(), user.getEmail());
+        return tokenService.generateTokens(user.getId(), user.getEmail(), TokenConstants.USER_ROLE);
     }
     
     private ProviderEntity findAndValidateProvider(String providerName) {

@@ -10,7 +10,7 @@ GET {{baseUrl}}/api/v1/auth/verify-email?token={{emailVerificationToken}}
 > {%
     client.test("이메일 인증 성공", function() {
         client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
-        client.assert(response.body.success === true, "success 필드가 true여야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
     });
 %}
 

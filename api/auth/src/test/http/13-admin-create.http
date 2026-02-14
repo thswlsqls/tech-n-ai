@@ -1,0 +1,105 @@
+###
+# POST /api/v1/auth/admin/accounts - 관리자 계정 생성 API 테스트
+# Description: 새 관리자 계정을 생성합니다.
+# Authentication: Required (Bearer Token, ADMIN role)
+# @no-cookie-jar
+###
+
+### 1. 관리자 계정 생성 성공
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "email": "thswlsqls@naver.com",
+  "username": "new-admin",
+  "password": "admin123!"
+}
+
+> {%
+    client.test("관리자 생성 성공", function() {
+        client.assert(response.status === 200, "응답 상태 코드가 200이어야 합니다");
+        client.assert(response.body.code === "2000", "code 필드가 2000이어야 합니다");
+    });
+
+    client.test("관리자 데이터 확인", function() {
+        var data = response.body.data;
+        client.assert(data.email === "newadmin@example.com", "email이 일치해야 합니다");
+        client.assert(data.role === "ADMIN", "role이 ADMIN이어야 합니다");
+        client.assert(data.isActive === true, "isActive가 true여야 합니다");
+        client.global.set("testAdminId", data.id);
+    });
+%}
+
+### 2. 실패 케이스 - 일반 사용자 권한으로 시도
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "email": "test@example.com",
+  "username": "test",
+  "password": "Test123!"
+}
+
+> {%
+    client.test("권한 없음 오류", function() {
+        client.assert(response.status === 403, "응답 상태 코드가 403이어야 합니다");
+        client.assert(response.body.code === "4003", "code 필드가 4003(FORBIDDEN)이어야 합니다");
+        client.assert(response.body.messageCode.code === "FORBIDDEN", "messageCode.code가 FORBIDDEN이어야 합니다");
+    });
+%}
+
+### 3. 실패 케이스 - 이메일 중복
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "email": "thswlsqls@naver.com",
+  "username": "newadmin2",
+  "password": "Admin123!"
+}
+
+> {%
+    client.test("이메일 중복 오류", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}
+
+### 4. 실패 케이스 - 인증 없이 요청
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "username": "test",
+  "password": "Test123!"
+}
+
+> {%
+    client.test("인증 필요 오류", function() {
+        client.assert(response.status === 401, "응답 상태 코드가 401이어야 합니다");
+        client.assert(response.body.code === "4002", "code 필드가 4002(AUTH_REQUIRED)이어야 합니다");
+        client.assert(response.body.messageCode.code === "AUTH_REQUIRED", "messageCode.code가 AUTH_REQUIRED이어야 합니다");
+    });
+%}
+
+### 5. 실패 케이스 - 유효성 검증 실패 (짧은 비밀번호)
+POST {{gatewayUrl}}/api/v1/auth/admin/accounts
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "email": "test2@example.com",
+  "username": "test2",
+  "password": "short"
+}
+
+> {%
+    client.test("유효성 검증 실패", function() {
+        client.assert(response.status === 400, "응답 상태 코드가 400이어야 합니다");
+        client.assert(response.body.code === "4006", "code 필드가 4006(VALIDATION_ERROR)이어야 합니다");
+    });
+%}

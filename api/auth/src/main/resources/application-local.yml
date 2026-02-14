@@ -15,4 +15,4 @@ spring:
 mail:
   from-address: ${MAIL_FROM_ADDRESS:ebson024.v1@gmail.com}
   from-name: Shrimp TM (Local)
-  base-url: http://localhost:8080
+  base-url: http://localhost:3000

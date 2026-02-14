@@ -5,10 +5,10 @@ import com.tech.n.ai.api.auth.dto.RefreshTokenRequest;
 import com.tech.n.ai.api.auth.dto.TokenResponse;
 import com.tech.n.ai.common.exception.exception.UnauthorizedException;
 import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
-import com.tech.n.ai.datasource.mariadb.entity.auth.RefreshTokenEntity;
-import com.tech.n.ai.datasource.mariadb.entity.auth.UserEntity;
-import com.tech.n.ai.datasource.mariadb.repository.reader.auth.UserReaderRepository;
-import com.tech.n.ai.datasource.mariadb.repository.writer.auth.UserWriterRepository;
+import com.tech.n.ai.domain.mariadb.entity.auth.RefreshTokenEntity;
+import com.tech.n.ai.domain.mariadb.entity.auth.UserEntity;
+import com.tech.n.ai.domain.mariadb.repository.reader.auth.UserReaderRepository;
+import com.tech.n.ai.domain.mariadb.repository.writer.auth.UserWriterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,9 +31,9 @@ public class UserAuthenticationService {
         UserEntity user = findAndValidateUser(request.email(), request.password());
         user.updateLastLogin();
         userWriterRepository.save(user);
-        return tokenService.generateTokens(user.getId(), user.getEmail());
+        return tokenService.generateTokens(user.getId(), user.getEmail(), TokenConstants.USER_ROLE);
     }
-    
+
     @Transactional
     public void logout(String userId, String refreshToken) {
         RefreshTokenEntity tokenEntity = findAndValidateRefreshToken(refreshToken, userId);
@@ -54,7 +54,7 @@ public class UserAuthenticationService {
         JwtTokenPayload payload = tokenService.getPayloadFromToken(request.refreshToken());
         refreshTokenService.deleteRefreshToken(tokenEntity);
         
-        return tokenService.generateTokens(Long.parseLong(payload.userId()), payload.email());
+        return tokenService.generateTokens(Long.parseLong(payload.userId()), payload.email(), payload.role());
     }
     
     private UserEntity findAndValidateUser(String email, String password) {

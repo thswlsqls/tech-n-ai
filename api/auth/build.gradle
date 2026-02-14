@@ -16,6 +16,8 @@ dependencies {
 	implementation project(':client-feign')
 	implementation project(':client-mail')
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+	testImplementation 'org.springframework.security:spring-security-test'
 }
 
 task prepareKotlinBuildScriptModel {

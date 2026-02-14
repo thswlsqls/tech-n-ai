@@ -15,21 +15,25 @@ public class TokenService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     
-    public TokenResponse generateTokens(Long userId, String email) {
+    public TokenResponse generateTokens(Long userId, String email, String role) {
         JwtTokenPayload payload = new JwtTokenPayload(
             String.valueOf(userId),
             email,
-            USER_ROLE
+            role
         );
         
         String accessToken = jwtTokenProvider.generateAccessToken(payload);
         String refreshToken = jwtTokenProvider.generateRefreshToken(payload);
         
-        refreshTokenService.saveRefreshToken(
-            userId,
-            refreshToken,
-            jwtTokenProvider.getRefreshTokenExpiresAt()
-        );
+        if ("ADMIN".equals(role)) {
+            refreshTokenService.saveAdminRefreshToken(
+                userId, refreshToken, jwtTokenProvider.getRefreshTokenExpiresAt()
+            );
+        } else {
+            refreshTokenService.saveRefreshToken(
+                userId, refreshToken, jwtTokenProvider.getRefreshTokenExpiresAt()
+            );
+        }
         
         return new TokenResponse(
             accessToken,
