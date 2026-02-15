@@ -40,6 +40,27 @@
 - Ars Technica
 - Medium Technology
 
+#### Emerging Tech 데이터 수집 (5개 Provider)
+
+AI 서비스 업데이트를 자동 수집하는 배치 잡입니다. 수집된 데이터는 `api-emerging-tech` 내부 API를 통해 MongoDB Atlas에 저장됩니다.
+
+| 배치 잡 | 수집 방식 | 대상 Provider |
+|---------|----------|---------------|
+| `emerging-tech.github.job` | GitHub API (client-feign) | OpenAI, Anthropic, Google, Meta, xAI |
+| `emerging-tech.rss.job` | RSS 파싱 (client-rss) | OpenAI, Google |
+| `emerging-tech.scraper.job` | 웹 크롤링 (client-scraper) | Anthropic, Meta, xAI |
+
+**대상 GitHub 저장소**:
+- OpenAI: `openai/openai-python`
+- Anthropic: `anthropics/anthropic-sdk-python`
+- Google: `google/generative-ai-python`
+- Meta: `facebookresearch/llama`
+- xAI: `xai-org/grok-1`
+
+**저장 구조**: MongoDB Atlas `emerging_techs` 컬렉션 (CQRS 없이 단일 저장소)
+
+**`api-agent` 모듈과의 연관성**: `api-agent` 모듈의 데이터 수집 Tool(`collect_github_releases`, `collect_rss_feeds`, `collect_scraped_articles`)이 배치 Processor 로직을 `DataCollectionProcessorUtil`로 공유하여 재사용합니다.
+
 ### 2. 배치 처리 아키텍처
 
 각 배치 잡은 Spring Batch의 표준 구조를 따릅니다:
@@ -374,6 +395,7 @@ public final static int CHUNK_SIZE_100 = 100;
 
 ### 프로젝트 내부 문서
 
+- **Emerging Tech 데이터 수집 파이프라인 설계서**: `docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md`
 - **배치 잡 통합 설계서**: `docs/step10/batch-job-integration-design.md`
 - **Contest 및 News API 설계서**: `docs/step9/contest-news-api-design.md`
 - **RSS/Scraper 모듈 분석**: `docs/step8/rss-scraper-modules-analysis.md`
