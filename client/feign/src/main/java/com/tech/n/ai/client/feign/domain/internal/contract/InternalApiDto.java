@@ -1,7 +1,9 @@
 package com.tech.n.ai.client.feign.domain.internal.contract;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -61,6 +63,8 @@ public class InternalApiDto {
      */
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EmergingTechDetailResponse {
         private String id;
         private String provider;
@@ -81,6 +85,8 @@ public class InternalApiDto {
      */
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EmergingTechBatchResponse {
         private int totalCount;
         private int successCount;

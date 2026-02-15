@@ -12,9 +12,14 @@ feign:
         readTimeout: 30000
         loggerLevel: full
       emerging-tech-internal-api:
-        url: http://localhost:8087  # api-emerging-tech 서버 URL
+        url: http://localhost:8082  # api-emerging-tech 서버 URL
         connectTimeout: 5000
         readTimeout: 30000
+        loggerLevel: full
+      agent-api:
+        url: http://localhost:8086  # api-agent 서버 URL
+        connectTimeout: 5000
+        readTimeout: 60000
         loggerLevel: full
 
 # 내부 API 키 설정

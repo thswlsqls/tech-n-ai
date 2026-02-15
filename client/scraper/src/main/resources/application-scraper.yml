@@ -29,6 +29,26 @@ scraper:
       data-format: HTML
       min-interval-seconds: 1
       requires-selenium: false
+    anthropic-news:
+      base-url: https://www.anthropic.com
+      data-format: HTML
+      min-interval-seconds: 2
+      requires-selenium: false
+    meta-ai-blog:
+      base-url: https://ai.meta.com
+      data-format: HTML
+      min-interval-seconds: 2
+      requires-selenium: true
+    xai-news:
+      base-url: https://x.ai
+      data-format: HTML
+      min-interval-seconds: 2
+      requires-selenium: true
+
+  selenium:
+    enabled: false
+    driver-path: ""
+    headless: true
 
 resilience4j:
   retry:

@@ -4,7 +4,7 @@ rss:
   retry-delay-ms: 1000
   sources:
     google-developers-blog:
-      feed-url: https://developers.googleblog.com/feeds/posts/default
+      feed-url: https://developers.googleblog.com/feeds/posts/default/
       feed-format: ATOM_1.0
       update-frequency: 주간
     techcrunch:
@@ -17,6 +17,14 @@ rss:
       update-frequency: 일일
     medium-technology:
       feed-url: https://medium.com/feed/tag/technology
+      feed-format: RSS_2.0
+      update-frequency: 일일
+    openai-blog:
+      feed-url: https://openai.com/blog/rss.xml
+      feed-format: RSS_2.0
+      update-frequency: 일일
+    google-ai-blog:
+      feed-url: https://blog.google/technology/ai/rss/
       feed-format: RSS_2.0
       update-frequency: 일일
 

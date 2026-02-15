@@ -7,7 +7,6 @@ import com.tech.n.ai.client.slack.domain.slack.contract.SlackContract;
 import com.tech.n.ai.client.slack.domain.slack.service.SlackNotificationService;
 import com.tech.n.ai.client.slack.domain.slack.service.SlackNotificationServiceImpl;
 import com.tech.n.ai.client.slack.util.SlackRateLimiter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +25,6 @@ public class SlackConfig {
     }
     
     @Bean
-    @ConditionalOnProperty(name = "slack.webhook.enabled", havingValue = "true", matchIfMissing = true)
     public SlackClient slackWebhookClient(
             WebClient.Builder webClientBuilder,
             SlackProperties properties,
