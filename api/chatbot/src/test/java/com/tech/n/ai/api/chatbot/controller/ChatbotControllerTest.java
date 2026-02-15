@@ -1,12 +1,10 @@
 package com.tech.n.ai.api.chatbot.controller;
 
 import com.tech.n.ai.api.chatbot.dto.request.ChatRequest;
-import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
-import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
-import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
+import com.tech.n.ai.api.chatbot.dto.response.*;
 import com.tech.n.ai.api.chatbot.facade.ChatbotFacade;
-import com.tech.n.ai.api.chatbot.service.ConversationMessageService;
 import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
+import com.tech.n.ai.common.core.dto.PageData;
 import com.tech.n.ai.common.security.principal.UserPrincipal;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +16,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,9 +49,6 @@ class ChatbotControllerTest {
 
     @Mock
     private ConversationSessionService sessionService;
-
-    @Mock
-    private ConversationMessageService messageService;
 
     @InjectMocks
     private ChatbotController chatbotController;
@@ -179,9 +171,11 @@ class ChatbotControllerTest {
                 createSessionResponse("session-1", "대화 1"),
                 createSessionResponse("session-2", "대화 2")
             );
-            Page<SessionResponse> sessionPage = new PageImpl<>(sessions, PageRequest.of(0, 20), 2);
-            when(sessionService.listSessions(eq(TEST_USER_ID), any(Pageable.class)))
-                .thenReturn(sessionPage);
+            PageData<SessionResponse> pageData = PageData.of(20, 1, 2, sessions);
+            SessionListResponse response = SessionListResponse.from(pageData);
+
+            when(chatbotFacade.listSessions(eq(TEST_USER_ID), eq(1), eq(20), any(Pageable.class)))
+                .thenReturn(response);
 
             // When & Then
             mockMvc.perform(get(BASE_URL + "/sessions")
@@ -189,17 +183,22 @@ class ChatbotControllerTest {
                     .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("2000"))
-                .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.content.length()").value(2));
+                .andExpect(jsonPath("$.data.data.list").isArray())
+                .andExpect(jsonPath("$.data.data.list.length()").value(2))
+                .andExpect(jsonPath("$.data.data.pageSize").value(20))
+                .andExpect(jsonPath("$.data.data.pageNumber").value(1))
+                .andExpect(jsonPath("$.data.data.totalSize").value(2));
         }
 
         @Test
         @DisplayName("기본값 적용 조회 - 200 OK")
         void getSessions_기본값() throws Exception {
             // Given
-            Page<SessionResponse> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
-            when(sessionService.listSessions(eq(TEST_USER_ID), any(Pageable.class)))
-                .thenReturn(emptyPage);
+            PageData<SessionResponse> pageData = PageData.of(20, 1, 0, List.of());
+            SessionListResponse response = SessionListResponse.from(pageData);
+
+            when(chatbotFacade.listSessions(eq(TEST_USER_ID), eq(1), eq(20), any(Pageable.class)))
+                .thenReturn(response);
 
             // When & Then
             mockMvc.perform(get(BASE_URL + "/sessions"))
@@ -239,17 +238,15 @@ class ChatbotControllerTest {
         @DisplayName("메시지 목록 조회 - 200 OK")
         void getMessages_성공() throws Exception {
             // Given
-            SessionResponse session = createSessionResponse("session-123", "테스트");
-            when(sessionService.getSession("session-123", TEST_USER_ID))
-                .thenReturn(session);
-
             List<MessageResponse> messages = List.of(
                 createMessageResponse("msg-1", "session-123", "USER", "안녕하세요"),
                 createMessageResponse("msg-2", "session-123", "ASSISTANT", "안녕하세요!")
             );
-            Page<MessageResponse> messagePage = new PageImpl<>(messages, PageRequest.of(0, 50), 2);
-            when(messageService.getMessages(eq("session-123"), any(Pageable.class)))
-                .thenReturn(messagePage);
+            PageData<MessageResponse> pageData = PageData.of(50, 1, 2, messages);
+            MessageListResponse response = MessageListResponse.from(pageData);
+
+            when(chatbotFacade.listMessages(eq("session-123"), eq(TEST_USER_ID), eq(1), eq(50), any(Pageable.class)))
+                .thenReturn(response);
 
             // When & Then
             mockMvc.perform(get(BASE_URL + "/sessions/session-123/messages")
@@ -257,20 +254,21 @@ class ChatbotControllerTest {
                     .param("size", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("2000"))
-                .andExpect(jsonPath("$.data.content.length()").value(2));
+                .andExpect(jsonPath("$.data.data.list.length()").value(2))
+                .andExpect(jsonPath("$.data.data.pageSize").value(50))
+                .andExpect(jsonPath("$.data.data.pageNumber").value(1))
+                .andExpect(jsonPath("$.data.data.totalSize").value(2));
         }
 
         @Test
         @DisplayName("기본값 적용 조회 - 200 OK")
         void getMessages_기본값() throws Exception {
             // Given
-            SessionResponse session = createSessionResponse("session-123", "테스트");
-            when(sessionService.getSession("session-123", TEST_USER_ID))
-                .thenReturn(session);
+            PageData<MessageResponse> pageData = PageData.of(50, 1, 0, List.of());
+            MessageListResponse response = MessageListResponse.from(pageData);
 
-            Page<MessageResponse> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 50), 0);
-            when(messageService.getMessages(eq("session-123"), any(Pageable.class)))
-                .thenReturn(emptyPage);
+            when(chatbotFacade.listMessages(eq("session-123"), eq(TEST_USER_ID), eq(1), eq(50), any(Pageable.class)))
+                .thenReturn(response);
 
             // When & Then
             mockMvc.perform(get(BASE_URL + "/sessions/session-123/messages"))

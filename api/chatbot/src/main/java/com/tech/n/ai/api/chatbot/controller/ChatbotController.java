@@ -5,17 +5,16 @@ import com.tech.n.ai.api.chatbot.dto.request.MessageListRequest;
 import com.tech.n.ai.api.chatbot.dto.request.SessionListRequest;
 import com.tech.n.ai.api.chatbot.dto.request.UpdateSessionTitleRequest;
 import com.tech.n.ai.api.chatbot.dto.response.ChatResponse;
-import com.tech.n.ai.api.chatbot.dto.response.MessageResponse;
+import com.tech.n.ai.api.chatbot.dto.response.MessageListResponse;
+import com.tech.n.ai.api.chatbot.dto.response.SessionListResponse;
 import com.tech.n.ai.api.chatbot.dto.response.SessionResponse;
 import com.tech.n.ai.api.chatbot.facade.ChatbotFacade;
-import com.tech.n.ai.api.chatbot.service.ConversationMessageService;
 import com.tech.n.ai.api.chatbot.service.ConversationSessionService;
 import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,7 +30,6 @@ public class ChatbotController {
 
     private final ChatbotFacade chatbotFacade;
     private final ConversationSessionService conversationSessionService;
-    private final ConversationMessageService conversationMessageService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ChatResponse>> chat(
@@ -42,12 +40,12 @@ public class ChatbotController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<ApiResponse<Page<SessionResponse>>> getSessions(
+    public ResponseEntity<ApiResponse<SessionListResponse>> getSessions(
             @Valid SessionListRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         Pageable pageable = createPageable(request.page() - 1, request.size(), Sort.by(Sort.Direction.DESC, "lastMessageAt"));
-        Page<SessionResponse> sessions = conversationSessionService.listSessions(userPrincipal.userId(), pageable);
-        return ResponseEntity.ok(ApiResponse.success(sessions));
+        SessionListResponse response = chatbotFacade.listSessions(userPrincipal.userId(), request.page(), request.size(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/sessions/{sessionId}")
@@ -59,14 +57,13 @@ public class ChatbotController {
     }
 
     @GetMapping("/sessions/{sessionId}/messages")
-    public ResponseEntity<ApiResponse<Page<MessageResponse>>> getMessages(
+    public ResponseEntity<ApiResponse<MessageListResponse>> getMessages(
             @PathVariable String sessionId,
             @Valid MessageListRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        conversationSessionService.getSession(sessionId, userPrincipal.userId());
         Pageable pageable = createPageable(request.page() - 1, request.size(), Sort.by(Sort.Direction.ASC, "sequenceNumber"));
-        Page<MessageResponse> messages = conversationMessageService.getMessages(sessionId, pageable);
-        return ResponseEntity.ok(ApiResponse.success(messages));
+        MessageListResponse response = chatbotFacade.listMessages(sessionId, userPrincipal.userId(), request.page(), request.size(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PatchMapping("/sessions/{sessionId}/title")
