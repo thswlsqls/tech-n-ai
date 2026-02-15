@@ -35,3 +35,17 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.*
+!.env.example
+
+### OS ###
+.DS_Store
+
+### Generated ###
+**/src/main/generated/
+
+### Decompiled classes ###
+org/

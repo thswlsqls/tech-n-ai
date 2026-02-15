@@ -24,11 +24,11 @@
 
 # Run applications (local profile)
 ./gradlew :api-gateway:bootRun        # Gateway: port 8081
-./gradlew :api-auth:bootRun           # Auth: port 8082
-./gradlew :api-bookmark:bootRun       # Bookmark: port 8083
-./gradlew :api-chatbot:bootRun        # Chatbot: port 8086
-./gradlew :api-emerging-tech:bootRun  # Emerging Tech: port 8087
-./gradlew :api-agent:bootRun          # Agent: port 8087
+./gradlew :api-emerging-tech:bootRun  # Emerging Tech: port 8082
+./gradlew :api-auth:bootRun           # Auth: port 8083
+./gradlew :api-chatbot:bootRun        # Chatbot: port 8084
+./gradlew :api-bookmark:bootRun       # Bookmark: port 8085
+./gradlew :api-agent:bootRun          # Agent: port 8086
 
 # Generate API documentation
 ./gradlew asciidoctor
@@ -76,7 +76,7 @@ Uses langchain4j 0.35.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini 
 
 ## Technology Stack
 
-- Java 21, Spring Boot 4.0.1, Spring Cloud 2025.1.0
+- Java 21, Spring Boot 4.0.2, Spring Cloud 2025.1.0
 - Gradle with Groovy DSL (Kotlin DSL not used)
 - Aurora MySQL 3.x (Command), MongoDB Atlas 7.0+ (Query)
 - Apache Kafka, Redis
