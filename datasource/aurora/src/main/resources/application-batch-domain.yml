@@ -129,20 +129,20 @@ spring:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
     reader:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
 
 
 ---
@@ -154,20 +154,20 @@ spring:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
     reader:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
 
 
 ---
@@ -182,20 +182,20 @@ spring:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
     reader:
       meta:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.meta.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
       business:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
-        password: admin12341!
+        password: admin1234
 
 logging:
 level:

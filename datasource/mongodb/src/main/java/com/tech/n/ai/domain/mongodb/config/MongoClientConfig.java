@@ -6,7 +6,6 @@ import com.mongodb.ReadPreference;
 import com.mongodb.ServerApi;
 import com.mongodb.ServerApiVersion;
 import com.mongodb.WriteConcern;
-import com.mongodb.connection.ConnectionPoolSettings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -35,19 +34,6 @@ public class MongoClientConfig extends AbstractMongoClientConfiguration {
     protected void configureClientSettings(MongoClientSettings.Builder builder) {
         ConnectionString connString = new ConnectionString(connectionString);
         
-        // 연결 풀 최적화 설정
-        // MongoDB Atlas 클러스터 티어에 따라 조정 필요:
-        // - M10: maxSize 100
-        // - M20: maxSize 200
-        // - M30: maxSize 300
-        ConnectionPoolSettings.Builder poolBuilder = ConnectionPoolSettings.builder()
-            .maxSize(100)                    // 최대 연결 수 (기본값: 100)
-            .minSize(10)                     // 최소 연결 수 (기본값: 0, 연결 생성 오버헤드 감소)
-            .maxWaitTime(120000, TimeUnit.MILLISECONDS)  // 연결 대기 시간 (기본값: 120초)
-            .maxConnectionLifeTime(0, TimeUnit.MILLISECONDS)  // 연결 최대 수명 (0: 무제한)
-            .maxConnectionIdleTime(60000, TimeUnit.MILLISECONDS)  // 유휴 연결 타임아웃 (60초)
-            .maxConnecting(2);               // 동시 연결 생성 수 (기본값: 2)
-        
         // 타임아웃 설정
         builder.applyConnectionString(connString)
             .applyToSocketSettings(settings -> settings
@@ -58,7 +44,17 @@ public class MongoClientConfig extends AbstractMongoClientConfiguration {
                 .heartbeatFrequency(10000, TimeUnit.MILLISECONDS)  // 하트비트 주기 (10초)
                 .minHeartbeatFrequency(500, TimeUnit.MILLISECONDS)  // 최소 하트비트 주기 (0.5초)
             )
-            .applyToConnectionPoolSettings(settings -> poolBuilder.build())
+            // 연결 풀 최적화 설정
+            // MongoDB Atlas 클러스터 티어에 따라 조정 필요:
+            // - M10: maxSize 100, M20: maxSize 200, M30: maxSize 300
+            .applyToConnectionPoolSettings(settings -> settings
+                .maxSize(100)                    // 최대 연결 수 (기본값: 100)
+                .minSize(10)                     // 최소 연결 수 (기본값: 0, 연결 생성 오버헤드 감소)
+                .maxWaitTime(120000, TimeUnit.MILLISECONDS)  // 연결 대기 시간 (기본값: 120초)
+                .maxConnectionLifeTime(0, TimeUnit.MILLISECONDS)  // 연결 최대 수명 (0: 무제한)
+                .maxConnectionIdleTime(60000, TimeUnit.MILLISECONDS)  // 유휴 연결 타임아웃 (60초)
+                .maxConnecting(2)                // 동시 연결 생성 수 (기본값: 2)
+            )
             
             // Read Preference 설정 (읽기 복제본 우선)
             // CQRS 패턴의 Query Side 특성상 최종 일관성 허용 가능
