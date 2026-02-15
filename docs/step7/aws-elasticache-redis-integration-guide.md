@@ -1225,7 +1225,7 @@ PONG
 # 프로젝트 루트에서
 ./gradlew :api:auth:bootRun
 
-# 또는 IntelliJ IDEA에서 AuthApplication 실행
+# 또는 IntelliJ IDEA에서 ApiAuthApplication 실행
 ```
 
 ##### 시작 로그 확인

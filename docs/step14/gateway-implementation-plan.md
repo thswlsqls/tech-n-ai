@@ -93,7 +93,7 @@ api/gateway
 
 ### 기존 코드 구조
 
-- **GatewayApplication.java**: Spring Boot 메인 클래스 (기본 구조만 존재)
+- **ApiGatewayApplication.java**: Spring Boot 메인 클래스 (기본 구조만 존재)
 - **ApiGatewayExceptionHandler.java**: 빈 클래스 (구현 필요)
 - **설정 파일**: application.yml, application-local.yml, application-dev.yml, application-beta.yml, application-prod.yml (기본 구조만 존재)
 
@@ -142,7 +142,7 @@ api/gateway
 ### 현재 구현 상태
 
 **api/gateway 모듈**:
-- GatewayApplication.java: 기본 Spring Boot 애플리케이션 클래스만 존재
+- ApiGatewayApplication.java: 기본 Spring Boot 애플리케이션 클래스만 존재
 - ApiGatewayExceptionHandler.java: 빈 클래스 (구현 필요)
 - 설정 파일: 기본 구조만 존재 (라우팅, 연결 풀, CORS 설정 없음)
 - Spring Cloud Gateway 의존성: 없음 (추가 필요)
@@ -244,7 +244,7 @@ dependencies {
 
 ```
 api/gateway/src/main/java/com/ebson/shrimp/tm/demo/api/gateway/
-├── GatewayApplication.java                    # Spring Boot 메인 클래스 (기존)
+├── ApiGatewayApplication.java                 # Spring Boot 메인 클래스 (기존)
 ├── config/
 │   ├── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정
 │   └── CorsConfig.java                        # CORS 설정 (선택, Global CORS로 대체 가능)

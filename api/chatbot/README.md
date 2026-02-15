@@ -1,6 +1,6 @@
 # Chatbot API Module
 
-langchain4j를 활용한 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템입니다. MongoDB Atlas Vector Search를 활용하여 개발자 대회 정보, IT 테크 뉴스, 사용자 아카이브를 검색하고 자연어로 질문할 수 있는 기능을 제공합니다.
+langchain4j를 활용한 RAG(Retrieval-Augmented Generation) 기반 챗봇 시스템입니다. MongoDB Atlas Vector Search를 활용하여 Emerging Tech(AI 업데이트 정보)를 검색하고 자연어로 질문할 수 있는 기능을 제공합니다. 하이브리드 검색(Score Fusion + RRF)으로 최신 문서 누락을 방지하고, 세션 타이틀 자동생성 기능을 지원합니다.
 
 ## 목차
 
@@ -20,13 +20,11 @@ langchain4j를 활용한 RAG(Retrieval-Augmented Generation) 기반 챗봇 시�
 
 ### 배경
 
-현재 프로젝트는 CQRS 패턴을 적용하여 Command Side(Aurora MySQL)와 Query Side(MongoDB Atlas)를 분리하고 있으며, MongoDB Atlas에는 다음과 같은 컬렉션이 저장되어 있습니다:
+현재 프로젝트는 CQRS 패턴을 적용하여 Command Side(Aurora MySQL)와 Query Side(MongoDB Atlas)를 분리하고 있으며, MongoDB Atlas에는 다음 컬렉션이 저장되어 있습니다:
 
-- **ContestDocument**: 개발자 대회 정보
-- **NewsArticleDocument**: IT 테크 뉴스 기사
-- **ArchiveDocument**: 사용자 아카이브 항목
+- **EmergingTechDocument**: AI 서비스 업데이트 정보 (OpenAI, Anthropic, Google, Meta, xAI)
 
-이러한 도큐먼트들을 임베딩하여 벡터 검색 기반의 지식 검색 챗봇을 구축함으로써, 사용자가 자연어로 대회 정보, 뉴스 기사, 자신의 아카이브를 검색하고 질문할 수 있도록 합니다.
+이 도큐먼트를 임베딩하여 벡터 검색 기반의 지식 검색 챗봇을 구축함으로써, 사용자가 자연어로 최신 AI 업데이트를 검색하고 질문할 수 있도록 합니다.
 
 ### LLM 및 Embedding Model 선택
 
@@ -111,38 +109,54 @@ RAG 파이프라인은 다음과 같은 단계로 구성됩니다:
 
 ## 주요 기능
 
-### 1. RAG 기반 지식 검색
+### 1. Emerging Tech 전용 RAG 검색
 
-- MongoDB Atlas Vector Search를 활용한 의미 기반 검색
-- 개발자 대회 정보, IT 테크 뉴스, 사용자 아카이브 검색
-- 유사도 기반 관련 문서 추출
+- `emerging_techs` 컬렉션 전용 MongoDB Atlas Vector Search
+- status: PUBLISHED pre-filter 적용
+- Emerging Tech 메타데이터(provider, publishedAt, title, url) 포함 프롬프트
 
-### 2. 멀티턴 대화 히스토리 관리
+### 2. 하이브리드 검색 (Score Fusion + RRF)
+
+- **벡터 검색 + 최신성 결합**: 순수 벡터 유사도만으로는 최신 문서가 누락될 수 있는 문제 해결
+- **MongoDB Pipeline 내 Score Fusion**: `$vectorSearch` → `$addFields(recencyScore)` Exponential Decay 함수 → `$addFields(combinedScore)` → `$sort` → `$limit`
+- **최신성 직접 쿼리**: `published_at` DESC 정렬로 최신 문서 보장
+- **RRF 결합**: 두 검색 소스를 Reciprocal Rank Fusion (k=60) 알고리즘으로 결합
+- MongoDB 8.2/8.3의 `$rankFusion`/`$scoreFusion` 효과를 MongoDB 8.0 환경에서 재현
+
+### 3. 세션 타이틀 자동생성
+
+- 새 세션의 첫 메시지-응답 완료 후 `@Async` 비동기 LLM 호출로 3~5단어 타이틀 자동 생성
+- 실패 시 예외 흡수 (메인 채팅 흐름에 영향 없음)
+- 사용자 수동 변경 지원 (`PATCH /api/v1/chatbot/sessions/{sessionId}/title`)
+- 기존 CQRS 인프라 활용 (title 필드, Kafka 이벤트 연동)
+
+### 4. 멀티턴 대화 히스토리 관리
 
 - 세션 기반 대화 컨텍스트 관리
 - JWT 토큰 기반 사용자 인증 및 세션 소유권 검증
 - ChatMemory를 통한 대화 히스토리 유지
 - 토큰 수 기준 메시지 윈도우 관리 (기본 전략)
 
-### 3. 의도 분류
+### 5. 의도 분류
 
-- RAG 필요 질문과 일반 대화 자동 분류
-- RAG 필요 시 벡터 검색 수행
+- RAG 필요 질문, Agent 위임, 웹 검색, 일반 대화 자동 분류
+- RAG 필요 시 하이브리드 벡터 검색 수행
+- Agent 위임 시 `api-agent` 모듈로 요청 전달
 - 일반 대화 시 LLM 직접 호출
 
-### 4. 토큰 제어 및 비용 통제
+### 6. 토큰 제어 및 비용 통제
 
 - 입력/출력 토큰 사용량 추적
 - 토큰 제한 검증 및 경고
 - 캐싱을 통한 중복 호출 방지
 
-### 5. Provider별 메시지 포맷 변환
+### 7. Provider별 메시지 포맷 변환
 
 - OpenAI 메시지 포맷 변환 (기본)
 - Anthropic 메시지 포맷 변환 (대안)
 - Provider별 특성에 맞는 메시지 포맷 자동 변환
 
-### 6. 세션 생명주기 관리
+### 8. 세션 생명주기 관리
 
 - 비활성 세션 자동 비활성화 (30분 미사용 시)
 - 만료된 세션 자동 처리 (90일 경과 시)
@@ -315,7 +329,36 @@ RAG 파이프라인은 다음과 같은 단계로 구성됩니다:
 }
 ```
 
-### 5. 세션 삭제
+### 5. 세션 타이틀 수정
+
+**PATCH** `/api/v1/chatbot/sessions/{sessionId}/title`
+
+세션의 타이틀을 수정합니다.
+
+**Request Body:**
+```json
+{
+  "title": "AI 트렌드 대화"
+}
+```
+
+**Response:**
+```json
+{
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success",
+  "data": {
+    "sessionId": "session-id",
+    "title": "AI 트렌드 대화",
+    "createdAt": "2024-01-16T10:00:00",
+    "lastMessageAt": "2024-01-16T10:05:00",
+    "isActive": true
+  }
+}
+```
+
+### 6. 세션 삭제
 
 **DELETE** `/api/v1/chatbot/sessions/{sessionId}`
 
@@ -324,8 +367,9 @@ RAG 파이프라인은 다음과 같은 단계로 구성됩니다:
 **Response:**
 ```json
 {
-  "success": true,
-  "data": null
+  "code": "2000",
+  "messageCode": { "code": "SUCCESS", "text": "성공" },
+  "message": "success"
 }
 ```
 
@@ -518,6 +562,7 @@ api/chatbot/
 - **CacheService**: 검색 결과 및 임베딩 캐싱
 - **ConversationSessionService**: 세션 관리 (생성, 조회, 수정, 삭제)
 - **ConversationMessageService**: 메시지 히스토리 관리
+- **SessionTitleGenerationService**: 비동기 세션 타이틀 자동생성 (LLM 호출)
 
 #### 4. Chain Layer
 
@@ -570,6 +615,10 @@ api/chatbot/
 ### 프로젝트 내 참고 문서
 
 - **RAG 챗봇 설계서**: `docs/step12/rag-chatbot-design.md`
+- **Emerging Tech 전용 RAG 검색 개선 설계서**: `docs/reference/api-chatbot/1-emerging-tech-rag-redesign.md`
+- **하이브리드 검색 Score Fusion 설계서**: `docs/reference/api-chatbot/2-hybrid-search-score-fusion-design.md`
+- **세션 타이틀 자동생성 설계서**: `docs/reference/api-chatbot/3-session-title-generation-design.md`
+- **Chatbot API 명세서**: `docs/reference/API-SPECIFICATIONS/api-chatbot-specification.md`
 - **MongoDB 스키마 설계**: `docs/step1/2. mongodb-schema-design.md`
 - **CQRS Kafka 동기화 설계**: `docs/step11/cqrs-kafka-sync-design.md`
 - **API 엔드포인트 설계**: `docs/step2/1. api-endpoint-design.md`
@@ -580,12 +629,12 @@ api/chatbot/
 ## 버전 정보
 
 - **langchain4j**: 0.35.0
-- **Spring Boot**: 4.0.1
+- **Spring Boot**: 4.0.2
 - **Java**: 21
-- **MongoDB Atlas**: 최신 버전
+- **MongoDB Atlas**: 7.0+
 
 ---
 
-**문서 버전**: 1.0  
-**최종 업데이트**: 2026-01-16
+**문서 버전**: 1.1
+**최종 업데이트**: 2026-02-15
 

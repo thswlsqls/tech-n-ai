@@ -67,6 +67,29 @@
 ### Step 17: 테스트 및 Spring REST Docs 기반 API 문서화
 - MongoDB Atlas Vector Search 구현 가이드 (step18/)
 
+## RAG 챗봇 개선 설계서
+
+api-chatbot 모듈의 RAG 파이프라인 개선 관련 설계 문서입니다.
+
+| 문서 | 설명 |
+|------|------|
+| [Emerging Tech 전용 RAG 검색 개선](reference/api-chatbot/1-emerging-tech-rag-redesign.md) | 벡터 검색 대상을 `emerging_techs` 컬렉션 전용으로 개선 |
+| [하이브리드 검색 Score Fusion 설계](reference/api-chatbot/2-hybrid-search-score-fusion-design.md) | 벡터 검색 + 최신성 정렬 결합 (Score Fusion + RRF) |
+| [세션 타이틀 자동생성 설계](reference/api-chatbot/3-session-title-generation-design.md) | 비동기 LLM 호출 기반 세션 타이틀 자동 생성 |
+
+## API 명세서
+
+각 API 모듈별 상세 명세 문서입니다.
+
+| 모듈 | 문서 | 설명 |
+|------|------|------|
+| 통합 | [API 통합 명세서](reference/API-SPECIFICATIONS/API-SPECIFICATION.md) | 전체 API 라우팅 규칙, 공통 응답 형식 |
+| Agent | [Agent API 명세서](reference/API-SPECIFICATIONS/api-agent-specification.md) | ADMIN 역할 전용 AI Agent 실행 API |
+| Auth | [Auth API 명세서](reference/API-SPECIFICATIONS/api-auth-specification.md) | OAuth 2.0, JWT 인증 API |
+| Bookmark | [Bookmark API 명세서](reference/API-SPECIFICATIONS/api-bookmark-specification.md) | 사용자 북마크 CRUD, 히스토리 관리 API |
+| Chatbot | [Chatbot API 명세서](reference/API-SPECIFICATIONS/api-chatbot-specification.md) | RAG 챗봇, 세션 관리, 타이틀 수정 API |
+| Emerging Tech | [Emerging Tech API 명세서](reference/API-SPECIFICATIONS/api-emerging-tech-specification.md) | AI 업데이트 조회/관리 API (공개/내부) |
+
 ## AI Agent 자동화 파이프라인 설계서
 
 LangChain4j 기반 AI Agent 시스템의 단계별 설계 및 구현 문서입니다.
@@ -126,6 +149,10 @@ Agent API 테스트 결과 문서: [tests/](reference/automation-pipeline-to-ai-
 - [로컬 개발 환경 설정 가이드](./local-development-setup-guide.md): Kafka, Redis, 애플리케이션 실행 절차
 - [Kafka Docker 로컬 설정 가이드](./kafka-docker-local-setup-guide.md): Kafka 상세 설정 및 트러블슈팅
 
-## 참고 문서
+## 기타 참고 문서
 
+- [북마크 Emerging Tech 재설계](reference/bookmark-emerging-tech-redesign.md)
+- [북마크 태그 다중값 설계](reference/bookmark-tag-multi-value-design.md)
+- [프론트엔드 웹앱 설계](reference/FRONTEND-WEBAPP-DESIGN.md)
+- [관리자 역할 기반 인증 설계](reference/admin-role-based-auth-design.md)
 - `reference/shrimp-task-prompts-final-goal.md`: 최종 프로젝트 목표

@@ -48,19 +48,17 @@
 | message | String | X | 응답 메시지 |
 | data | T | X | 응답 데이터 |
 
-### Page<T> (Spring Data Page)
+### PageData\<T\>
+
+페이징 응답에 사용되는 공통 래퍼 객체입니다.
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| content | T[] | O | 데이터 목록 |
-| pageable | Pageable | O | 페이징 정보 |
-| totalElements | Long | O | 전체 데이터 수 |
-| totalPages | Integer | O | 전체 페이지 수 |
-| size | Integer | O | 페이지 크기 |
-| number | Integer | O | 현재 페이지 번호 (0부터 시작) |
-| first | Boolean | O | 첫 페이지 여부 |
-| last | Boolean | O | 마지막 페이지 여부 |
-| empty | Boolean | O | 빈 페이지 여부 |
+| pageSize | Integer | O | 페이지 크기 |
+| pageNumber | Integer | O | 현재 페이지 번호 (1부터 시작) |
+| totalPageNumber | Integer | O | 전체 페이지 수 |
+| totalSize | Integer | O | 전체 데이터 수 |
+| list | T[] | O | 데이터 목록 |
 
 ---
 
@@ -156,7 +154,7 @@ AI 챗봇에게 메시지를 보내고 응답을 받습니다. 세션 ID가 없�
 | page | Integer | X | 1 | Min(1) | 페이지 번호 (1부터 시작) |
 | size | Integer | X | 20 | Min(1), Max(100) | 페이지 크기 |
 
-**Response** (200 OK) `ApiResponse<Page<SessionResponse>>`
+**Response** (200 OK) `ApiResponse<SessionListResponse>`
 
 ```json
 {
@@ -164,31 +162,21 @@ AI 챗봇에게 메시지를 보내고 응답을 받습니다. 세션 ID가 없�
   "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "content": [
-      {
-        "sessionId": "sess_abc123def456",
-        "title": "AI 트렌드에 대한 대화",
-        "createdAt": "2025-01-20T10:00:00",
-        "lastMessageAt": "2025-01-20T14:30:00",
-        "isActive": true
-      }
-    ],
-    "pageable": {
-      "pageNumber": 0,
+    "data": {
       "pageSize": 20,
-      "sort": {
-        "sorted": true,
-        "direction": "DESC",
-        "property": "lastMessageAt"
-      }
-    },
-    "totalElements": 15,
-    "totalPages": 1,
-    "size": 20,
-    "number": 0,
-    "first": true,
-    "last": true,
-    "empty": false
+      "pageNumber": 1,
+      "totalPageNumber": 1,
+      "totalSize": 15,
+      "list": [
+        {
+          "sessionId": "sess_abc123def456",
+          "title": "AI 트렌드에 대한 대화",
+          "createdAt": "2025-01-20T10:00:00",
+          "lastMessageAt": "2025-01-20T14:30:00",
+          "isActive": true
+        }
+      ]
+    }
   }
 }
 ```
@@ -254,7 +242,7 @@ SessionResponse 형식
 | page | Integer | X | 1 | Min(1) | 페이지 번호 (1부터 시작) |
 | size | Integer | X | 50 | Min(1), Max(100) | 페이지 크기 |
 
-**Response** (200 OK) `ApiResponse<Page<MessageResponse>>`
+**Response** (200 OK) `ApiResponse<MessageListResponse>`
 
 ```json
 {
@@ -262,37 +250,32 @@ SessionResponse 형식
   "messageCode": { "code": "SUCCESS", "text": "성공" },
   "message": "success",
   "data": {
-    "content": [
-      {
-        "messageId": "msg_xyz789",
-        "sessionId": "sess_abc123def456",
-        "role": "USER",
-        "content": "최신 AI 기술 트렌드에 대해 알려줘",
-        "tokenCount": 25,
-        "sequenceNumber": 1,
-        "createdAt": "2025-01-20T14:25:00"
-      },
-      {
-        "messageId": "msg_xyz790",
-        "sessionId": "sess_abc123def456",
-        "role": "ASSISTANT",
-        "content": "최신 AI 기술 트렌드를 알려드리겠습니다...",
-        "tokenCount": 150,
-        "sequenceNumber": 2,
-        "createdAt": "2025-01-20T14:25:05"
-      }
-    ],
-    "pageable": {
-      "pageNumber": 0,
-      "pageSize": 50
-    },
-    "totalElements": 2,
-    "totalPages": 1,
-    "size": 50,
-    "number": 0,
-    "first": true,
-    "last": true,
-    "empty": false
+    "data": {
+      "pageSize": 50,
+      "pageNumber": 1,
+      "totalPageNumber": 1,
+      "totalSize": 2,
+      "list": [
+        {
+          "messageId": "msg_xyz789",
+          "sessionId": "sess_abc123def456",
+          "role": "USER",
+          "content": "최신 AI 기술 트렌드에 대해 알려줘",
+          "tokenCount": 25,
+          "sequenceNumber": 1,
+          "createdAt": "2025-01-20T14:25:00"
+        },
+        {
+          "messageId": "msg_xyz790",
+          "sessionId": "sess_abc123def456",
+          "role": "ASSISTANT",
+          "content": "최신 AI 기술 트렌드를 알려드리겠습니다...",
+          "tokenCount": 150,
+          "sequenceNumber": 2,
+          "createdAt": "2025-01-20T14:25:05"
+        }
+      ]
+    }
   }
 }
 ```
@@ -424,5 +407,5 @@ SessionResponse 형식
 
 ---
 
-**문서 버전**: 1.1
-**최종 업데이트**: 2026-02-13
+**문서 버전**: 1.2
+**최종 업데이트**: 2026-02-15

@@ -6,6 +6,12 @@
 CQRS 패턴, Kafka 이벤트 기반, Redis 활용 멱등성 보장, API Gateway 사용의 MSA 설계되었습니다.
 langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent 자율프로세싱 설계되었습니다.
 
+## 현재 개발 상황 데모
+
+<video src="contents/videos/TechNAI 중간기록 2026-02-15 오후 4.27.54.mp4" controls width="100%"></video>
+
+> 프론트엔드 랜딩페이지 연동, RAG 챗봇 멀티턴 대화, AI Agent 자동화 시스템 동작을 확인할 수 있습니다.
+
 ## 프로젝트 기획 의도 (해결하려고 하는 문제)
 
 ### 문제
@@ -115,12 +121,14 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ### 주요 특징
 
-- **RAG (Retrieval-Augmented Generation)**: MongoDB Atlas Vector Search를 통한 지식 검색
+- **Emerging Tech 전용 RAG**: `emerging_techs` 컬렉션 대상 벡터 검색으로 AI 업데이트 정보 정확도 향상
+- **하이브리드 검색 (Score Fusion + RRF)**: 벡터 검색 + 최신성 정렬을 MongoDB Aggregation Pipeline 내 Exponential Decay 기반 Score Fusion과 Reciprocal Rank Fusion(k=60)으로 결합하여 최신 문서 누락 방지
+- **세션 타이틀 자동생성**: 첫 메시지-응답 완료 후 `@Async` 비동기 LLM 호출로 3~5단어 타이틀 자동 생성, 사용자 수동 변경 지원 (`PATCH /sessions/{id}/title`)
 - **멀티턴 대화 히스토리 관리**: 세션 기반 대화 컨텍스트 유지
 - **OpenAI GPT-4o-mini**: 비용 최적화된 LLM (128K 컨텍스트 윈도우)
 - **OpenAI text-embedding-3-small**: LLM과 동일한 Provider 사용으로 통합성 최적화 ($0.02 per 1M tokens)
 - **토큰 기반 메모리 관리**: TokenWindowChatMemory를 통한 효율적인 컨텍스트 관리
-- **의도 분류**: RAG 필요 여부 자동 판단
+- **의도 분류**: RAG, Agent 위임, 웹 검색, 일반 대화 자동 분류
 - **비용 통제**: 토큰 사용량 추적 및 제한
 
 ### RAG 파이프라인 아키텍처
@@ -133,18 +141,19 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ### 데이터 소스
 
-챗봇은 다음 MongoDB Atlas 컬렉션의 벡터 검색을 지원합니다:
+챗봇은 `emerging_techs` 컬렉션 전용 벡터 검색으로 AI 업데이트 정보를 검색합니다:
 
-- **AiUpdateDocument**: AI 서비스 업데이트 정보 (`title + summary + metadata`)
-- **BookmarkDocument**: 사용자 북마크 항목 (`itemTitle + itemSummary + tag + memo`, 사용자별 필터링)
+- **EmergingTechDocument**: AI 서비스 업데이트 정보 (`title + summary + metadata`, status: PUBLISHED pre-filter)
 
 ### API 엔드포인트
 
 #### 챗봇 대화 API
 
-- `POST /api/v1/chatbot/chat` - 챗봇 대화 (RAG 기반 응답 생성)
+- `POST /api/v1/chatbot` - 챗봇 대화 (RAG 기반 응답 생성)
 - `GET /api/v1/chatbot/sessions` - 대화 세션 목록 조회
 - `GET /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 상세 조회
+- `GET /api/v1/chatbot/sessions/{sessionId}/messages` - 세션 메시지 목록 조회
+- `PATCH /api/v1/chatbot/sessions/{sessionId}/title` - 세션 타이틀 수정
 - `DELETE /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 삭제
 
 ### 기술 스택
@@ -156,6 +165,9 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 자세한 RAG 챗봇 설계는 다음 문서를 참고하세요:
 - [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+- [Emerging Tech 전용 RAG 검색 개선 설계서](docs/reference/api-chatbot/1-emerging-tech-rag-redesign.md)
+- [하이브리드 검색 Score Fusion 설계서](docs/reference/api-chatbot/2-hybrid-search-score-fusion-design.md)
+- [세션 타이틀 자동생성 설계서](docs/reference/api-chatbot/3-session-title-generation-design.md)
 
 ### 현재 개발 상황
 
@@ -245,13 +257,15 @@ AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 �
 - REST API를 통한 목록/상세 조회, 검색, 상태 관리
 - Draft/Published 상태 관리
 
-**Phase 3~4: AI Agent (api-agent)**
-- LangChain4j Agent의 자율 실행
+**Phase 3~7: AI Agent (api-agent)**
+- LangChain4j Agent의 자율 실행 (11개 Tool)
 - Tool 선택 및 중복 검증
-- GitHub API, Web Scraper, Search, 통계 분석, 키워드 빈도 분석 기능 통합
+- GitHub API, Web Scraper, RSS, Search, 목록/상세 조회, 통계 분석, 키워드 빈도 분석 기능 통합
+- 자율 데이터 수집: GitHub Release, RSS, Web Scraping 수집 후 MongoDB 저장
 - MongoDB Aggregation 기반 서버사이드 데이터 분석
 - Mermaid 차트 및 Markdown 표 시각화
 - 자연어 목표 기반 자율 의사결정
+- 미지원 대상 요청 시 명확한 안내 응답
 
 전체 시스템 아키텍처는 [시스템 아키텍처](#시스템-아키텍처) 섹션을 참고하세요.
 
@@ -290,16 +304,21 @@ AI 업데이트 자동화 시스템은 3단계로 구성된 파이프라인을 �
 - **상황 판단**: 중복 확인, 중요도 판단, 오류 처리 등을 자율적으로 수행
 
 #### 2. LangChain4j Tools
-Agent가 사용할 수 있는 6가지 Tool:
+Agent가 사용할 수 있는 11가지 Tool:
 
-| Tool | 설명 |
-|------|------|
-| `fetch_github_releases` | GitHub 저장소의 최신 릴리스 목록 조회 |
-| `scrape_web_page` | 웹 페이지 크롤링 (robots.txt 준수) |
-| `search_emerging_techs` | 저장된 Emerging Tech 데이터 검색 (중복 확인) |
-| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 |
-| `analyze_text_frequency` | 키워드 빈도 분석 (서버사이드 MongoDB Aggregation) |
-| `send_slack_notification` | Slack 알림 전송 |
+| Tool | 설명 | 카테고리 |
+|------|------|---------|
+| `fetch_github_releases` | GitHub 저장소의 최신 릴리스 목록 조회 | 조회 |
+| `scrape_web_page` | 웹 페이지 크롤링 (robots.txt 준수) | 조회 |
+| `list_emerging_techs` | 기간/Provider/UpdateType/SourceType/Status 필터 목록 조회 (페이징) | 조회 |
+| `get_emerging_tech_detail` | ID 기반 상세 조회 | 조회 |
+| `search_emerging_techs` | 저장된 Emerging Tech 데이터 검색 (중복 확인) | 조회 |
+| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 | 분석 |
+| `analyze_text_frequency` | 키워드 빈도 분석 (서버사이드 MongoDB Aggregation) | 분석 |
+| `collect_github_releases` | GitHub 릴리스 수집 후 MongoDB 저장 | 수집 |
+| `collect_rss_feeds` | RSS 피드 수집 후 MongoDB 저장 | 수집 |
+| `collect_scraped_articles` | 웹 크롤링 수집 후 MongoDB 저장 | 수집 |
+| `send_slack_notification` | Slack 알림 전송 (Mock 지원) | 알림 |
 
 #### 3. 스케줄 자동 실행
 - **주기**: 6시간마다 자동 실행
@@ -320,7 +339,7 @@ Agent가 사용할 수 있는 6가지 Tool:
 
 ![AI Agent System Architecture](contents/api-agent/sytem-architecture.png)
 
-AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, AgentFacade를 거쳐 LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 6개의 Tool을 사용하여 GitHub API, 웹 페이지, api-emerging-tech API, MongoDB Atlas(Aggregation 기반 통계/빈도 분석), Slack과 상호작용합니다.
+AI Agent는 REST API 또는 Scheduler를 통해 트리거되며, AgentFacade를 거쳐 LangChain4j AiServices를 활용하여 OpenAI GPT-4o-mini와 통신합니다. Agent는 11개의 Tool을 사용하여 GitHub API, 웹 페이지, api-emerging-tech API, MongoDB Atlas(Aggregation 기반 통계/빈도 분석), Slack과 상호작용합니다. 조회/분석 뿐 아니라 자율적으로 데이터를 수집하여 MongoDB에 저장하는 기능도 제공합니다.
 
 emerging-tech API는 batch-source와 api-agent로부터 데이터를 수신하여 MongoDB에 저장하고, 공개 API를 통해 사용자에게 AI 업데이트 정보를 제공합니다. Agent는 MongoDB Aggregation Pipeline을 통해 서버사이드에서 통계 집계 및 텍스트 빈도 분석을 수행하고, 결과를 Mermaid 차트와 Markdown 표로 시각화합니다.
 
@@ -412,6 +431,7 @@ api/
 │       ├── EmergingTechAgentTools.java
 │       └── adapter/
 │           ├── AnalyticsToolAdapter.java
+│           ├── DataCollectionToolAdapter.java
 │           ├── EmergingTechToolAdapter.java
 │           ├── GitHubToolAdapter.java
 │           ├── ScraperToolAdapter.java
@@ -556,7 +576,7 @@ API Gateway (Spring Cloud Gateway)
 
 ```
 api/gateway/
-├── GatewayApplication.java                    # Spring Boot 메인 클래스
+├── ApiGatewayApplication.java                 # Spring Boot 메인 클래스
 ├── config/
 │   └── GatewayConfig.java                     # Spring Cloud Gateway 라우팅 설정
 ├── filter/
@@ -577,7 +597,7 @@ api/gateway/
 - **Spring Cloud Gateway**: API Gateway 프레임워크 (Netty 기반)
 - **Reactor Netty**: 비동기 네트워크 프레임워크
 - **Java**: 21
-- **Spring Boot**: 4.0.1
+- **Spring Boot**: 4.0.2
 - **Spring Cloud**: 2025.1.0
 
 자세한 Gateway 설계는 다음 문서를 참고하세요:
@@ -648,7 +668,7 @@ OAuth 2.0 인증 플로우에서 **CSRF 공격 방지**를 위한 State 파라�
 
 ### 언어 및 프레임워크
 - **Java**: 21
-- **Spring Boot**: 4.0.1
+- **Spring Boot**: 4.0.2
 - **Spring Cloud**: 2025.1.0
 - **Gradle**: Groovy DSL (Kotlin DSL 사용 금지)
 
@@ -890,9 +910,11 @@ export SLACK_WEBHOOK_URL=your-slack-webhook-url
 
 #### 🌟 챗봇 API (`/api/v1/chatbot`)
 
-- `POST /api/v1/chatbot/chat` - 챗봇 대화 (RAG 기반 응답 생성)
+- `POST /api/v1/chatbot` - 챗봇 대화 (RAG 기반 응답 생성)
 - `GET /api/v1/chatbot/sessions` - 대화 세션 목록 조회
 - `GET /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 상세 조회
+- `GET /api/v1/chatbot/sessions/{sessionId}/messages` - 세션 메시지 목록 조회
+- `PATCH /api/v1/chatbot/sessions/{sessionId}/title` - 세션 타이틀 수정
 - `DELETE /api/v1/chatbot/sessions/{sessionId}` - 대화 세션 삭제
 
 ### 인증 방법
@@ -972,6 +994,10 @@ TECH-N-AI API 서버와 연동하기 위한 프론트엔드 클라이언트 랜�
 #### 핵심 아키텍처 설계
 - [CQRS Kafka 동기화 설계서](docs/step11/cqrs-kafka-sync-design.md)
 - [langchain4j RAG 기반 챗봇 설계서](docs/step12/rag-chatbot-design.md)
+- RAG 챗봇 개선 설계서
+  - [Emerging Tech 전용 RAG 검색 개선](docs/reference/api-chatbot/1-emerging-tech-rag-redesign.md)
+  - [하이브리드 검색 Score Fusion 설계](docs/reference/api-chatbot/2-hybrid-search-score-fusion-design.md)
+  - [세션 타이틀 자동생성 설계](docs/reference/api-chatbot/3-session-title-generation-design.md)
 - [AI Agent 자동화 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/)
   - [Phase 1: 데이터 수집 파이프라인 설계서](docs/reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md)
   - [Phase 2: LangChain4j Tools 설계서](docs/reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md)
@@ -992,7 +1018,13 @@ TECH-N-AI API 서버와 연동하기 위한 프론트엔드 클라이언트 랜�
 - [Gateway 설계서](docs/step14/gateway-design.md)
 - [Gateway 구현 계획](docs/step14/gateway-implementation-plan.md)
 
-#### API 설계
+#### API 설계 및 명세
+- [API 통합 명세서](docs/reference/API-SPECIFICATIONS/API-SPECIFICATION.md)
+  - [Agent API 명세서](docs/reference/API-SPECIFICATIONS/api-agent-specification.md)
+  - [Auth API 명세서](docs/reference/API-SPECIFICATIONS/api-auth-specification.md)
+  - [Bookmark API 명세서](docs/reference/API-SPECIFICATIONS/api-bookmark-specification.md)
+  - [Chatbot API 명세서](docs/reference/API-SPECIFICATIONS/api-chatbot-specification.md)
+  - [Emerging Tech API 명세서](docs/reference/API-SPECIFICATIONS/api-emerging-tech-specification.md)
 - [사용자 북마크 기능 설계서](docs/step13/user-bookmark-feature-design.md)
 
 #### 기타 설계

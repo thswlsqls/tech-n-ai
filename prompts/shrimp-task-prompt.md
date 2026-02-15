@@ -6100,7 +6100,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - `api/gateway/build.gradle` 확인 (현재 의존성 상태, Spring Cloud Gateway 의존성 추가 필요 여부 확인)
   - `api/gateway/src/main/resources/application*.yml` 확인 (현재 설정 상태, 라우팅/연결 풀/CORS 설정 여부 확인)
 - **핵심 설정 파일 및 구조 확인**:
-  - `api/gateway` 모듈의 현재 구조 확인 (`GatewayApplication.java`, `ApiGatewayExceptionHandler.java` 등)
+  - `api/gateway` 모듈의 현재 구조 확인 (`ApiGatewayApplication.java`, `ApiGatewayExceptionHandler.java` 등)
   - `common-security` 모듈의 `JwtTokenProvider` 확인 (`validateToken`, `getPayloadFromToken` 메서드)
   - `common-core` 모듈의 `ApiResponse`, `MessageCode`, `ErrorCodeConstants` 확인
   - `docs/step17/gateway-design.md` 설계서 전체 읽기 (패키지 구조, 라우팅 설정, 인증 필터, 연결 풀, CORS, 에러 처리)
@@ -6149,7 +6149,7 @@ plan task: Spring Cloud Gateway 기반 API Gateway 서버 구현
   - `codebase_search`로 Gateway 관련 구현 검색
 - **기존 코드 확인** (check first, then design):
   - `api/gateway` 모듈의 현재 구현 상태 상세 분석
-    * `GatewayApplication.java` 확인
+    * `ApiGatewayApplication.java` 확인
     * 기존 설정 파일 확인 (`application.yml`, `application-local.yml` 등)
     * 기존 컴포넌트 확인 (Config, Filter, Exception Handler 등)
   - `common-security` 모듈의 `JwtTokenProvider` 구조 분석
