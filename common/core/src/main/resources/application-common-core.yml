@@ -23,6 +23,14 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTLP_METRICS_ENABLED:false}
+  dynatrace:
+    metrics:
+      export:
+        enabled: ${DYNATRACE_METRICS_ENABLED:false}
   prometheus:
     metrics:
       export:
