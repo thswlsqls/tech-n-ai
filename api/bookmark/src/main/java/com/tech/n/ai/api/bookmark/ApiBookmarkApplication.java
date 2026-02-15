@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 	"org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration",
 	"org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
 	"org.springframework.boot.session.autoconfigure.SessionAutoConfiguration",
+	"org.springframework.boot.session.jdbc.autoconfigure.JdbcSessionAutoConfiguration",
 	"org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
 })
 public class ApiBookmarkApplication {

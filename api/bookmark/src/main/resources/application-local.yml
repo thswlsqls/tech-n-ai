@@ -3,8 +3,8 @@ spring:
     writer:
       url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.schema}?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       username: admin
-      password: admin12341!
+      password: admin1234
     reader:
       url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.schema}?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       username: admin
-      password: admin12341!
+      password: admin1234
