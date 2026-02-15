@@ -8,7 +8,7 @@ langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent �
 
 ## 현재 개발 상황 데모
 
-<video src="contents/videos/TechNAI 중간기록 2026-02-15 오후 4.27.54.mp4" controls width="100%"></video>
+<video src="contents/videos/TechNAI%20%EC%A4%91%EA%B0%84%EA%B8%B0%EB%A1%9D%202026-02-15%20%EC%98%A4%ED%9B%84%204.27.54.mp4" controls width="100%"></video>
 
 > 프론트엔드 랜딩페이지 연동, RAG 챗봇 멀티턴 대화, AI Agent 자동화 시스템 동작을 확인할 수 있습니다.
 
