@@ -66,6 +66,16 @@ spring:
             # 외부 API 연동 시 중복 헤더 제거
             - DedupeResponseHeader=Access-Control-Allow-Origin, RETAIN_LAST
 
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTLP_METRICS_ENABLED:false}
+  dynatrace:
+    metrics:
+      export:
+        enabled: ${DYNATRACE_METRICS_ENABLED:false}
+
 server:
   port: 8081
   netty:

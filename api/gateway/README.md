@@ -67,7 +67,7 @@ Gateway를 포함한 전체 시스템 아키텍처는 다음과 같습니다:
 ### 계층 구조
 
 ```
-GatewayApplication
+ApiGatewayApplication
   ├── GatewayConfig (라우팅 설정, GlobalFilter 등록)
   ├── JwtAuthenticationGatewayFilter (JWT 인증 필터)
   ├── ApiGatewayExceptionHandler (예외 처리)

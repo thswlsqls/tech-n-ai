@@ -19,10 +19,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 	"org.springframework.boot.security.autoconfigure.ReactiveUserDetailsServiceAutoConfiguration",
 	"org.springframework.boot.actuator.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration"
 })
-public class GatewayApplication {
+public class ApiGatewayApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(GatewayApplication.class, args);
+		SpringApplication.run(ApiGatewayApplication.class, args);
 	}
 
 }
