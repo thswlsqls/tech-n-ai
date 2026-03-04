@@ -1,6 +1,8 @@
 module:
   aurora:
     schema: bookmark
+  mysql:
+    port: 3309
 
 bookmark:
   restore:

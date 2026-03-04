@@ -4,6 +4,8 @@ server:
 module:
   aurora:
     schema: auth
+  mysql:
+    port: 3308
 
 oauth:
   google:

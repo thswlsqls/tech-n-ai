@@ -41,5 +41,7 @@ module:
   aurora:
     meta:
       schema: batch
+  mysql:
+    port: 3307
 #    business:
 #      schema: batch

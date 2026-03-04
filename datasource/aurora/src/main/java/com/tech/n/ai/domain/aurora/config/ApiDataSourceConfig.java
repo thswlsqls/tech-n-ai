@@ -1,4 +1,4 @@
-package com.tech.n.ai.domain.mariadb.config;
+package com.tech.n.ai.domain.aurora.config;
 
 
 import com.zaxxer.hikari.HikariConfig;
@@ -68,4 +68,3 @@ public class ApiDataSourceConfig {
     }
 
 }
-

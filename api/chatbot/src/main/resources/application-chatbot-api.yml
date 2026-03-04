@@ -1,6 +1,8 @@
 module:
   aurora:
     schema: chatbot
+  mysql:
+    port: 3310
 
 langchain4j:
   open-ai:

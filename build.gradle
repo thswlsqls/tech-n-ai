@@ -129,6 +129,14 @@ subprojects {
 		outputs.dir snippetsDir
 	}
 
+	tasks.named('bootRun') {
+		jvmArgs(
+				'-Dfile.encoding=UTF-8',
+				'-Duser.timezone=Asia/Seoul',
+				'-Dspring.profiles.active=local'
+		)
+	}
+
 
 	hibernate {
 		enhancement {

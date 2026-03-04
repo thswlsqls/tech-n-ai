@@ -122,7 +122,47 @@ mybatis:
 
 ---
 spring:
-  config.activate.on-profile: local,dev
+  config.activate.on-profile: local
+
+  datasource:
+    batch:
+      meta:
+        hikari:
+          data-source-properties:
+            wrapperPlugins: ""
+            useConnectionPlugins: false
+      writer:
+        hikari:
+          data-source-properties:
+            wrapperPlugins: ""
+            useConnectionPlugins: false
+      reader:
+        hikari:
+          data-source-properties:
+            wrapperPlugins: ""
+            useConnectionPlugins: false
+    writer:
+      meta:
+        url: jdbc:mysql://localhost:${module.mysql.port}/${module.aurora.meta.schema:batch}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+        username: admin
+        password: admin1234
+      business:
+        url: jdbc:mysql://localhost:${module.mysql.port}/${module.aurora.business.schema:batch}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+        username: admin
+        password: admin1234
+    reader:
+      meta:
+        url: jdbc:mysql://localhost:${module.mysql.port}/${module.aurora.meta.schema:batch}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+        username: admin
+        password: admin1234
+      business:
+        url: jdbc:mysql://localhost:${module.mysql.port}/${module.aurora.business.schema:batch}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+        username: admin
+        password: admin1234
+
+---
+spring:
+  config.activate.on-profile: dev
 
   datasource:
     writer:
@@ -143,7 +183,6 @@ spring:
         url: jdbc:mysql://tech-n-ai-aurora-cluster-instance-1.c8hcnykzcnr8.ap-northeast-2.rds.amazonaws.com:3306/${module.aurora.business.schema:batch}?${AURORA_OPTIONS:useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
         username: admin
         password: admin1234
-
 
 ---
 spring:
@@ -198,6 +237,6 @@ spring:
         password: admin1234
 
 logging:
-level:
-  org.hibernate.type: error
-  org.hibernate.sql: error
+  level:
+    org.hibernate.type: error
+    org.hibernate.sql: error

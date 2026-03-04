@@ -6,7 +6,7 @@ import com.tech.n.ai.client.feign.config.OpenFeignConfig;
 import com.tech.n.ai.common.core.config.RedisConfig;
 import com.tech.n.ai.common.kafka.config.KafkaConfig;
 import com.tech.n.ai.common.security.config.SecurityConfig;
-import com.tech.n.ai.domain.mariadb.config.ApiDomainConfig;
+import com.tech.n.ai.domain.aurora.config.ApiDomainConfig;
 import com.tech.n.ai.domain.mongodb.config.MongoIndexConfig;
 
 import org.springframework.context.annotation.ComponentScan;

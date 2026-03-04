@@ -1,9 +1,10 @@
-package com.tech.n.ai.domain.mariadb.config;
+package com.tech.n.ai.domain.aurora.config;
 
 
 import com.querydsl.jpa.JPQLTemplates;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
+import com.tech.n.ai.domain.aurora.config.ApiDataSourceConfig;
 import jakarta.persistence.EntityManager;
 
 import jakarta.persistence.PersistenceContext;
@@ -31,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 @ComponentScan(basePackages = {"com.tech.n.ai.domain.mariadb"})
 @Import({
     ApiDataSourceConfig.class,
-    ApiMybatisConfig.class
+    com.tech.n.ai.domain.mariadb.config.ApiMybatisConfig.class
 })
 @RequiredArgsConstructor
 public class ApiDomainConfig {

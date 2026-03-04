@@ -1,7 +1,7 @@
 package com.tech.n.ai.api.bookmark.config;
 
 import com.tech.n.ai.common.security.config.SecurityConfig;
-import com.tech.n.ai.domain.mariadb.config.ApiDomainConfig;
+import com.tech.n.ai.domain.aurora.config.ApiDomainConfig;
 import com.tech.n.ai.domain.mongodb.config.MongoClientConfig;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
