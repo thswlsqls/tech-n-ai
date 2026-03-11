@@ -94,10 +94,8 @@ domain/aurora/
 | API 모듈 | 스키마명 | 관리 테이블 |
 |---------|---------|------------|
 | `api-auth` | `auth` | providers, users, admins, refresh_tokens, email_verifications, user_history, admin_history |
-| `api-archive` | `archive` | archives, archive_history |
+| `api-bookmark` | `bookmark` | bookmarks, bookmark_history |
 | `api-chatbot` | `chatbot` | conversation_sessions, conversation_messages |
-| `api-contest` | ❌ 미사용 | MongoDB Atlas 사용 |
-| `api-news` | ❌ 미사용 | MongoDB Atlas 사용 |
 
 ### 스키마 설정 방법
 
@@ -131,15 +129,15 @@ module:
 #### Auth 스키마
 - **ProviderEntity**: OAuth 제공자 정보
 - **UserEntity**: 사용자 정보
-- **AdminEntity**: 관리자 정보
-- **RefreshTokenEntity**: JWT Refresh Token
+- **AdminEntity**: 관리자 정보 (로그인 잠금: `failedLoginAttempts`, `accountLockedUntil` 포함)
+- **RefreshTokenEntity**: JWT Refresh Token (`user_id`/`admin_id` FK 분리 저장)
 - **EmailVerificationEntity**: 이메일 인증 정보
 - **UserHistoryEntity**: 사용자 변경 이력
 - **AdminHistoryEntity**: 관리자 변경 이력
 
-#### Archive 스키마
-- **ArchiveEntity**: 사용자 아카이브 정보
-- **ArchiveHistoryEntity**: 아카이브 변경 이력
+#### Bookmark 스키마
+- **BookmarkEntity**: 사용자 북마크 정보
+- **BookmarkHistoryEntity**: 북마크 변경 이력
 
 #### Chatbot 스키마
 - **ConversationSessionEntity**: 대화 세션 정보
@@ -185,9 +183,39 @@ Aurora DB Cluster 연결을 위한 환경변수:
 | `AURORA_PASSWORD` | 데이터베이스 비밀번호 | `********` |
 | `AURORA_OPTIONS` | JDBC 연결 옵션 | `useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8` |
 
-### 로컬 환경 설정
+### 로컬 환경 설정 (Docker Compose)
 
-로컬 환경에서는 `.env` 파일을 사용하여 환경변수를 관리합니다:
+로컬 환경에서는 Docker Compose로 MySQL 8.0 인스턴스를 모듈별로 제공하여 AWS RDS Aurora 의존성을 제거합니다:
+
+| 컨테이너 | 호스트 포트 | 스키마 | 대상 모듈 |
+|---------|----------|-------|---------|
+| `mysql-batch` | 3307 | batch | batch/source |
+| `mysql-auth` | 3308 | auth | api/auth |
+| `mysql-bookmark` | 3309 | bookmark | api/bookmark |
+| `mysql-chatbot` | 3310 | chatbot | api/chatbot |
+
+```bash
+# Docker Compose 실행
+docker compose up -d
+
+# 환경 변수 설정
+cp .env.example .env
+```
+
+각 모듈의 `application-local.yml`에서 `module.mysql.port`와 `module.aurora.schema` 속성을 설정합니다.
+
+로컬 프로파일에서는 AWS Aurora JDBC 드라이버의 failover/EFM 플러그인이 비활성화됩니다:
+```yaml
+data-source-properties:
+  wrapperPlugins: ""
+  useConnectionPlugins: false
+```
+
+자세한 설정은 [MySQL Docker 로컬 환경 구축 가이드](../../docs/reference/mysql-docker-local-setup-guide.md)를 참고하세요.
+
+### 운영 환경 설정
+
+운영 환경에서는 환경변수를 통해 Aurora DB Cluster에 연결합니다:
 
 ```bash
 # Aurora DB Cluster 연결 정보
@@ -196,11 +224,6 @@ AURORA_READER_ENDPOINT=aurora-cluster.cluster-ro-xxxxx.ap-northeast-2.rds.amazon
 AURORA_USERNAME=admin
 AURORA_PASSWORD=your-password-here
 AURORA_OPTIONS=useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-
-# 기타 설정
-DB_FETCH_CHUNKSIZE=250
-DB_BATCH_SIZE=50
-TZ=Asia/Seoul
 ```
 
 ## 의존성

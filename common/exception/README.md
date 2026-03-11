@@ -152,19 +152,20 @@ public void logWriteException(Exception exception, ExceptionContext.ContextInfo 
 ```java
 public record ExceptionContext(
     String source,                    // "READ" 또는 "WRITE"
-    String exceptionType,              // 예외 클래스 이름
+    String exceptionType,              // 예외 클래스 이름 (FQCN)
     String message,                    // 예외 메시지
     String stackTrace,                 // 스택 트레이스
     ContextInfo context,              // 컨텍스트 정보
     Instant occurredAt,                // 발생 시각
-    String severity                    // 심각도
+    String severity                    // 심각도 (HIGH, MEDIUM)
 ) {
     public record ContextInfo(
-        String module,                 // 모듈명
+        String module,                 // 모듈명 (URI에서 자동 추출)
         String method,                 // HTTP 메서드
-        Map<String, Object> parameters, // 요청 파라미터
-        String userId,                 // 사용자 ID
-        String requestId               // 요청 ID
+        Map<String, Object> parameters, // 요청 파라미터 (쿼리 파라미터 포함)
+        String uri,                    // 요청 URI
+        String userId,                 // 사용자 ID (X-User-Id 헤더)
+        String requestId               // 요청 ID (X-Request-Id 헤더)
     ) {}
 }
 ```
@@ -173,15 +174,20 @@ public record ExceptionContext(
 
 #### AsyncConfig
 
-비동기 예외 로깅을 위한 설정 클래스입니다.
+비동기 예외 로깅을 위한 전용 스레드 풀 설정 클래스입니다.
 
 ```java
 @Configuration
 @EnableAsync
 public class AsyncConfig {
-    // 비동기 실행 설정
+    @Bean("exceptionLoggingExecutor")
+    public ThreadPoolTaskExecutor exceptionLoggingExecutor() {
+        // core=2, max=5, queue=100, prefix="exception-log-"
+    }
 }
 ```
+
+**설정 근거**: 예외 로깅은 fire-and-forget 방식이므로 작은 스레드 풀과 제한된 큐로 HTTP 요청 스레드와의 리소스 경쟁을 방지합니다.
 
 ## 의존성
 

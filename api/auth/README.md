@@ -22,15 +22,17 @@
 ### 1.2 주요 특징
 
 - **JWT 토큰 기반 인증**: Stateless 인증 방식으로 서버 확장성 확보
+- **관리자/사용자 토큰 분리**: 역할별 독립적인 토큰 유효기간 (Admin: 15분/1일, User: 60분/7일)
+- **관리자 인증 보안**: 로그인 잠금(Brute Force Protection), 감사 추적(Audit Trail), Soft Delete
 - **OAuth 2.0 지원**: Google, Naver, Kakao OAuth 로그인 지원
 - **이메일 인증**: 회원가입 시 이메일 인증 필수
 - **비밀번호 재설정**: 이메일 기반 안전한 비밀번호 재설정
-- **Refresh Token 관리**: Access Token 갱신을 위한 Refresh Token 지원
+- **Refresh Token 관리**: Access Token 갱신을 위한 Refresh Token 지원 (Rotate-on-use)
 - **이벤트 기반 아키텍처**: Kafka를 통한 사용자 이벤트 발행
 
 ### 1.3 기술 스택
 
-- **Spring Boot 4.0.1**: 애플리케이션 프레임워크
+- **Spring Boot 4.0.2**: 애플리케이션 프레임워크
 - **Spring Security 6.x**: 웹 애플리케이션 보안 프레임워크
 - **JWT (JSON Web Token)**: Stateless 인증 토큰
 - **jjwt**: JWT 토큰 생성/검증 라이브러리
@@ -49,11 +51,11 @@
 ### 2.2 계층 구조
 
 ```
-AuthController (Presentation Layer)
+AuthController / AdminController (Presentation Layer)
     ↓
-AuthFacade (Facade Layer)
+AuthFacade / AdminFacade (Facade Layer)
     ↓
-AuthService (Business Logic Layer)
+AuthService / AdminService / TokenService (Business Logic Layer)
     ↓
 Repository / External Services (Data Access Layer)
 ```
@@ -67,10 +69,13 @@ Repository / External Services (Data Access Layer)
 - **PasswordEncoderConfig**: BCryptPasswordEncoder 설정
 
 #### api/auth 모듈
-- **AuthController**: 인증 API 엔드포인트
-- **AuthFacade**: Controller-Service 중간 계층
-- **AuthService**: 인증 비즈니스 로직
-- **RefreshTokenService**: Refresh Token 관리
+- **AuthController**: 사용자 인증 API 엔드포인트
+- **AdminController**: 관리자 인증/관리 API 엔드포인트
+- **AuthFacade / AdminFacade**: Controller-Service 중간 계층
+- **AuthService**: 사용자 인증 비즈니스 로직
+- **AdminService**: 관리자 인증/관리 비즈니스 로직 (로그인 잠금, 감사 추적 포함)
+- **TokenService**: 역할 기반 토큰 발급 (사용자/관리자 토큰 분리)
+- **RefreshTokenService**: Refresh Token 관리 (사용자/관리자 분리 저장)
 - **OAuthProvider**: OAuth Provider 인터페이스
 - **OAuthStateService**: OAuth State 파라미터 관리 (Redis)
 
@@ -208,6 +213,18 @@ Google, Naver, Kakao OAuth 2.0을 통한 소셜 로그인을 지원합니다.
 | GET | `/api/v1/auth/oauth2/{provider}` | OAuth 로그인 시작 | ❌ |
 | GET | `/api/v1/auth/oauth2/{provider}/callback` | OAuth 로그인 콜백 | ❌ |
 
+#### 관리자 API
+
+| Method | Endpoint | 설명 | 인증 필요 |
+|--------|----------|------|----------|
+| POST | `/api/v1/auth/admin/login` | 관리자 로그인 | ❌ |
+| POST | `/api/v1/auth/admin/logout` | 관리자 로그아웃 | ✅ |
+| POST | `/api/v1/auth/admin/refresh` | 관리자 토큰 갱신 | ❌ |
+| POST | `/api/v1/auth/admin` | 관리자 계정 생성 | ✅ |
+| GET | `/api/v1/auth/admin` | 관리자 목록 조회 | ✅ |
+| PUT | `/api/v1/auth/admin/{id}` | 관리자 정보 수정 | ✅ |
+| DELETE | `/api/v1/auth/admin/{id}` | 관리자 계정 삭제 | ✅ |
+
 **지원 OAuth Provider:**
 - `google`: Google OAuth 2.0
 - `naver`: Naver OAuth 2.0
@@ -307,16 +324,27 @@ POST /api/v1/auth/refresh
 
 ### 5.3 토큰 구성
 
+토큰 유효기간은 사용자와 관리자가 분리됩니다:
+
+| 토큰 | 사용자 (USER) | 관리자 (ADMIN) |
+|------|-------------|---------------|
+| Access Token | 60분 | 15분 |
+| Refresh Token | 7일 | 1일 |
+
 **Access Token:**
-- **유효기간**: 60분 (기본값)
 - **페이로드**: userId, email, role
 - **용도**: API 요청 시 인증
 
 **Refresh Token:**
-- **유효기간**: 7일 (기본값)
 - **페이로드**: userId, email, role
 - **용도**: Access Token 갱신
-- **저장**: 데이터베이스에 저장 (무효화 가능)
+- **저장**: 데이터베이스에 저장 (user_id/admin_id FK 분리)
+- **갱신 전략**: Rotate-on-use (갱신 시 기존 토큰 삭제 후 새 토큰 발급)
+
+**관리자 토큰 보안**:
+- 관리자 전용 토큰 갱신 엔드포인트 (`POST /api/v1/auth/admin/refresh`)
+- 사용자 토큰으로 관리자 토큰 갱신 시도 시 401 응답
+- 토큰 갱신 시 관리자 활성 상태(isActive, isDeleted) 재검증
 
 ---
 
@@ -411,15 +439,24 @@ POST /api/v1/auth/refresh
 - 데이터베이스 저장 시 암호화 (향후 개선 필요)
 - 운영 환경에서는 시크릿 관리 시스템 사용 권장
 
-### 7.4 추가 보안 권장사항
+### 7.4 관리자 인증 보안
 
-**Rate Limiting:**
-- 로그인 시도 횟수 제한
-- API 호출 빈도 제한
+**로그인 잠금 (Brute Force Protection):**
+- 5회 연속 로그인 실패: 15분 잠금
+- 10회 연속 로그인 실패: 1시간 잠금
+- 잠금 상태는 DB(Aurora MySQL)에 저장되어 서버 재시작 후에도 유지
+- 로그인 성공 시 실패 카운터 및 잠금 상태 자동 초기화
 
-**감사 로그:**
-- 로그인/로그아웃 이벤트 기록
-- 보안 관련 이벤트 모니터링
+**감사 추적 (Audit Trail):**
+- `createdBy/updatedBy/deletedBy`: 관리자 계정 변경 시 작업 수행자 ID 기록
+- Soft Delete 시 모든 활성 세션(Refresh Token) 즉시 무효화
+- 자기 삭제 방지: 관리자가 자신의 계정을 삭제하는 것을 금지
+
+**토큰 소유권 검증:**
+- 로그아웃/토큰 갱신 시 Refresh Token의 `adminId` FK와 인증된 사용자 ID 교차 검증
+- 관리자 Refresh Token에는 `admin_id` FK만 설정, 사용자 Refresh Token에는 `user_id` FK만 설정
+
+### 7.5 추가 보안 권장사항
 
 **에러 메시지:**
 - 보안 관련 에러 메시지는 구체적인 정보를 노출하지 않음
@@ -433,6 +470,7 @@ POST /api/v1/auth/refresh
 
 - **`docs/step6/spring-security-auth-design-guide.md`**: Spring Security 설계 가이드
 - **`docs/step6/oauth-provider-implementation-guide.md`**: OAuth Provider별 구현 가이드
+- **`docs/reference/admin-auth-security-improvement-prompt.md`**: 관리자 인증 보안 강화 설계서
 - **`docs/step6/oauth-http-client-selection-analysis.md`**: HTTP Client 선택 분석
 - **`docs/step6/oauth-state-storage-research-result.md`**: State 파라미터 저장 방법 연구 결과
 - **`docs/step6/oauth-feign-client-migration-analysis.md`**: OpenFeign 클라이언트 전환 검토 및 구현 가이드
@@ -482,7 +520,7 @@ POST /api/v1/auth/refresh
 
 ---
 
-**작성일**: 2025-01-27  
-**버전**: 1.0  
+**작성일**: 2026-03-11
+**버전**: 1.1
 **모듈**: api/auth
 

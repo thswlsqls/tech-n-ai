@@ -42,7 +42,15 @@
 - **StringUtils**: 문자열 처리 유틸리티
 - **ValidationUtils**: 데이터 검증 유틸리티 (이메일, 비밀번호 등)
 
-### 5. Redis 설정
+### 5. Jackson 직렬화 설정
+
+TSID(Long) 값의 JavaScript 정밀도 손실을 방지하기 위한 글로벌 직렬화 설정을 제공합니다.
+
+- **JacksonConfig**: `JsonMapperBuilderCustomizer`를 통한 Long→String 글로벌 직렬화
+  - `Long.class`(boxed)와 `Long.TYPE`(primitive) 모두 `ToStringSerializer`로 직렬화
+  - TSID는 64비트 Long으로 JavaScript의 `Number.MAX_SAFE_INTEGER`(2^53-1)를 초과하므로 JSON String으로 변환
+
+### 6. Redis 설정
 
 Redis 연결 및 템플릿 설정을 제공합니다.
 

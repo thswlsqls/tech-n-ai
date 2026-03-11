@@ -95,9 +95,11 @@ if (jwtTokenProvider.validateToken(token)) {
 
 **주요 기능**:
 - HMAC-SHA 알고리즘을 사용한 토큰 서명
-- Access Token: 짧은 유효기간 (기본 60분)
-- Refresh Token: 긴 유효기간 (기본 7일)
+- **사용자/관리자 토큰 분리**: 역할별 독립적인 유효기간 설정
+- User Access Token: 60분, Refresh Token: 7일
+- Admin Access Token: 15분, Refresh Token: 1일
 - 토큰 검증: 서명 및 만료 시간 확인
+- `generateAdminAccessToken()` / `generateAdminRefreshToken()`: 관리자 전용 토큰 생성 메서드
 
 #### JwtTokenPayload
 
@@ -332,12 +334,17 @@ jwt:
   secret-key: ${JWT_SECRET_KEY:default-secret-key-change-in-production-minimum-256-bits}
   access-token-validity-minutes: ${JWT_ACCESS_TOKEN_VALIDITY_MINUTES:60}
   refresh-token-validity-days: ${JWT_REFRESH_TOKEN_VALIDITY_DAYS:7}
+  admin:
+    access-token-validity-minutes: ${JWT_ADMIN_ACCESS_TOKEN_VALIDITY_MINUTES:15}
+    refresh-token-validity-days: ${JWT_ADMIN_REFRESH_TOKEN_VALIDITY_DAYS:1}
 ```
 
 **환경변수**:
 - `JWT_SECRET_KEY`: JWT 서명에 사용할 Secret Key (최소 256비트 권장)
-- `JWT_ACCESS_TOKEN_VALIDITY_MINUTES`: Access Token 유효기간 (분)
-- `JWT_REFRESH_TOKEN_VALIDITY_DAYS`: Refresh Token 유효기간 (일)
+- `JWT_ACCESS_TOKEN_VALIDITY_MINUTES`: 사용자 Access Token 유효기간 (분, 기본 60)
+- `JWT_REFRESH_TOKEN_VALIDITY_DAYS`: 사용자 Refresh Token 유효기간 (일, 기본 7)
+- `JWT_ADMIN_ACCESS_TOKEN_VALIDITY_MINUTES`: 관리자 Access Token 유효기간 (분, 기본 15)
+- `JWT_ADMIN_REFRESH_TOKEN_VALIDITY_DAYS`: 관리자 Refresh Token 유효기간 (일, 기본 1)
 
 ## 보안 고려사항
 
