@@ -1,11 +1,13 @@
 package com.tech.n.ai.api.gateway.filter;
 
+import com.tech.n.ai.api.gateway.config.GatewaySecurityProperties;
 import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
 import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.core.dto.MessageCode;
 import com.tech.n.ai.common.security.jwt.JwtTokenPayload;
 import com.tech.n.ai.common.security.jwt.JwtTokenProvider;
 import tools.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -19,52 +21,75 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * JWT 인증 Gateway Filter
  *
  * 인증이 필요한 경로에 대해 JWT 토큰을 검증하고, 사용자 정보를 헤더에 주입합니다.
+ * 경로 분류(공개/보호/관리자)는 {@link GatewaySecurityProperties}에서 외부화하여 관리합니다.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationGatewayFilter implements GatewayFilter {
-    
+
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String USER_ID_HEADER = "x-user-id";
     private static final String USER_EMAIL_HEADER = "x-user-email";
     private static final String USER_ROLE_HEADER = "x-user-role";
-    
+
     private final JwtTokenProvider jwtTokenProvider;
     private final ObjectMapper objectMapper;
-    
+    private final GatewaySecurityProperties securityProperties;
+
+    private List<PathPattern> publicPathPatterns;
+    private List<PathPattern> publicPathExclusionPatterns;
+    private List<PathPattern> adminOnlyPathPatterns;
+
+    @PostConstruct
+    void init() {
+        PathPatternParser parser = new PathPatternParser();
+        publicPathPatterns = securityProperties.publicPaths().stream()
+            .map(parser::parse)
+            .toList();
+        publicPathExclusionPatterns = securityProperties.publicPathExclusions().stream()
+            .map(parser::parse)
+            .toList();
+        adminOnlyPathPatterns = securityProperties.adminOnlyPaths().stream()
+            .map(parser::parse)
+            .toList();
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        
+
         // 인증 불필요 경로 확인
         String path = request.getURI().getPath();
         if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
-        
+
         // JWT 토큰 추출
         String token = extractToken(request);
         if (token == null) {
             log.debug("JWT token not found for path: {}", path);
             return handleUnauthorized(exchange);
         }
-        
+
         // JWT 토큰 검증
         if (!jwtTokenProvider.validateToken(token)) {
             log.debug("Invalid JWT token for path: {}", path);
             return handleUnauthorized(exchange);
         }
-        
+
         // 사용자 정보 추출 및 헤더 주입
         try {
             JwtTokenPayload payload = jwtTokenProvider.getPayloadFromToken(token);
@@ -88,32 +113,36 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
             return handleUnauthorized(exchange);
         }
     }
-    
+
     /**
      * 인증 불필요 경로 확인
-     * 
-     * @param path 요청 경로
-     * @return 인증 불필요 경로이면 true
+     *
+     * 경로 우선순위: exclusion > inclusion
+     * exclusion에 매칭되면 공개 경로가 아님 (인증 필요)
      */
     private boolean isPublicPath(String path) {
-        // /api/v1/auth/admin/login은 공개 (관리자 로그인)
-        if (path.equals("/api/v1/auth/admin/login")) {
-            return true;
+        // exclusion 패턴에 매칭되면 공개 경로가 아님
+        org.springframework.http.server.PathContainer pathContainer =
+            org.springframework.http.server.PathContainer.parsePath(path);
+
+        for (PathPattern exclusion : publicPathExclusionPatterns) {
+            if (exclusion.matches(pathContainer)) {
+                return false;
+            }
         }
-        // /api/v1/auth/admin은 인증 필요
-        if (path.startsWith("/api/v1/auth/admin")) {
-            return false;
+
+        // inclusion 패턴에 매칭되면 공개 경로
+        for (PathPattern pattern : publicPathPatterns) {
+            if (pattern.matches(pathContainer)) {
+                return true;
+            }
         }
-        return path.startsWith("/api/v1/auth") ||
-               path.startsWith("/api/v1/emerging-tech") ||
-               path.startsWith("/actuator");
+
+        return false;
     }
-    
+
     /**
      * Authorization 헤더에서 Bearer 토큰 추출
-     * 
-     * @param request ServerHttpRequest
-     * @return JWT 토큰 (없으면 null)
      */
     private String extractToken(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
@@ -122,19 +151,20 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
         }
         return null;
     }
-    
-    /**
-     * 인증 실패 시 401 Unauthorized 응답 반환
-     * 
-     * @param exchange ServerWebExchange
-     * @return Mono<Void>
-     */
+
     /**
      * 관리자 전용 경로 확인
      */
     private boolean isAdminOnlyPath(String path) {
-        return path.startsWith("/api/v1/agent") ||
-               path.startsWith("/api/v1/auth/admin");
+        org.springframework.http.server.PathContainer pathContainer =
+            org.springframework.http.server.PathContainer.parsePath(path);
+
+        for (PathPattern pattern : adminOnlyPathPatterns) {
+            if (pattern.matches(pathContainer)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -165,12 +195,14 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
         }
     }
 
+    /**
+     * 인증 실패 시 401 Unauthorized 응답 반환
+     */
     private Mono<Void> handleUnauthorized(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        
-        // ApiResponse 형식의 에러 응답 생성
+
         MessageCode messageCode = new MessageCode(
             ErrorCodeConstants.MESSAGE_CODE_AUTH_FAILED,
             "인증에 실패했습니다."
@@ -179,8 +211,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
             ErrorCodeConstants.AUTH_FAILED,
             messageCode
         );
-        
-        // JSON 응답 작성 (Reactive 방식)
+
         DataBufferFactory bufferFactory = response.bufferFactory();
         try {
             String jsonResponse = objectMapper.writeValueAsString(errorResponse);

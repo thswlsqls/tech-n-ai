@@ -4,6 +4,7 @@ import com.tech.n.ai.common.core.constants.ErrorCodeConstants;
 import com.tech.n.ai.common.core.dto.ApiResponse;
 import com.tech.n.ai.common.core.dto.MessageCode;
 import tools.jackson.databind.ObjectMapper;
+import io.netty.channel.ConnectTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -18,8 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
 import reactor.core.publisher.Mono;
+import reactor.netty.channel.AbortedException;
 
+import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Gateway 예외 처리 핸들러
@@ -88,16 +92,16 @@ public class ApiGatewayExceptionHandler implements WebExceptionHandler {
             }
         }
         
-        // 예외 타입에 따른 기본 상태 코드 매핑
-        String exceptionName = ex.getClass().getSimpleName();
-        if (exceptionName.contains("Timeout") || exceptionName.contains("TimeoutException")) {
+        // 예외 타입에 따른 기본 상태 코드 매핑 (instanceof 타입 매칭)
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        if (ex instanceof TimeoutException || cause instanceof TimeoutException
+                || ex instanceof io.netty.handler.timeout.ReadTimeoutException
+                || cause instanceof io.netty.handler.timeout.ReadTimeoutException) {
             return HttpStatus.GATEWAY_TIMEOUT; // 504
-        } else if (exceptionName.contains("Connect") || exceptionName.contains("ConnectionException")) {
+        } else if (ex instanceof ConnectException || cause instanceof ConnectException
+                || ex instanceof ConnectTimeoutException || cause instanceof ConnectTimeoutException
+                || ex instanceof AbortedException || cause instanceof AbortedException) {
             return HttpStatus.BAD_GATEWAY; // 502
-        } else if (exceptionName.contains("NotFound") || exceptionName.contains("NotFoundException")) {
-            return HttpStatus.NOT_FOUND; // 404
-        } else if (exceptionName.contains("Unauthorized") || exceptionName.contains("UnauthorizedException")) {
-            return HttpStatus.UNAUTHORIZED; // 401
         }
         
         // 기본값: 내부 서버 오류

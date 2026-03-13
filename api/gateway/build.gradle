@@ -31,6 +31,9 @@ dependencies {
 	// Rate Limiting을 위한 Reactive Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
 
+	// Circuit Breaker (Resilience4j)
+	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-restdocs'

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./build/**)",
+      "Read(./.gradle/**)",
+      "Read(./.idea/**)",
+      "Read(./out/**)",
+      "Read(./bin/**)",
+      "Read(./dist/**)",
+      "Read(./gradle/wrapper/**)",
+      "Read(./docs/build/**)"
+    ]
+  }
+}

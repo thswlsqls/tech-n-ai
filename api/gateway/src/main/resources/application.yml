@@ -17,6 +17,10 @@ spring:
               predicates:
                 - Path=/api/v1/auth/**
               filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCircuitBreaker
+                    fallbackUri: forward:/fallback
                 - name: RequestRateLimiter
                   args:
                     redis-rate-limiter.replenishRate: 10
@@ -30,6 +34,10 @@ spring:
               predicates:
                 - Path=/api/v1/bookmark/**
               filters:
+                - name: CircuitBreaker
+                  args:
+                    name: bookmarkCircuitBreaker
+                    fallbackUri: forward:/fallback
                 - name: RequestRateLimiter
                   args:
                     redis-rate-limiter.replenishRate: 100
@@ -43,6 +51,10 @@ spring:
               predicates:
                 - Path=/api/v1/chatbot/**
               filters:
+                - name: CircuitBreaker
+                  args:
+                    name: chatbotCircuitBreaker
+                    fallbackUri: forward:/fallback
                 - name: RequestRateLimiter
                   args:
                     redis-rate-limiter.replenishRate: 100
@@ -56,6 +68,10 @@ spring:
               predicates:
                 - Path=/api/v1/agent/**
               filters:
+                - name: CircuitBreaker
+                  args:
+                    name: agentCircuitBreaker
+                    fallbackUri: forward:/fallback
                 - name: RequestRateLimiter
                   args:
                     redis-rate-limiter.replenishRate: 100
@@ -69,6 +85,10 @@ spring:
               predicates:
                 - Path=/api/v1/emerging-tech/**
               filters:
+                - name: CircuitBreaker
+                  args:
+                    name: emergingTechCircuitBreaker
+                    fallbackUri: forward:/fallback
                 - name: RequestRateLimiter
                   args:
                     redis-rate-limiter.replenishRate: 30
@@ -139,6 +159,62 @@ management:
     metrics:
       export:
         enabled: ${DYNATRACE_METRICS_ENABLED:false}
+
+# Resilience4j Circuit Breaker 설정
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      authCircuitBreaker:
+        base-config: default
+      bookmarkCircuitBreaker:
+        base-config: default
+      chatbotCircuitBreaker:
+        base-config: default
+        # Chatbot은 LLM 호출로 응답이 느릴 수 있으므로 임계값을 완화
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+      agentCircuitBreaker:
+        base-config: default
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+      emergingTechCircuitBreaker:
+        base-config: default
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 60s
+    instances:
+      chatbotCircuitBreaker:
+        timeout-duration: 120s
+      agentCircuitBreaker:
+        timeout-duration: 120s
+
+# Gateway 보안 경로 설정
+gateway:
+  security:
+    # 인증 불필요 경로 (PathPattern 형식)
+    public-paths:
+      - /api/v1/auth/admin/login    # 관리자 로그인 (구체적 경로 우선)
+      - /api/v1/auth/**
+      - /api/v1/emerging-tech/**
+      - /actuator/**
+    # public-paths에서 제외 (exclusion > inclusion)
+    public-path-exclusions:
+      - /api/v1/auth/admin/**
+    # 관리자 전용 경로 (ADMIN role 필수)
+    admin-only-paths:
+      - /api/v1/agent/**
+      - /api/v1/auth/admin/**
 
 server:
   port: 8081
