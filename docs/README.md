@@ -67,92 +67,84 @@
 ### Step 17: 테스트 및 Spring REST Docs 기반 API 문서화
 - MongoDB Atlas Vector Search 구현 가이드 (step18/)
 
-## RAG 챗봇 개선 설계서
+## reference/ 문서 구조
 
-api-chatbot 모듈의 RAG 파이프라인 개선 관련 설계 문서입니다.
+### design/ — 모듈/기능 설계 문서
 
-| 문서 | 설명 |
-|------|------|
-| [Emerging Tech 전용 RAG 검색 개선](reference/api-chatbot/1-emerging-tech-rag-redesign.md) | 벡터 검색 대상을 `emerging_techs` 컬렉션 전용으로 개선 |
-| [하이브리드 검색 Score Fusion 설계](reference/api-chatbot/2-hybrid-search-score-fusion-design.md) | 벡터 검색 + 최신성 정렬 결합 (Score Fusion + RRF) |
-| [세션 타이틀 자동생성 설계](reference/api-chatbot/3-session-title-generation-design.md) | 비동기 LLM 호출 기반 세션 타이틀 자동 생성 |
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [프론트엔드 웹앱 설계](reference/design/001-frontend-webapp.md) | 프론트엔드 웹 애플리케이션 설계 |
+| 002 | [관리자 역할 기반 인증 설계](reference/design/002-admin-role-based-auth.md) | 관리자 인증/인가 설계 |
+| 003 | [북마크 Emerging Tech 재설계](reference/design/003-bookmark-emerging-tech-redesign.md) | 북마크-EmergingTech 연동 재설계 |
+| 004 | [Chatbot RAG 검색 개선](reference/design/004-chatbot-rag-redesign.md) | 벡터 검색 대상을 `emerging_techs` 컬렉션 전용으로 개선 |
+| 005 | [하이브리드 검색 Score Fusion](reference/design/005-chatbot-hybrid-search-score-fusion.md) | 벡터 검색 + 최신성 정렬 결합 (Score Fusion + RRF) |
+| 006 | [세션 타이틀 자동생성](reference/design/006-chatbot-session-title-generation.md) | 비동기 LLM 호출 기반 세션 타이틀 자동 생성 |
+| 007 | [북마크 태그 다중값 설계](reference/design/007-bookmark-tag-multi-value.md) | 북마크 태그 다중값 지원 설계 |
+| 008 | [API Gateway 개선 설계](reference/design/008-api-gateway-improvement.md) | Gateway 회복탄력성·보안 개선 |
+| 009 | [Common Conversation 모듈](reference/design/009-common-conversation-module.md) | 공통 대화 이력 모듈 설계 |
 
-## API 명세서
+### guide/ — 개발 환경 설정 가이드
 
-각 API 모듈별 상세 명세 문서입니다.
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [로컬 개발 환경 설정](reference/guide/001-local-development-setup.md) | Kafka, Redis, 애플리케이션 실행 절차 |
+| 002 | [Kafka Docker 로컬 설정](reference/guide/002-kafka-docker-local-setup.md) | Kafka 상세 설정 및 트러블슈팅 |
+| 003 | [MySQL Docker 로컬 설정](reference/guide/003-mysql-docker-local-setup.md) | MySQL Docker Compose 설정 |
 
-| 모듈 | 문서 | 설명 |
-|------|------|------|
-| 통합 | [API 통합 명세서](reference/API-SPECIFICATIONS/API-SPECIFICATION.md) | 전체 API 라우팅 규칙, 공통 응답 형식 |
-| Agent | [Agent API 명세서](reference/API-SPECIFICATIONS/api-agent-specification.md) | ADMIN 역할 전용 AI Agent 실행 API |
-| Auth | [Auth API 명세서](reference/API-SPECIFICATIONS/api-auth-specification.md) | OAuth 2.0, JWT 인증 API |
-| Bookmark | [Bookmark API 명세서](reference/API-SPECIFICATIONS/api-bookmark-specification.md) | 사용자 북마크 CRUD, 히스토리 관리 API |
-| Chatbot | [Chatbot API 명세서](reference/API-SPECIFICATIONS/api-chatbot-specification.md) | RAG 챗봇, 세션 관리, 타이틀 수정 API |
-| Emerging Tech | [Emerging Tech API 명세서](reference/API-SPECIFICATIONS/api-emerging-tech-specification.md) | AI 업데이트 조회/관리 API (공개/내부) |
+### research/ — 기술 리서치
 
-## AI Agent 자동화 파이프라인 설계서
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [RAG 아키텍처 발전사](reference/research/001-rag-architecture-evolution.md) | Naive → Advanced → Self-Corrective → Agentic RAG 발전 분석 |
+| 002 | [API Gateway 패턴 리서치](reference/research/002-api-gateway-pattern-research.md) | API Gateway 패턴 비교 분석 |
+
+### api-specifications/ — API 명세서
+
+| # | 문서 | 설명 |
+|---|------|------|
+| 000 | [API 통합 명세서](reference/api-specifications/000-overview.md) | 전체 API 라우팅 규칙, 공통 응답 형식 |
+| 001 | [Agent API](reference/api-specifications/001-api-agent.md) | ADMIN 역할 전용 AI Agent 실행 API |
+| 002 | [Auth API](reference/api-specifications/002-api-auth.md) | OAuth 2.0, JWT 인증 API |
+| 003 | [Bookmark API](reference/api-specifications/003-api-bookmark.md) | 사용자 북마크 CRUD, 히스토리 관리 API |
+| 004 | [Chatbot API](reference/api-specifications/004-api-chatbot.md) | RAG 챗봇, 세션 관리, 타이틀 수정 API |
+| 005 | [Emerging Tech API](reference/api-specifications/005-api-emerging-tech.md) | AI 업데이트 조회/관리 API (공개/내부) |
+
+### agent-pipeline/ — AI Agent 자동화 파이프라인
 
 LangChain4j 기반 AI Agent 시스템의 단계별 설계 및 구현 문서입니다.
 
-### 설계 문서 목록
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [데이터 수집 파이프라인](reference/agent-pipeline/001-data-pipeline-design.md) | GitHub Release, RSS, Web Scraping 기반 데이터 수집 |
+| 002 | [LangChain4j Tools](reference/agent-pipeline/002-langchain4j-tools-design.md) | Tool 인터페이스 및 Adapter 패턴 설계 |
+| 003 | [AI Agent 통합](reference/agent-pipeline/003-agent-integration-design.md) | OpenAI GPT-4o-mini 기반 Agent 통합 |
+| 004 | [데이터 분석 기능 전환](reference/agent-pipeline/004-analytics-tool-redesign.md) | MongoDB Aggregation 기반 통계/키워드 분석 Tool |
+| 005 | [데이터 수집 Agent](reference/agent-pipeline/005-data-collection-agent.md) | 자율 데이터 수집 Tool (GitHub, RSS, Scraping) |
+| 006 | [Agent Query Tool 개선](reference/agent-pipeline/006-agent-query-tool-improvement.md) | 목록/상세 조회 Tool, Slack Mock 전환 |
+| 007 | [미지원 요청 처리](reference/agent-pipeline/007-unsupported-request-handling.md) | System Prompt 기반 미지원 대상 안내 |
 
-| Phase | 문서명 | 설명 |
-|-------|--------|------|
-| Phase 1 | [데이터 수집 파이프라인 설계서](reference/automation-pipeline-to-ai-agent/phase1-data-pipeline-design.md) | GitHub Release, RSS, Web Scraping 기반 데이터 수집 |
-| Phase 2 | [LangChain4j Tools 설계서](reference/automation-pipeline-to-ai-agent/phase2-langchain4j-tools-design.md) | Tool 인터페이스 및 Adapter 패턴 설계 |
-| Phase 3 | [AI Agent 통합 설계서](reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md) | OpenAI GPT-4o-mini 기반 Agent 통합 |
-| Phase 4 | [데이터 분석 기능 전환 설계서](reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md) | MongoDB Aggregation 기반 통계/키워드 분석 Tool |
-| Phase 5 | [데이터 수집 Agent 설계서](reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md) | 자율 데이터 수집 Tool (GitHub, RSS, Scraping) |
-| Phase 6 | [Agent Query Tool 개선 설계서](reference/automation-pipeline-to-ai-agent/phase6-agent-query-tool-improvement-design.md) | 목록/상세 조회 Tool, Slack Mock 전환 |
-| Phase 7 | [미지원 요청 처리 설계서](reference/automation-pipeline-to-ai-agent/phase7-unsupported-request-handling-design.md) | System Prompt 기반 미지원 대상 안내 |
-
-### Agent Tool 구성
-
-| Tool | 기능 | 카테고리 |
-|------|------|---------|
-| `fetch_github_releases` | GitHub 릴리스 조회 | 조회 |
-| `scrape_web_page` | 웹 페이지 크롤링 | 조회 |
-| `search_emerging_techs` | 키워드 기반 검색 | 조회 |
-| `list_emerging_techs` | 필터 기반 목록 조회 | 조회 |
-| `get_emerging_tech_detail` | ID 기반 상세 조회 | 조회 |
-| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 | 분석 |
-| `analyze_text_frequency` | 키워드 빈도 분석 | 분석 |
-| `collect_github_releases` | GitHub 릴리스 수집+저장 | 수집 |
-| `collect_rss_feeds` | RSS 수집+저장 | 수집 |
-| `collect_scraped_articles` | 크롤링 수집+저장 | 수집 |
-| `send_slack_notification` | Slack 알림 (Mock 지원) | 알림 |
-
-### 지원 Provider
-
-| Provider | 지원 여부 | 대상 서비스 |
-|----------|----------|------------|
-| OPENAI | O | GPT, ChatGPT, DALL-E, Whisper |
-| ANTHROPIC | O | Claude |
-| GOOGLE | O | Gemini, PaLM, Bard |
-| META | O | LLaMA, Code Llama |
-| XAI | O | Grok |
-
-### 테스트 결과
-
-Agent API 테스트 결과 문서: [tests/](reference/automation-pipeline-to-ai-agent/tests/)
+테스트 결과: [tests/](reference/agent-pipeline/tests/)
 
 | 테스트 카테고리 | 문서 | 결과 |
 |----------------|------|------|
-| Agent 기본 실행 | [01-agent-run-test-results.md](reference/automation-pipeline-to-ai-agent/tests/01-agent-run-test-results.md) | Pass |
-| 통계/분석 기능 | [02-agent-analytics-test-results.md](reference/automation-pipeline-to-ai-agent/tests/02-agent-analytics-test-results.md) | Pass |
-| 데이터 수집 | [03-agent-data-collection-test-results.md](reference/automation-pipeline-to-ai-agent/tests/03-agent-data-collection-test-results.md) | Pass |
-| 목록/상세 조회 | [04-agent-query-tools-test-results.md](reference/automation-pipeline-to-ai-agent/tests/04-agent-query-tools-test-results.md) | Pass |
+| Agent 기본 실행 | [01-agent-run-test-results.md](reference/agent-pipeline/tests/01-agent-run-test-results.md) | Pass |
+| 통계/분석 기능 | [02-agent-analytics-test-results.md](reference/agent-pipeline/tests/02-agent-analytics-test-results.md) | Pass |
+| 데이터 수집 | [03-agent-data-collection-test-results.md](reference/agent-pipeline/tests/03-agent-data-collection-test-results.md) | Pass |
+| 목록/상세 조회 | [04-agent-query-tools-test-results.md](reference/agent-pipeline/tests/04-agent-query-tools-test-results.md) | Pass |
 
+### writings/ — 블로그 글
 
-## 개발 환경 가이드
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [프롬프트 모음](reference/writings/001-prompts.md) | 글쓰기 프롬프트 |
+| 002 | [Naive RAG](reference/writings/002-rag-naive-rag.md) | RAG 시리즈 1편 — Naive RAG |
+| 003 | [Advanced RAG](reference/writings/003-rag-advanced-rag.md) | RAG 시리즈 2편 — Advanced RAG |
+| 004 | [Self-Corrective RAG](reference/writings/004-rag-self-corrective-rag.md) | RAG 시리즈 3편 — Self-Corrective RAG |
+| 005 | [Ontology-Enhanced RAG](reference/writings/005-rag-ontology-enhanced-rag.md) | RAG 시리즈 4편 — Ontology-Enhanced RAG |
+| 006 | [Agentic RAG](reference/writings/006-rag-agentic-rag.md) | RAG 시리즈 5편 — Agentic RAG |
 
-- [로컬 개발 환경 설정 가이드](./local-development-setup-guide.md): Kafka, Redis, 애플리케이션 실행 절차
-- [Kafka Docker 로컬 설정 가이드](./kafka-docker-local-setup-guide.md): Kafka 상세 설정 및 트러블슈팅
+### tools/ — 도구/프롬프트 설정
 
-## 기타 참고 문서
-
-- [북마크 Emerging Tech 재설계](reference/bookmark-emerging-tech-redesign.md)
-- [북마크 태그 다중값 설계](reference/bookmark-tag-multi-value-design.md)
-- [프론트엔드 웹앱 설계](reference/FRONTEND-WEBAPP-DESIGN.md)
-- [관리자 역할 기반 인증 설계](reference/admin-role-based-auth-design.md)
-- `reference/shrimp-task-prompts-final-goal.md`: 최종 프로젝트 목표
+| # | 문서 | 설명 |
+|---|------|------|
+| 001 | [Shrimp Task 최종 목표](reference/tools/001-shrimp-task-prompts-final-goal.md) | 최종 프로젝트 목표 및 프롬프트 설정 |

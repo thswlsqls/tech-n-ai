@@ -106,3 +106,4 @@ Modular RAG의 한계는 모듈 간의 최적 조합을 자동으로 탐색하�
 - Edge, D., Trinh, H., Cheng, N., et al. (2024). *From Local to Global: A Graph RAG Approach to Query-Focused Summarization*. Microsoft Research. [arXiv:2404.16130](https://arxiv.org/abs/2404.16130)
 - Gao, Y., Xiong, Y., Wang, M., & Wang, H. (2024). *Modular RAG: Transforming RAG Systems into LEGO-like Reconfigurable Frameworks*. [arXiv:2407.21059](https://arxiv.org/abs/2407.21059)
 - Gao, Y., Xiong, Y., Gao, X., et al. (2024). *Retrieval-Augmented Generation for Large Language Models: A Survey*. [arXiv:2312.10997](https://arxiv.org/abs/2312.10997)
+
