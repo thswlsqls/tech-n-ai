@@ -59,8 +59,8 @@ Modules are auto-discovered by `settings.gradle`. Module names: `{parentDir}-{mo
 ```
 api/          → REST API servers (agent, auth, bookmark, chatbot, emerging-tech, gateway)
 batch/        → Batch jobs (source)
-client/       → External integrations (feign, rss, scraper, slack)
-common/       → Shared libraries (core, exception, kafka, security)
+client/       → External integrations (feign, mail, rss, scraper, slack)
+common/       → Shared libraries (conversation, core, exception, kafka, security)
 datasource/   → Data access (aurora, mongodb)
 ```
 
@@ -84,7 +84,7 @@ datasource/   → Data access (aurora, mongodb)
 Central entry point handling JWT validation, CORS, and routing to backend services. Uses `common-security` module's `JwtTokenProvider`.
 
 ### RAG Chatbot
-Uses langchain4j 0.35.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini for retrieval-augmented generation.
+Uses langchain4j 1.10.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini for retrieval-augmented generation.
 
 ## Technology Stack
 
@@ -92,7 +92,7 @@ Uses langchain4j 0.35.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini 
 - Gradle with Groovy DSL (Kotlin DSL not used)
 - Aurora MySQL 3.x (Command), MongoDB Atlas 7.0+ (Query)
 - Apache Kafka, Redis
-- langchain4j 0.35.0 with OpenAI
+- langchain4j 1.10.0 with OpenAI
 - Spring REST Docs for API documentation
 
 ## Configuration

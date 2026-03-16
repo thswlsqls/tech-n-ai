@@ -174,8 +174,12 @@ public class EmergingTechToolAdapter {
         );
     }
 
+    /**
+     * 빈 문자열은 null로, 비어있지 않으면 대문자로 정규화
+     * LLM이 소문자("openai")로 입력해도 Internal API가 기대하는 대문자("OPENAI")로 변환
+     */
     private String toNullIfBlank(String value) {
-        return (value != null && !value.isBlank()) ? value : null;
+        return (value != null && !value.isBlank()) ? value.toUpperCase() : null;
     }
 
     private String buildPeriodString(String startDate, String endDate) {

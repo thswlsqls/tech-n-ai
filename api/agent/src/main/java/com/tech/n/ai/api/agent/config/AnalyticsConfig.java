@@ -33,7 +33,7 @@ public class AnalyticsConfig {
         "all", "each", "every", "both", "few", "more", "most", "other",
         "some", "such", "only", "own", "same", "which", "while", "what",
         "when", "where", "who", "how", "why",
-        "up", "down", "then", "once", "any", "new", "been", "being"
+        "up", "down", "then", "once", "any", "new"
     );
 
     /** 기본 상위 키워드 개수 */

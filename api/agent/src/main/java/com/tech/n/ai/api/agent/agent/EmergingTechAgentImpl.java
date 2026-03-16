@@ -110,10 +110,11 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
         } catch (Exception e) {
             log.error("Agent 실행 실패: goal={}, sessionId={}", goal, sessionId, e);
             notifyError(goal, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             return AgentExecutionResult.failure(
-                    "Agent 실행 중 오류 발생: " + e.getMessage(),
+                    "Agent 실행 중 오류 발생: " + errorMsg,
                     sessionId,
-                    List.of(e.getMessage())
+                    List.of(errorMsg)
             );
         } finally {
             // ThreadLocal 메트릭 해제 (메모리 누수 방지)
