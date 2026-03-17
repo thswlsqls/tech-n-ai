@@ -203,12 +203,14 @@ resilience4j:
 gateway:
   security:
     # 인증 불필요 경로 (PathPattern 형식)
+    # 우선순위: 구체적 경로(와일드카드 없음) > exclusion > 와일드카드 경로
     public-paths:
-      - /api/v1/auth/admin/login    # 관리자 로그인 (구체적 경로 우선)
+      - /api/v1/auth/admin/login    # 관리자 로그인 (구체적 경로 → exclusion보다 우선)
+      - /api/v1/auth/admin/refresh  # 관리자 토큰 갱신 (구체적 경로 → exclusion보다 우선)
       - /api/v1/auth/**
       - /api/v1/emerging-tech/**
       - /actuator/**
-    # public-paths에서 제외 (exclusion > inclusion)
+    # public-paths의 와일드카드 경로에서 제외 (구체적 경로에는 영향 없음)
     public-path-exclusions:
       - /api/v1/auth/admin/**
     # 관리자 전용 경로 (ADMIN role 필수)

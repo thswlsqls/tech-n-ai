@@ -43,9 +43,50 @@ public final class ToolInputValidator {
     private static final Map<String, String> GITHUB_OWNER_CORRECTIONS = Map.of(
         "anthropic", "anthropics",
         "meta", "meta-llama",
-        "facebook", "facebookresearch",
-        "xai", "xai-org"
+        "deepmind", "google-deepmind",
+        "xai", "xai-org",
+        "facebookresearch", "meta-llama",
+        "facebook", "meta-llama"
     );
+
+    /**
+     * LLM이 자주 틀리는 GitHub repo 이름 교정 맵
+     * key: owner(lowercase) + "/" + 잘못된 repo(lowercase), value: 올바른 repo 이름
+     */
+    private static final Map<String, String> GITHUB_REPO_CORRECTIONS = Map.ofEntries(
+        Map.entry("google/google-cloud-python", "generative-ai-python"),
+        Map.entry("google/google-ai-python", "generative-ai-python"),
+        Map.entry("google/gemma", "gemma.cpp"),
+        Map.entry("meta-llama/llama", "llama-models"),
+        Map.entry("meta-llama/llama3", "llama-models"),
+        Map.entry("meta-llama/codellama", "llama-models"),
+        Map.entry("xai-org/grok", "grok-1"),
+        Map.entry("xai-org/xai-python", "grok-1"),
+        Map.entry("xai-org/xai-sdk", "grok-1"),
+        Map.entry("openai/gpt", "openai-python"),
+        Map.entry("anthropics/claude", "anthropic-sdk-python"),
+        Map.entry("anthropics/claude-sdk", "anthropic-sdk-python")
+    );
+
+    /**
+     * 허용된 GitHub owner/repo 조합 화이트리스트
+     * batch/source 모듈의 TARGET_REPOSITORIES 및 Agent 프롬프트 저장소와 동기화
+     * key: owner (lowercase), value: 허용된 repo 이름 Set
+     */
+    private static final Map<String, Set<String>> ALLOWED_GITHUB_REPOS = Map.of(
+        "openai", Set.of("openai-python", "whisper", "tiktoken"),
+        "anthropics", Set.of("anthropic-sdk-python", "claude-code"),
+        "google", Set.of("generative-ai-python", "gemma.cpp"),
+        "google-deepmind", Set.of("gemma"),
+        "meta-llama", Set.of("llama-models", "llama-stack"),
+        "xai-org", Set.of("grok-1")
+    );
+
+    private static final String ALLOWED_REPOS_DESCRIPTION =
+        "openai/openai-python, openai/whisper, openai/tiktoken, " +
+        "anthropics/anthropic-sdk-python, anthropics/claude-code, " +
+        "google/generative-ai-python, google/gemma.cpp, google-deepmind/gemma, " +
+        "meta-llama/llama-models, meta-llama/llama-stack, xai-org/grok-1";
 
     /**
      * LLM이 다양한 케이스로 입력할 수 있으므로 대소문자 정규화 매핑 사용
@@ -213,6 +254,14 @@ public final class ToolInputValidator {
             return "Error: GitHub repo 형식이 올바르지 않습니다. 영문자, 숫자, 점, 밑줄, 하이픈만 사용 가능합니다: " + repo;
         }
 
+        // 화이트리스트 검증: 허용된 owner/repo 조합만 허용
+        Set<String> allowedRepos = ALLOWED_GITHUB_REPOS.get(owner.toLowerCase());
+        if (allowedRepos == null || !allowedRepos.contains(repo.toLowerCase())) {
+            return String.format(
+                "Error: '%s/%s'는 허용되지 않는 저장소입니다. 이 저장소는 다시 시도하지 마세요. 허용된 저장소: %s",
+                owner, repo, ALLOWED_REPOS_DESCRIPTION.strip());
+        }
+
         return null;
     }
 
@@ -228,6 +277,23 @@ public final class ToolInputValidator {
             return owner;
         }
         return GITHUB_OWNER_CORRECTIONS.getOrDefault(owner.toLowerCase(), owner);
+    }
+
+    /**
+     * GitHub repo 이름을 교정합니다.
+     * LLM이 자주 틀리는 repo 이름(예: google-cloud-python → generative-ai-python)을 올바른 이름으로 변환합니다.
+     * owner 교정 이후에 호출해야 합니다.
+     *
+     * @param owner 교정된 owner
+     * @param repo 입력된 repo
+     * @return 교정된 repo (교정 불필요 시 원본 반환)
+     */
+    public static String correctGitHubRepo(String owner, String repo) {
+        if (owner == null || repo == null || owner.isBlank() || repo.isBlank()) {
+            return repo;
+        }
+        String key = owner.toLowerCase() + "/" + repo.toLowerCase();
+        return GITHUB_REPO_CORRECTIONS.getOrDefault(key, repo);
     }
 
     /**

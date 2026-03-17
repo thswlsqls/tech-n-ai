@@ -117,21 +117,28 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
     /**
      * 인증 불필요 경로 확인
      *
-     * 경로 우선순위: exclusion > inclusion
-     * exclusion에 매칭되면 공개 경로가 아님 (인증 필요)
+     * 경로 우선순위: 구체적 inclusion(와일드카드 없음) > exclusion > 와일드카드 inclusion
+     * 구체적 경로가 inclusion에 정확히 매칭되면 exclusion보다 우선합니다.
      */
     private boolean isPublicPath(String path) {
-        // exclusion 패턴에 매칭되면 공개 경로가 아님
         org.springframework.http.server.PathContainer pathContainer =
             org.springframework.http.server.PathContainer.parsePath(path);
 
+        // 1. 구체적 inclusion 패턴(와일드카드 없음)에 매칭되면 즉시 공개 경로
+        for (PathPattern pattern : publicPathPatterns) {
+            if (!pattern.hasPatternSyntax() && pattern.matches(pathContainer)) {
+                return true;
+            }
+        }
+
+        // 2. exclusion 패턴에 매칭되면 공개 경로가 아님
         for (PathPattern exclusion : publicPathExclusionPatterns) {
             if (exclusion.matches(pathContainer)) {
                 return false;
             }
         }
 
-        // inclusion 패턴에 매칭되면 공개 경로
+        // 3. 와일드카드 inclusion 패턴에 매칭되면 공개 경로
         for (PathPattern pattern : publicPathPatterns) {
             if (pattern.matches(pathContainer)) {
                 return true;

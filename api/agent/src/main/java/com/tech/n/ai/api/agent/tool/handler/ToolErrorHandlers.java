@@ -1,5 +1,6 @@
 package com.tech.n.ai.api.agent.tool.handler;
 
+import com.tech.n.ai.api.agent.exception.AgentLoopDetectedException;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.service.tool.ToolErrorContext;
@@ -35,6 +36,12 @@ public final class ToolErrorHandlers {
      * @return LLM에게 전달할 에러 결과
      */
     public static ToolErrorHandlerResult handleToolExecutionError(Throwable error, ToolErrorContext context) {
+        // AgentLoopDetectedException은 재발생시켜 langchain4j 루프를 강제 탈출
+        if (error instanceof AgentLoopDetectedException) {
+            log.warn("Agent 루프 감지 - 강제 종료: {}", error.getMessage());
+            throw (AgentLoopDetectedException) error;
+        }
+
         String toolName = context.toolExecutionRequest().name();
         log.error("Tool 실행 중 예외 발생: tool={}, arguments={}, error={}",
                 toolName,

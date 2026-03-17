@@ -199,7 +199,7 @@ class ToolInputValidatorTest {
         @Test
         @DisplayName("하이픈 포함 owner - null 반환")
         void validateGitHubRepo_하이픈owner() {
-            String result = ToolInputValidator.validateGitHubRepo("meta-llama", "llama");
+            String result = ToolInputValidator.validateGitHubRepo("meta-llama", "llama-models");
             assertThat(result).isNull();
         }
 
@@ -253,10 +253,10 @@ class ToolInputValidatorTest {
         }
 
         @Test
-        @DisplayName("facebook → facebookresearch 교정")
-        void correctGitHubOwner_facebook() {
-            String result = ToolInputValidator.correctGitHubOwner("facebook");
-            assertThat(result).isEqualTo("facebookresearch");
+        @DisplayName("deepmind → google-deepmind 교정")
+        void correctGitHubOwner_deepmind() {
+            String result = ToolInputValidator.correctGitHubOwner("deepmind");
+            assertThat(result).isEqualTo("google-deepmind");
         }
 
         @Test
@@ -292,6 +292,48 @@ class ToolInputValidatorTest {
         void correctGitHubOwner_빈문자열() {
             String result = ToolInputValidator.correctGitHubOwner("");
             assertThat(result).isEmpty();
+        }
+    }
+
+    // ========== correctGitHubRepo 테스트 ==========
+
+    @Nested
+    @DisplayName("correctGitHubRepo")
+    class CorrectGitHubRepo {
+
+        @Test
+        @DisplayName("google-cloud-python → generative-ai-python 교정")
+        void correctGitHubRepo_googleCloudPython() {
+            String result = ToolInputValidator.correctGitHubRepo("google", "google-cloud-python");
+            assertThat(result).isEqualTo("generative-ai-python");
+        }
+
+        @Test
+        @DisplayName("meta-llama/llama → llama-models 교정")
+        void correctGitHubRepo_llama() {
+            String result = ToolInputValidator.correctGitHubRepo("meta-llama", "llama");
+            assertThat(result).isEqualTo("llama-models");
+        }
+
+        @Test
+        @DisplayName("xai-org/xai-sdk → grok-1 교정")
+        void correctGitHubRepo_xaiSdk() {
+            String result = ToolInputValidator.correctGitHubRepo("xai-org", "xai-sdk");
+            assertThat(result).isEqualTo("grok-1");
+        }
+
+        @Test
+        @DisplayName("교정 불필요 시 원본 반환")
+        void correctGitHubRepo_교정불필요() {
+            String result = ToolInputValidator.correctGitHubRepo("openai", "openai-python");
+            assertThat(result).isEqualTo("openai-python");
+        }
+
+        @Test
+        @DisplayName("null repo - 원본 반환")
+        void correctGitHubRepo_null() {
+            String result = ToolInputValidator.correctGitHubRepo("openai", null);
+            assertThat(result).isNull();
         }
     }
 

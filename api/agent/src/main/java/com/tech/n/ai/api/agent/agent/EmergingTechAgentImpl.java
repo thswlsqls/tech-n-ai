@@ -2,6 +2,7 @@ package com.tech.n.ai.api.agent.agent;
 
 
 import com.tech.n.ai.api.agent.config.AgentPromptConfig;
+import com.tech.n.ai.api.agent.exception.AgentLoopDetectedException;
 import com.tech.n.ai.api.agent.metrics.ToolExecutionMetrics;
 import com.tech.n.ai.api.agent.tool.EmergingTechAgentTools;
 import com.tech.n.ai.api.agent.tool.handler.ToolErrorHandlers;
@@ -44,6 +45,7 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
     private final MongoDbChatMemoryStore mongoDbChatMemoryStore;
 
     private static final int MAX_MESSAGES = 30;
+    private static final int MAX_TOOL_INVOCATIONS = 30;
 
     /** 싱글턴 AgentAssistant - 세션별 ChatMemory를 공유하여 멀티 턴 대화 지원 */
     private AgentAssistant assistant;
@@ -76,6 +78,7 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
                 .toolExecutionErrorHandler(ToolErrorHandlers::handleToolExecutionError)
                 .toolArgumentsErrorHandler(ToolErrorHandlers::handleToolArgumentsError)
                 .hallucinatedToolNameStrategy(ToolErrorHandlers::handleHallucinatedToolName)
+                .maxSequentialToolsInvocations(MAX_TOOL_INVOCATIONS)
                 .build();
 
         log.info("AgentAssistant 초기화 완료 (멀티 턴 세션 지원)");
@@ -106,6 +109,16 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
                     goal, sessionId, toolCallCount, analyticsCallCount, validationErrors, elapsed);
 
             return AgentExecutionResult.success(response, sessionId, toolCallCount, analyticsCallCount, elapsed);
+
+        } catch (AgentLoopDetectedException e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            int toolCallCount = metrics.getToolCallCount();
+            log.warn("Agent 루프 감지로 강제 종료: goal={}, sessionId={}, toolCalls={}, fetchBlocked={}, elapsed={}ms",
+                    goal, sessionId, toolCallCount, metrics.getFetchBlockedCount(), elapsed);
+
+            return AgentExecutionResult.success(
+                    "수집 작업이 완료되었습니다. (반복 조회 루프 감지로 자동 종료)",
+                    sessionId, toolCallCount, metrics.getAnalyticsCallCount(), elapsed);
 
         } catch (Exception e) {
             log.error("Agent 실행 실패: goal={}, sessionId={}", goal, sessionId, e);

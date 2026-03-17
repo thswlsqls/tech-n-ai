@@ -4,6 +4,7 @@ import com.tech.n.ai.api.agent.tool.dto.GitHubReleaseDto;
 import com.tech.n.ai.api.agent.tool.util.TextTruncator;
 import com.tech.n.ai.client.feign.domain.github.contract.GitHubContract;
 import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,16 @@ public class GitHubToolAdapter {
                     r.publishedAt()
                 ))
                 .toList();
+        } catch (FeignException.Forbidden e) {
+            log.error("GitHub API 접근 거부 (403): owner={}, repo={}", owner, repo, e);
+            throw new RuntimeException(
+                "GitHub API rate limit exceeded. 인증되지 않은 요청은 시간당 60회로 제한됩니다. "
+                + "GITHUB_TOKEN 환경변수를 설정하세요. 이 저장소에 대해 더 이상 재시도하지 마세요.");
+        } catch (FeignException.TooManyRequests e) {
+            log.error("GitHub API rate limit 초과 (429): owner={}, repo={}", owner, repo, e);
+            throw new RuntimeException(
+                "GitHub API rate limit exceeded (429). 잠시 후 다시 시도하세요. "
+                + "이 저장소에 대해 더 이상 재시도하지 마세요.");
         } catch (Exception e) {
             log.error("GitHub releases 조회 실패: owner={}, repo={}", owner, repo, e);
             return List.of();

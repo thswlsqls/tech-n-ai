@@ -73,10 +73,10 @@ class EmergingTechAgentToolsTest {
             when(githubAdapter.getReleases("openai", "openai-python")).thenReturn(releases);
 
             // When
-            List<GitHubReleaseDto> result = tools.fetchGitHubReleases("openai", "openai-python");
+            String result = tools.fetchGitHubReleases("openai", "openai-python");
 
             // Then
-            assertThat(result).hasSize(1);
+            assertThat(result).contains("v1.0.0");
             verify(githubAdapter).getReleases("openai", "openai-python");
         }
 
@@ -84,37 +84,84 @@ class EmergingTechAgentToolsTest {
         @DisplayName("owner 교정 (anthropic → anthropics)")
         void fetchGitHubReleases_owner교정() {
             // Given
-            when(githubAdapter.getReleases("anthropics", "sdk")).thenReturn(List.of());
+            when(githubAdapter.getReleases("anthropics", "anthropic-sdk-python")).thenReturn(List.of());
 
             // When
-            tools.fetchGitHubReleases("anthropic", "sdk");
+            tools.fetchGitHubReleases("anthropic", "anthropic-sdk-python");
 
             // Then
-            verify(githubAdapter).getReleases("anthropics", "sdk");
+            verify(githubAdapter).getReleases("anthropics", "anthropic-sdk-python");
         }
 
         @Test
-        @DisplayName("검증 실패 시 빈 리스트 반환")
+        @DisplayName("검증 실패 시 에러 메시지 반환")
         void fetchGitHubReleases_검증실패() {
             // When - owner가 빈 문자열인 경우 (null은 NullPointerException 발생)
-            List<GitHubReleaseDto> result = tools.fetchGitHubReleases("", "repo");
+            String result = tools.fetchGitHubReleases("", "repo");
 
             // Then
-            assertThat(result).isEmpty();
+            assertThat(result).isNotEmpty();
             verify(githubAdapter, never()).getReleases(any(), any());
         }
 
         @Test
         @DisplayName("메트릭 증가 확인 (toolCallCount)")
         void fetchGitHubReleases_메트릭증가() {
-            // Given
-            when(githubAdapter.getReleases(any(), any())).thenReturn(List.of());
+            // Given - 화이트리스트에 있는 저장소 사용
+            when(githubAdapter.getReleases("openai", "openai-python")).thenReturn(List.of());
 
             // When
-            tools.fetchGitHubReleases("owner", "repo");
+            tools.fetchGitHubReleases("openai", "openai-python");
 
             // Then
             assertThat(metrics.getToolCallCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("collect 후 동일 저장소 fetch 시 BLOCKED 메시지 반환 (중복 조회 차단)")
+        void fetchGitHubReleases_collect후_중복조회차단() {
+            // Given - collect_github_releases로 먼저 수집
+            DataCollectionResultDto collectResult = DataCollectionResultDto.success(
+                    "GITHUB_RELEASES", "OPENAI", 10, 10, 3, 7, 0, List.of());
+            when(dataCollectionAdapter.collectGitHubReleases("openai", "openai-python"))
+                    .thenReturn(collectResult);
+            tools.collectGitHubReleases("openai", "openai-python");
+
+            // When - 동일 저장소를 fetch로 조회 시도
+            String result = tools.fetchGitHubReleases("openai", "openai-python");
+
+            // Then - BLOCKED 메시지 반환, GitHub API 호출하지 않음
+            assertThat(result).startsWith("BLOCKED:");
+            assertThat(result).contains("수집 완료");
+            verify(githubAdapter, never()).getReleases(any(), any());
+        }
+
+        @Test
+        @DisplayName("collect하지 않은 저장소는 fetch 정상 동작")
+        void fetchGitHubReleases_collect하지않은_저장소는_정상동작() {
+            // Given - openai/whisper는 collect하지 않음
+            List<GitHubReleaseDto> releases = List.of(
+                    new GitHubReleaseDto("v1.0.0", "Release", "notes", "url", "2024-01-15"));
+            when(githubAdapter.getReleases("openai", "whisper")).thenReturn(releases);
+
+            // When
+            String result = tools.fetchGitHubReleases("openai", "whisper");
+
+            // Then
+            assertThat(result).contains("v1.0.0");
+            verify(githubAdapter).getReleases("openai", "whisper");
+        }
+
+        @Test
+        @DisplayName("화이트리스트에 없는 저장소는 에러 메시지 반환")
+        void fetchGitHubReleases_화이트리스트외_저장소() {
+            // When
+            String result = tools.fetchGitHubReleases("google", "some-unknown-repo");
+
+            // Then
+            assertThat(result).contains("허용되지 않는 저장소");
+            assertThat(metrics.getValidationErrorCount()).isEqualTo(1);
+            verify(githubAdapter, never()).getReleases(any(), any());
         }
 
         @Test
@@ -460,14 +507,14 @@ class EmergingTechAgentToolsTest {
             // Given
             DataCollectionResultDto collectResult = DataCollectionResultDto.success(
                     "GITHUB_RELEASES", "ANTHROPIC", 1, 1, 1, 0, 0, List.of());
-            when(dataCollectionAdapter.collectGitHubReleases("anthropics", "sdk"))
+            when(dataCollectionAdapter.collectGitHubReleases("anthropics", "anthropic-sdk-python"))
                     .thenReturn(collectResult);
 
             // When
-            tools.collectGitHubReleases("anthropic", "sdk");
+            tools.collectGitHubReleases("anthropic", "anthropic-sdk-python");
 
             // Then
-            verify(dataCollectionAdapter).collectGitHubReleases("anthropics", "sdk");
+            verify(dataCollectionAdapter).collectGitHubReleases("anthropics", "anthropic-sdk-python");
         }
 
         @Test
@@ -557,11 +604,11 @@ class EmergingTechAgentToolsTest {
         @Test
         @DisplayName("bindMetrics 후 정상 동작")
         void bindMetrics_정상동작() {
-            // Given - setUp에서 이미 바인딩됨
-            when(githubAdapter.getReleases(any(), any())).thenReturn(List.of());
+            // Given - setUp에서 이미 바인딩됨, 화이트리스트에 있는 저장소 사용
+            when(githubAdapter.getReleases("openai", "openai-python")).thenReturn(List.of());
 
             // When
-            tools.fetchGitHubReleases("owner", "repo");
+            tools.fetchGitHubReleases("openai", "openai-python");
 
             // Then
             assertThat(metrics.getToolCallCount()).isEqualTo(1);

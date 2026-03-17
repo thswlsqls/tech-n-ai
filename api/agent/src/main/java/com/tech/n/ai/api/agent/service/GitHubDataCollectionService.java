@@ -2,6 +2,7 @@ package com.tech.n.ai.api.agent.service;
 
 import com.tech.n.ai.client.feign.domain.github.contract.GitHubContract;
 import com.tech.n.ai.client.feign.domain.github.contract.GitHubDto;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,11 @@ public class GitHubDataCollectionService {
                 owner, repo, response.releases().size(), validReleases.size());
 
             return validReleases;
+        } catch (FeignException.Forbidden | FeignException.TooManyRequests e) {
+            log.error("GitHub API rate limit 초과: owner={}, repo={}", owner, repo, e);
+            throw new RuntimeException(
+                "GitHub API rate limit exceeded. GITHUB_TOKEN 환경변수를 확인하세요. "
+                + "이 저장소에 대해 더 이상 재시도하지 마세요.");
         } catch (Exception e) {
             log.error("GitHub releases 조회 실패: owner={}, repo={}", owner, repo, e);
             return List.of();

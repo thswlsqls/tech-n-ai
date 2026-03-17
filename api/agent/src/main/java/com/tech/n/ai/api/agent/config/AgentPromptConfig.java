@@ -59,10 +59,10 @@ public class AgentPromptConfig {
         - collect_scraped_articles: Anthropic/Meta 블로그 크롤링 및 DB 저장""";
 
     private String repositories = """
-        - OpenAI: openai/openai-python
-        - Anthropic: anthropics/anthropic-sdk-python
-        - Google: google/generative-ai-python
-        - Meta: facebookresearch/llama
+        - OpenAI: openai/openai-python, openai/whisper, openai/tiktoken
+        - Anthropic: anthropics/anthropic-sdk-python, anthropics/claude-code
+        - Google: google/generative-ai-python, google/gemma.cpp, google-deepmind/gemma
+        - Meta: meta-llama/llama-models, meta-llama/llama-stack
         - xAI: xai-org/grok-1""";
 
     private String rules = """
@@ -77,7 +77,29 @@ public class AgentPromptConfig {
         9. 데이터 수집 및 저장 요청 시 collect_* 도구를 사용
         10. 전체 소스 수집 요청 시: collect_github_releases(각 저장소별) → collect_rss_feeds("") → collect_scraped_articles("") 순서로 실행
         11. 수집 결과의 신규/중복/실패 건수를 Markdown 표로 정리하여 제공
-        12. 작업 완료 후 결과 요약 제공""";
+        12. 작업 완료 후 결과 요약 제공
+
+        ## Tool 실패 처리 규칙 (반드시 준수)
+        1. Tool이 에러를 반환하면 동일한 인자로 재시도하지 않습니다. 해당 대상을 건너뛰고 다음 작업으로 진행합니다.
+        2. GitHub 저장소 Tool은 반드시 '주요 저장소 정보'에 명시된 owner/repo만 사용합니다. 임의의 저장소 이름을 추측하지 않습니다.
+        3. 빈 결과(빈 리스트)가 반환되면 해당 저장소에 릴리스가 없는 것이므로 재시도하지 않습니다.
+        4. 수집 실패한 대상은 결과 요약에서 '실패' 또는 '건너뜀'으로 표시합니다.
+
+        ## collect_*와 fetch_* 도구의 차이 (중요 - 반드시 준수)
+        - collect_github_releases: GitHub 릴리스를 수집하여 **DB에 저장**합니다. 수집 요청 시 이 도구를 사용하세요.
+        - fetch_github_releases: GitHub 릴리스를 **조회만** 합니다. DB에 저장하지 않습니다.
+        - collect_* 도구로 이미 수집 완료한 데이터를 fetch_* 도구로 다시 조회하지 마세요. 불필요한 중복 호출입니다.
+        - 수집 작업에는 collect_* 도구만 사용하고, collect_* 결과가 이미 신규/중복/실패 건수를 포함하므로 추가 조회가 필요하지 않습니다.
+        - **수집(collect_*) 작업이 모두 완료되면 즉시 결과를 Markdown 표로 요약하고 작업을 종료하세요. fetch_* 도구를 추가로 호출하지 마세요.**
+        - fetch_github_releases에서 "BLOCKED" 응답이 반환되면 해당 저장소는 건너뛰고, 다른 저장소도 시도하지 말고 즉시 결과를 요약하세요.
+
+        ## GitHub 저장소 이름 규칙 (중요 - 반드시 준수)
+        - 저장소 owner/repo는 반드시 '주요 저장소 정보' 섹션에 나열된 **정확한 문자열**을 복사하여 사용하세요.
+        - 저장소 이름을 추측하거나 변형하지 마세요. 예를 들어:
+          - google/google-cloud-python (X) → google/generative-ai-python (O)
+          - meta-llama/llama (X) → meta-llama/llama-models 또는 meta-llama/llama-stack (O)
+          - xai-org/xai-python (X) → xai-org/grok-1 (O)
+        - 허용되지 않는 저장소 에러가 발생하면 해당 저장소를 건너뛰고 다음으로 진행하세요. 다른 이름으로 재시도하지 마세요.""";
 
     private String visualization = """
         ## 시각화 가이드

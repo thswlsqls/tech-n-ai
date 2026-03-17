@@ -1,5 +1,6 @@
 package com.tech.n.ai.api.agent.tool;
 
+import com.tech.n.ai.api.agent.exception.AgentLoopDetectedException;
 import com.tech.n.ai.api.agent.metrics.ToolExecutionMetrics;
 import com.tech.n.ai.api.agent.tool.adapter.AnalyticsToolAdapter;
 import com.tech.n.ai.api.agent.tool.adapter.DataCollectionToolAdapter;
@@ -92,25 +93,51 @@ public class EmergingTechAgentTools {
      * GitHub 저장소의 최신 릴리스 목록 조회
      */
     @Tool(name = "fetch_github_releases",
-          value = "GitHub 저장소의 최신 릴리스 목록을 가져옵니다. SDK 업데이트 확인에 사용합니다.")
-    public List<GitHubReleaseDto> fetchGitHubReleases(
+          value = "GitHub 저장소의 최신 릴리스 목록을 가져옵니다. SDK 업데이트 확인에 사용합니다. "
+                + "수집(DB 저장)이 목적이면 이 도구 대신 collect_github_releases를 사용하세요. "
+                + "collect_github_releases로 이미 수집한 저장소에는 이 도구를 호출하지 마세요. "
+                + "이미 수집된 저장소를 다시 조회하면 차단됩니다. 차단 메시지가 반환되면 해당 저장소를 건너뛰고 다음 작업으로 진행하세요.")
+    public String fetchGitHubReleases(
             @P("저장소 소유자 (예: openai, anthropics)") String owner,
             @P("저장소 이름 (예: openai-python, anthropic-sdk-python)") String repo
     ) {
         metrics().incrementToolCall();
 
         String correctedOwner = ToolInputValidator.correctGitHubOwner(owner);
-        if (!correctedOwner.equals(owner)) {
-            log.info("Tool 호출: fetch_github_releases(owner={} → {}, repo={})", owner, correctedOwner, repo);
+        String correctedRepo = ToolInputValidator.correctGitHubRepo(correctedOwner, repo);
+        if (!correctedOwner.equals(owner) || !correctedRepo.equals(repo)) {
+            log.info("Tool 호출: fetch_github_releases(owner={} → {}, repo={} → {})", owner, correctedOwner, repo, correctedRepo);
         } else {
             log.info("Tool 호출: fetch_github_releases(owner={}, repo={})", owner, repo);
         }
 
-        if (hasValidationError(ToolInputValidator.validateGitHubRepo(correctedOwner, repo))) {
-            return List.of();
+        String validationError = ToolInputValidator.validateGitHubRepo(correctedOwner, correctedRepo);
+        if (hasValidationError(validationError)) {
+            return validationError;
         }
 
-        return githubAdapter.getReleases(correctedOwner, repo);
+        // collect_github_releases로 이미 수집된 저장소면 중복 조회 차단
+        if (metrics().isGitHubRepoCollected(correctedOwner, correctedRepo)) {
+            int blockedCount = metrics().incrementAndGetFetchBlockedCount();
+            log.warn("이미 collect_github_releases로 수집된 저장소 재조회 차단: {}/{} (차단 횟수: {})",
+                    correctedOwner, correctedRepo, blockedCount);
+
+            if (blockedCount > 3) {
+                throw new AgentLoopDetectedException(
+                        "fetch_github_releases 반복 차단 %d회 초과. 수집 완료된 저장소를 계속 재조회하는 루프가 감지되었습니다."
+                                .formatted(blockedCount));
+            }
+
+            return "BLOCKED: %s/%s 저장소는 이미 collect_github_releases로 수집 완료되었습니다. "
+                    .formatted(correctedOwner, correctedRepo)
+                    + "이 저장소를 다시 조회하지 마세요. 수집 결과를 요약하고 작업을 완료하세요.";
+        }
+
+        List<GitHubReleaseDto> releases = githubAdapter.getReleases(correctedOwner, correctedRepo);
+        if (releases.isEmpty()) {
+            return "%s/%s 저장소에 릴리스가 없습니다.".formatted(correctedOwner, correctedRepo);
+        }
+        return releases.toString();
     }
 
     /**
@@ -329,17 +356,23 @@ public class EmergingTechAgentTools {
         metrics().incrementToolCall();
 
         String correctedOwner = ToolInputValidator.correctGitHubOwner(owner);
-        if (!correctedOwner.equals(owner)) {
-            log.info("Tool 호출: collect_github_releases(owner={} → {}, repo={})", owner, correctedOwner, repo);
+        String correctedRepo = ToolInputValidator.correctGitHubRepo(correctedOwner, repo);
+        if (!correctedOwner.equals(owner) || !correctedRepo.equals(repo)) {
+            log.info("Tool 호출: collect_github_releases(owner={} → {}, repo={} → {})", owner, correctedOwner, repo, correctedRepo);
         } else {
             log.info("Tool 호출: collect_github_releases(owner={}, repo={})", owner, repo);
         }
 
-        if (hasValidationError(ToolInputValidator.validateGitHubRepo(correctedOwner, repo))) {
+        if (hasValidationError(ToolInputValidator.validateGitHubRepo(correctedOwner, correctedRepo))) {
             return DataCollectionResultDto.failure("GITHUB_RELEASES", "", 0, "GitHub 저장소 입력값이 유효하지 않습니다.");
         }
 
-        return dataCollectionAdapter.collectGitHubReleases(correctedOwner, repo);
+        DataCollectionResultDto result = dataCollectionAdapter.collectGitHubReleases(correctedOwner, correctedRepo);
+
+        // 수집 완료된 저장소를 기록하여 fetch_github_releases 중복 호출 방지
+        metrics().markGitHubRepoCollected(correctedOwner, correctedRepo);
+
+        return result;
     }
 
     /**
