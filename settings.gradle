@@ -1,4 +1,4 @@
-rootProject.name = 'tech-n-ai'
+rootProject.name = 'tech-n-ai-backend'
 
 [
         "api", "batch", "common", "client", "datasource"
