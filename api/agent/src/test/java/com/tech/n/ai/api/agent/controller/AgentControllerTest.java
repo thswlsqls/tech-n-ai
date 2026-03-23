@@ -74,7 +74,7 @@ class AgentControllerTest {
             // Given
             AgentRunRequest request = new AgentRunRequest("OpenAI 최신 업데이트 확인", "session-123");
             AgentExecutionResult result = AgentExecutionResult.success(
-                    "실행 완료: 3건의 업데이트 발견", "session-123", 5, 2, 1500L);
+                    "실행 완료: 3건의 업데이트 발견", "session-123", 5, 2, 1500L, List.of());
 
             when(agentFacade.runAgent(eq(TEST_USER_ID), any(AgentRunRequest.class)))
                     .thenReturn(result);
@@ -100,7 +100,7 @@ class AgentControllerTest {
             String requestBody = """
                     {"goal": "목표만 있는 요청"}
                     """;
-            AgentExecutionResult result = AgentExecutionResult.success("완료", "auto-session", 1, 0, 100L);
+            AgentExecutionResult result = AgentExecutionResult.success("완료", "auto-session", 1, 0, 100L, List.of());
 
             when(agentFacade.runAgent(eq(TEST_USER_ID), any(AgentRunRequest.class)))
                     .thenReturn(result);
@@ -120,7 +120,7 @@ class AgentControllerTest {
             // Given
             String customUserId = "custom-user-456";
             AgentRunRequest request = new AgentRunRequest("목표", null);
-            AgentExecutionResult result = AgentExecutionResult.success("완료", "session-1", 0, 0, 0);
+            AgentExecutionResult result = AgentExecutionResult.success("완료", "session-1", 0, 0, 0, List.of());
 
             when(agentFacade.runAgent(eq(customUserId), any(AgentRunRequest.class)))
                     .thenReturn(result);

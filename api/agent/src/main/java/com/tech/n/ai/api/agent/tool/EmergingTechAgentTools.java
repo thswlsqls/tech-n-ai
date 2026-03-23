@@ -1,5 +1,6 @@
 package com.tech.n.ai.api.agent.tool;
 
+import com.tech.n.ai.api.agent.agent.dto.ChartData;
 import com.tech.n.ai.api.agent.exception.AgentLoopDetectedException;
 import com.tech.n.ai.api.agent.metrics.ToolExecutionMetrics;
 import com.tech.n.ai.api.agent.tool.adapter.AnalyticsToolAdapter;
@@ -216,9 +217,18 @@ public class EmergingTechAgentTools {
         log.info("Tool 호출: get_emerging_tech_statistics(groupBy={}, startDate={}, endDate={})",
                 groupBy, startDate, endDate);
 
-        // 연속 중복 호출 감지 - LLM이 같은 통계를 반복 요청하는 루프 방어
+        // 중복 호출 차단 - 동일 groupBy+기간 조합은 1회만 실행 (비연속 중복 포함)
         String callArgs = "groupBy=%s,startDate=%s,endDate=%s".formatted(groupBy, startDate, endDate);
-        if (isConsecutiveDuplicate("get_emerging_tech_statistics", callArgs)) {
+        if (metrics().isStatisticsExecuted(callArgs)) {
+            int blockedCount = metrics().incrementAndGetStatisticsBlockedCount();
+            log.warn("통계 Tool 중복 호출 차단: {} (차단 횟수: {})", callArgs, blockedCount);
+
+            // 3회 이상 차단되면 LLM이 STOP 메시지를 무시하는 루프 상태 → 강제 종료
+            if (blockedCount >= 3) {
+                throw new AgentLoopDetectedException(
+                        "통계 Tool 반복 호출 루프 감지 (차단 %d회). 이미 조회된 결과로 응답을 작성합니다.".formatted(blockedCount));
+            }
+
             return new StatisticsDto(groupBy, startDate, endDate, 0, List.of(),
                     "STOP: 이 통계는 이미 조회되었습니다. 이전에 받은 결과를 사용하여 Markdown 표와 Mermaid 차트로 응답을 작성하세요. 이 Tool을 다시 호출하지 마세요.");
         }
@@ -237,7 +247,17 @@ public class EmergingTechAgentTools {
 
         // groupBy를 MongoDB 필드명으로 정규화
         String resolvedGroupBy = ToolInputValidator.resolveGroupByField(groupBy);
-        return analyticsAdapter.getStatistics(resolvedGroupBy, startDate, endDate);
+        StatisticsDto result = analyticsAdapter.getStatistics(resolvedGroupBy, startDate, endDate);
+
+        // 실행 완료 기록 (비연속 중복 차단용)
+        metrics().markStatisticsExecuted(callArgs);
+
+        // 정상 응답이고 데이터가 있을 때만 차트 데이터 수집
+        if (result.message() == null && !result.groups().isEmpty()) {
+            metrics().addChartData(toStatisticsChartData(result));
+        }
+
+        return result;
     }
 
     /**
@@ -286,7 +306,15 @@ public class EmergingTechAgentTools {
         }
 
         int effectiveTopN = (topN > 0 && topN <= 100) ? topN : 20;
-        return analyticsAdapter.analyzeTextFrequency(provider, updateType, sourceType, startDate, endDate, effectiveTopN);
+        WordFrequencyDto result = analyticsAdapter.analyzeTextFrequency(
+                provider, updateType, sourceType, startDate, endDate, effectiveTopN);
+
+        // 정상 응답이고 데이터가 있을 때만 차트 데이터 수집
+        if (result.message() == null && !result.topWords().isEmpty()) {
+            metrics().addChartData(toWordFrequencyChartData(result, effectiveTopN));
+        }
+
+        return result;
     }
 
     /**
@@ -423,5 +451,61 @@ public class EmergingTechAgentTools {
         metrics().markScraperProviderCollected(provider);
 
         return result;
+    }
+
+    // ========== 차트 데이터 변환 ==========
+
+    private static final java.util.Map<String, String> GROUP_BY_LABELS = java.util.Map.of(
+        "provider", "Provider",
+        "source_type", "SourceType",
+        "update_type", "UpdateType"
+    );
+
+    private ChartData toStatisticsChartData(StatisticsDto dto) {
+        String label = GROUP_BY_LABELS.getOrDefault(dto.groupBy(), dto.groupBy());
+        String title = label + "별 통계";
+        List<ChartData.DataPoint> dataPoints = dto.groups().stream()
+            .map(g -> new ChartData.DataPoint(g.name(), g.count()))
+            .toList();
+        return new ChartData(
+            "pie", title,
+            new ChartData.ChartMeta(dto.groupBy(), dto.startDate(), dto.endDate(), dto.totalCount()),
+            dataPoints);
+    }
+
+    private ChartData toWordFrequencyChartData(WordFrequencyDto dto, int topN) {
+        String title = "키워드 빈도 TOP " + topN;
+        List<ChartData.DataPoint> dataPoints = dto.topWords().stream()
+            .map(w -> new ChartData.DataPoint(w.word(), w.count()))
+            .toList();
+        String[] dates = parsePeriod(dto.period());
+        return new ChartData(
+            "bar", title,
+            new ChartData.ChartMeta("keyword", dates[0], dates[1], dto.totalDocuments()),
+            dataPoints);
+    }
+
+    /**
+     * WordFrequencyDto.period 문자열을 [startDate, endDate] 배열로 분리
+     *
+     * <p>period 형식 (AnalyticsToolAdapter.buildPeriodString에서 생성):
+     * <ul>
+     *   <li>"2026-01-01 ~ 2026-03-21" → ["2026-01-01", "2026-03-21"]</li>
+     *   <li>"전체 기간" → [null, null]</li>
+     *   <li>"" (빈 문자열) → [null, null]</li>
+     * </ul>
+     * 구분자: " ~ " (공백 포함), "~" 단독 토큰은 null로 변환
+     */
+    private String[] parsePeriod(String period) {
+        if (period == null || period.isBlank() || "전체 기간".equals(period)) {
+            return new String[]{null, null};
+        }
+        String[] parts = period.split(" ~ ", 2);
+        if (parts.length != 2) {
+            return new String[]{null, null};
+        }
+        String start = "~".equals(parts[0].trim()) ? null : parts[0].trim();
+        String end = "~".equals(parts[1].trim()) ? null : parts[1].trim();
+        return new String[]{start, end};
     }
 }

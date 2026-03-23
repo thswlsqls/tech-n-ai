@@ -27,19 +27,32 @@ flowchart TB
         PromptConfig["AgentPromptConfig"]
     end
 
-    subgraph Tools["LangChain4j Tools"]
-        T3["search_emerging_techs"]
-        T4["get_emerging_tech_statistics"]
-        T5["analyze_text_frequency"]
-        T6["send_slack_notification"]
-        T7["list_emerging_techs"]
-        T8["get_emerging_tech_detail"]
+    subgraph Tools["LangChain4j Tools (9개)"]
+        direction LR
+        subgraph QueryTools["조회 (3개)"]
+            T1["search_emerging_techs"]
+            T2["list_emerging_techs"]
+            T3["get_emerging_tech_detail"]
+        end
+        subgraph AnalyticsTools["분석 (2개)"]
+            T4["get_emerging_tech_statistics"]
+            T5["analyze_text_frequency"]
+        end
+        subgraph NotificationTools["알림 (1개)"]
+            T6["send_slack_notification"]
+        end
+        subgraph CollectionTools["수집 (3개)"]
+            T7["collect_github_releases"]
+            T8["collect_rss_feeds"]
+            T9["collect_scraped_articles"]
+        end
     end
 
     subgraph Adapters["Tool Adapters"]
         EmergingTechAdapter["EmergingTechToolAdapter"]
         AnalyticsAdapter["AnalyticsToolAdapter"]
         SlackAdapter["SlackToolAdapter"]
+        DataCollectionAdapter["DataCollectionToolAdapter"]
     end
 
     subgraph External["외부 시스템"]
@@ -47,6 +60,9 @@ flowchart TB
         EmergingTechAPI["api-emerging-tech"]
         MongoDB["MongoDB Atlas<br/>(Aggregation)"]
         Slack["Slack"]
+        GitHubAPI["GitHub API"]
+        RSSFeeds["RSS Feeds<br/>(OpenAI/Google)"]
+        WebScraper["Web Scraper<br/>(Anthropic/Meta)"]
     end
 
     REST --> AgentFacade
@@ -59,12 +75,15 @@ flowchart TB
     Assistant --> Tools
     Assistant <-->|"Function Calling"| OpenAI
 
-    T3 --> EmergingTechAdapter --> EmergingTechAPI
+    T1 --> EmergingTechAdapter --> EmergingTechAPI
+    T2 --> EmergingTechAdapter
+    T3 --> EmergingTechAdapter
     T4 --> AnalyticsAdapter --> MongoDB
     T5 --> AnalyticsAdapter
     T6 --> SlackAdapter --> Slack
-    T7 --> EmergingTechAdapter
-    T8 --> EmergingTechAdapter
+    T7 --> DataCollectionAdapter --> GitHubAPI
+    T8 --> DataCollectionAdapter --> RSSFeeds
+    T9 --> DataCollectionAdapter --> WebScraper
 ```
 
 ## 주요 기능
@@ -81,16 +100,36 @@ flowchart TB
 | 스케줄 실행 | 6시간 주기로 자동 업데이트 추적 |
 | 오류 알림 | 실행 실패 시 Slack 알림 |
 
-### LangChain4j Tools
+### LangChain4j Tools (9개)
 
-| Tool | 설명 |
-|------|------|
-| `search_emerging_techs` | 저장된 Emerging Tech 데이터 검색 |
-| `list_emerging_techs` | 기간/Provider/UpdateType/SourceType/Status 필터 + 페이징 목록 조회 |
-| `get_emerging_tech_detail` | ID 기반 Emerging Tech 상세 조회 |
-| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 (MongoDB Aggregation) |
-| `analyze_text_frequency` | title/summary 키워드 빈도 분석 (Provider/UpdateType/SourceType 필터 지원) |
-| `send_slack_notification` | Slack 알림 전송 (활성화/비활성화 설정 가능) |
+#### 조회 (3개)
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|---------------|
+| `search_emerging_techs` | 키워드로 Emerging Tech 데이터 검색 | `query`(필수), `provider`(선택) |
+| `list_emerging_techs` | 기간/Provider/UpdateType/SourceType/Status 필터 + 페이징 목록 조회 | `startDate`, `endDate`, `provider`, `updateType`, `sourceType`, `status`, `page`, `size` |
+| `get_emerging_tech_detail` | MongoDB ObjectId 기반 Emerging Tech 상세 조회 | `id`(필수, 24자 hex) |
+
+#### 분석 (2개)
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|---------------|
+| `get_emerging_tech_statistics` | Provider/SourceType/UpdateType별 통계 집계 (MongoDB Aggregation) | `groupBy`(필수), `startDate`, `endDate` |
+| `analyze_text_frequency` | title/summary 키워드 빈도 분석 (61개 영어 불용어 필터링) | `provider`, `updateType`, `sourceType`, `startDate`, `endDate`, `topN`(기본20, 최대100) |
+
+#### 알림 (1개)
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|---------------|
+| `send_slack_notification` | Slack 채널(#emerging-tech) 알림 전송 (현재 비활성화 - Mock 응답) | `message`(필수) |
+
+#### 수집 (3개)
+
+| Tool | 설명 | 주요 파라미터 |
+|------|------|---------------|
+| `collect_github_releases` | GitHub 리포지토리 릴리스 수집 → DB 저장 (화이트리스트 기반) | `owner`(필수), `repo`(필수) |
+| `collect_rss_feeds` | OpenAI/Google 블로그 RSS 피드 수집 → DB 저장 | `provider`(선택: OPENAI, GOOGLE) |
+| `collect_scraped_articles` | Anthropic/Meta 블로그 웹 스크래핑 수집 → DB 저장 | `provider`(선택: ANTHROPIC, META) |
 
 ## Agent 동작 흐름
 
@@ -253,12 +292,11 @@ api/agent/
 │   ├── scheduler/
 │   │   └── EmergingTechAgentScheduler.java
 │   └── tool/
-│       ├── EmergingTechAgentTools.java      # Tool 정의 클래스 (6개 Tool)
+│       ├── EmergingTechAgentTools.java      # Tool 정의 클래스 (9개 Tool)
 │       ├── adapter/
 │       │   ├── AnalyticsToolAdapter.java    # 통계/빈도 분석 어댑터
-│       │   ├── EmergingTechToolAdapter.java # 검색 어댑터
-│       │   ├── GitHubToolAdapter.java       # GitHub API 어댑터
-│       │   ├── ScraperToolAdapter.java      # 웹 스크래핑 어댑터
+│       │   ├── DataCollectionToolAdapter.java # 데이터 수집 어댑터 (GitHub/RSS/Scraper)
+│       │   ├── EmergingTechToolAdapter.java # 검색/목록/상세 조회 어댑터
 │       │   └── SlackToolAdapter.java        # Slack 알림 어댑터
 │       ├── dto/
 │       │   ├── DataCollectionResultDto.java  # 데이터 수집 결과
@@ -383,14 +421,15 @@ dependencies {
 ./gradlew :api-agent:test
 ```
 
-## 대상 AI 서비스
+## 대상 AI 서비스 (GitHub 화이트리스트)
 
 | Provider | Owner | Repository |
 |----------|-------|------------|
-| OpenAI | openai | openai-python |
-| Anthropic | anthropics | anthropic-sdk-python |
-| Google | google | generative-ai-python |
-| Meta | facebookresearch | llama |
+| OpenAI | openai | openai-python, whisper, tiktoken |
+| Anthropic | anthropics | anthropic-sdk-python, claude-code |
+| Google | google | generative-ai-python, gemma.cpp |
+| Google | google-deepmind | gemma |
+| Meta | meta-llama | llama-models, llama-stack |
 | xAI | xai-org | grok-1 |
 
 ## 연동 모듈
@@ -406,19 +445,21 @@ dependencies {
 
 ### 설계 문서
 
-- [Phase 3: AI Agent 통합 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase3-agent-integration-design.md)
-- [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase4-analytics-tool-redesign-design.md)
-- [Phase 5: 데이터 수집 Agent 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase5-data-collection-agent-design.md)
-- [Phase 6: Agent Query Tool 개선 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase6-agent-query-tool-improvement-design.md)
-- [Phase 7: 지원하지 않는 요청 처리 설계서](../../docs/reference/automation-pipeline-to-ai-agent/phase7-unsupported-request-handling-design.md)
+- [Phase 1: 데이터 수집 파이프라인 설계서](../../docs/reference/agent-pipeline/001-data-pipeline-design.md)
+- [Phase 2: LangChain4j Tool 래퍼 설계서](../../docs/reference/agent-pipeline/002-langchain4j-tools-design.md)
+- [Phase 3: AI Agent 통합 설계서](../../docs/reference/agent-pipeline/003-agent-integration-design.md)
+- [Phase 4: AI Agent Tool 재설계 - 데이터 분석 기능 전환 설계서](../../docs/reference/agent-pipeline/004-analytics-tool-redesign.md)
+- [Phase 5: 데이터 수집 Agent 설계서](../../docs/reference/agent-pipeline/005-data-collection-agent.md)
+- [Phase 6: Agent Query Tool 개선 설계서](../../docs/reference/agent-pipeline/006-agent-query-tool-improvement.md)
+- [Phase 7: 지원하지 않는 요청 처리 설계서](../../docs/reference/agent-pipeline/007-unsupported-request-handling.md)
 
 ### 테스트 결과
 
-- [Agent 테스트 결과 문서 목록](../../docs/reference/automation-pipeline-to-ai-agent/tests/)
-- [Agent 실행 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/01-agent-run-test-results.md)
-- [Agent 데이터 분석 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/02-agent-analytics-test-results.md)
-- [Agent 데이터 수집 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/03-agent-data-collection-test-results.md)
-- [Agent Query Tool 테스트 결과](../../docs/reference/automation-pipeline-to-ai-agent/tests/04-agent-query-tools-test-results.md)
+- [Agent 테스트 결과 문서 목록](../../docs/reference/agent-pipeline/tests/)
+- [Agent 실행 테스트 결과](../../docs/reference/agent-pipeline/tests/01-agent-run-test-results.md)
+- [Agent 데이터 분석 테스트 결과](../../docs/reference/agent-pipeline/tests/02-agent-analytics-test-results.md)
+- [Agent 데이터 수집 테스트 결과](../../docs/reference/agent-pipeline/tests/03-agent-data-collection-test-results.md)
+- [Agent Query Tool 테스트 결과](../../docs/reference/agent-pipeline/tests/04-agent-query-tools-test-results.md)
 
 ### 공식 문서
 

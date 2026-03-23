@@ -72,7 +72,7 @@ class AgentFacadeTest {
             String sessionId = "custom-session-id";
             AgentRunRequest request = new AgentRunRequest(goal, sessionId);
 
-            AgentExecutionResult expectedResult = AgentExecutionResult.success("완료", sessionId, 5, 2, 1000L);
+            AgentExecutionResult expectedResult = AgentExecutionResult.success("완료", sessionId, 5, 2, 1000L, List.of());
             SessionResponse session = SessionResponse.builder().sessionId(sessionId).build();
             when(conversationSessionService.getSession(sessionId, userId)).thenReturn(session);
             when(agent.execute(goal, sessionId)).thenReturn(expectedResult);
@@ -101,7 +101,7 @@ class AgentFacadeTest {
             AgentRunRequest request = new AgentRunRequest(goal, null);
 
             when(conversationSessionService.createSession(userId, null)).thenReturn(newSessionId);
-            AgentExecutionResult expectedResult = AgentExecutionResult.success("완료", newSessionId, 3, 1, 500L);
+            AgentExecutionResult expectedResult = AgentExecutionResult.success("완료", newSessionId, 3, 1, 500L, List.of());
             when(agent.execute(eq(goal), eq(newSessionId))).thenReturn(expectedResult);
 
             // When

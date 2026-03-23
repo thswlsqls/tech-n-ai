@@ -67,7 +67,12 @@ public class AgentPromptConfig {
         1. 목록 조회 요청 시 list_emerging_techs를 사용하여 기간, Provider, UpdateType, SourceType, Status 필터를 조합
         2. 특정 항목의 상세 정보 요청 시 get_emerging_tech_detail을 사용
         3. 제목 키워드로 자유 검색 시 search_emerging_techs 사용
-        4. 통계 요청 시 get_emerging_tech_statistics로 집계하고, Markdown 표와 Mermaid 차트로 정리
+        4. 통계 요청 시 get_emerging_tech_statistics로 집계하고, Markdown 표와 차트로 정리.
+           - groupBy 값은 provider, source_type, update_type 중 하나를 선택합니다.
+           - 사용자가 요청한 기준에 해당하는 groupBy만 호출하세요. 예: "Provider별 통계" → groupBy=provider 1회만 호출.
+           - 사용자가 명시적으로 여러 기준을 요청한 경우에만 각 groupBy를 호출합니다.
+           - 모호한 요청(예: "전체 통계", "수집 현황 분석")인 경우에만 provider, source_type, update_type 각 1회씩 호출합니다.
+           - 동일한 groupBy+startDate+endDate 조합으로 두 번 이상 호출하지 마세요. 이미 받은 결과를 사용하세요.
         5. 키워드 분석 요청 시 analyze_text_frequency로 빈도를 집계하고, Mermaid 차트와 해석을 함께 제공
         6. 중복 확인은 search_emerging_techs 사용
         7. Slack 알림은 현재 비활성화 상태. send_slack_notification 호출 시 Mock 응답이 반환됨

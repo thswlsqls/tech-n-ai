@@ -1,6 +1,7 @@
 package com.tech.n.ai.api.agent.agent;
 
 
+import com.tech.n.ai.api.agent.agent.dto.ChartData;
 import com.tech.n.ai.api.agent.config.AgentPromptConfig;
 import com.tech.n.ai.api.agent.exception.AgentLoopDetectedException;
 import com.tech.n.ai.api.agent.metrics.ToolExecutionMetrics;
@@ -108,7 +109,7 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
             log.info("Agent 실행 완료: goal={}, sessionId={}, toolCalls={}, analyticsCalls={}, validationErrors={}, elapsed={}ms",
                     goal, sessionId, toolCallCount, analyticsCallCount, validationErrors, elapsed);
 
-            return AgentExecutionResult.success(response, sessionId, toolCallCount, analyticsCallCount, elapsed);
+            return AgentExecutionResult.success(response, sessionId, toolCallCount, analyticsCallCount, elapsed, metrics.getChartData());
 
         } catch (AgentLoopDetectedException e) {
             long elapsed = System.currentTimeMillis() - startTime;
@@ -116,10 +117,31 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
             log.warn("Agent 루프 감지로 강제 종료: goal={}, sessionId={}, toolCalls={}, collectBlocked={}, elapsed={}ms",
                     goal, sessionId, toolCallCount, metrics.getCollectBlockedCount(), elapsed);
 
+            String summary = buildSummaryFromChartData(metrics.getChartData(), goal);
             return AgentExecutionResult.success(
-                    "수집 작업이 완료되었습니다. (반복 조회 루프 감지로 자동 종료)",
-                    sessionId, toolCallCount, metrics.getAnalyticsCallCount(), elapsed);
+                    summary, sessionId, toolCallCount, metrics.getAnalyticsCallCount(), elapsed, metrics.getChartData());
 
+        } catch (RuntimeException e) {
+            // langchain4j의 "exceeded N sequential tool invocations" 예외도 루프로 간주
+            if (e.getMessage() != null && e.getMessage().contains("exceeded") && e.getMessage().contains("sequential tool")) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                int toolCallCount = metrics.getToolCallCount();
+                log.warn("Agent 최대 Tool 호출 횟수 초과로 강제 종료: goal={}, sessionId={}, toolCalls={}, elapsed={}ms",
+                        goal, sessionId, toolCallCount, elapsed);
+
+                String summary = buildSummaryFromChartData(metrics.getChartData(), goal);
+                return AgentExecutionResult.success(
+                        summary, sessionId, toolCallCount, metrics.getAnalyticsCallCount(), elapsed, metrics.getChartData());
+            }
+
+            log.error("Agent 실행 실패: goal={}, sessionId={}", goal, sessionId, e);
+            notifyError(goal, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return AgentExecutionResult.failure(
+                    "Agent 실행 중 오류 발생: " + errorMsg,
+                    sessionId,
+                    List.of(errorMsg)
+            );
         } catch (Exception e) {
             log.error("Agent 실행 실패: goal={}, sessionId={}", goal, sessionId, e);
             notifyError(goal, e);
@@ -153,6 +175,51 @@ public class EmergingTechAgentImpl implements EmergingTechAgent {
             log.warn("세션 메모리 제거 실패: sessionId={}", sessionId, e);
             return false;
         }
+    }
+
+    /**
+     * chartData로부터 Markdown 요약을 생성한다.
+     * AgentLoopDetectedException 발생 시 LLM이 응답을 생성하지 못했을 때 사용
+     */
+    private String buildSummaryFromChartData(List<ChartData> chartDataList, String goal) {
+        if (chartDataList == null || chartDataList.isEmpty()) {
+            return "요청하신 작업을 처리했으나 결과 데이터가 없습니다.";
+        }
+
+        var sb = new StringBuilder();
+        sb.append("## ").append(goal).append("\n\n");
+
+        for (ChartData chart : chartDataList) {
+            sb.append("### ").append(chart.title()).append("\n\n");
+
+            if (chart.meta() != null && chart.meta().totalCount() > 0) {
+                sb.append("- **총 건수**: ").append(chart.meta().totalCount()).append("건\n");
+                if (chart.meta().startDate() != null && !chart.meta().startDate().isBlank()) {
+                    sb.append("- **조회 기간**: ").append(chart.meta().startDate())
+                      .append(" ~ ").append(chart.meta().endDate()).append("\n");
+                } else {
+                    sb.append("- **조회 기간**: 전체 기간\n");
+                }
+                sb.append("\n");
+            }
+
+            if (chart.dataPoints() != null && !chart.dataPoints().isEmpty()) {
+                sb.append("| 항목 | 건수 | 비율 |\n");
+                sb.append("|------|------|------|\n");
+
+                long total = chart.dataPoints().stream().mapToLong(ChartData.DataPoint::value).sum();
+                for (ChartData.DataPoint dp : chart.dataPoints()) {
+                    double pct = total > 0 ? (dp.value() * 100.0 / total) : 0;
+                    sb.append("| ").append(dp.label())
+                      .append(" | ").append(dp.value())
+                      .append(" | ").append(String.format("%.1f%%", pct))
+                      .append(" |\n");
+                }
+                sb.append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 
     private String generateSessionId() {
