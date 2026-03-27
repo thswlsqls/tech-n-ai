@@ -97,7 +97,7 @@ Uses langchain4j 1.10.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini 
 
 ## tmux Development Environment
 
-Run `./scripts/tmux-backend.sh` to launch a pre-configured tmux session with per-module windows (agent, auth, bookmark, chatbot, emerging, gateway), each split into claude-pane and build-pane. See `scripts/tmux-dev-guide.md` for usage details and `scripts/tmux-overview.md` for tmux fundamentals.
+Run `./scripts/tmux-backend.sh` to launch a pre-configured tmux session with 3 windows: project (docker-compose/redis/gradle/git), module (claude/gradle), test (unit/integration). See `scripts/tmux-dev-guide.md` for usage details and `scripts/tmux-overview.md` for tmux fundamentals.
 
 ## Configuration
 

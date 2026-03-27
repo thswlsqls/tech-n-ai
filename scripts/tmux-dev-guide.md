@@ -2,30 +2,49 @@
 
 ## 개요
 
-`tmux-backend.sh`는 tech-n-ai-backend의 6개 API 모듈에 대해 동일한 레이아웃의 tmux 환경을 자동 구성하는 스크립트이다.
+`tmux-backend.sh`는 tech-n-ai-backend 개발을 위한 3개 윈도우(project, module, test) 구조의 tmux 환경을 자동 구성하는 스크립트이다.
 
 ## 세션 구조
 
 ```
 backend-session
-├── agent     [0]  ← api/agent       (port 8086)
-├── auth      [1]  ← api/auth        (port 8083)
-├── bookmark  [2]  ← api/bookmark    (port 8085)
-├── chatbot   [3]  ← api/chatbot     (port 8084)
-├── emerging  [4]  ← api/emerging-tech (port 8082)
-└── gateway   [5]  ← api/gateway     (port 8081)
+├── project  [0]  ← 인프라/프로젝트 상태 모니터링 (4-pane)
+├── module   [1]  ← Claude Code + Gradle 빌드 (2-pane)
+└── test     [2]  ← 단위/통합 테스트 (2-pane)
 ```
 
-각 윈도우는 수직 분할(50:50)되어 좌측 claude-pane, 우측 build-pane으로 구성된다.
+### project-window (2×2 격자)
 
 ```
-┌─────────────────┬─────────────────┐
-│  claude-pane    │  build-pane     │
-│                 │                 │
-│  Claude Code    │  빌드/테스트    │
-│  코드 작업      │  서버 실행      │
-│                 │                 │
-└─────────────────┴─────────────────┘
+┌──────────────────┬──────────────────┐
+│ docker-compose   │ redis            │
+│ pane             │ pane             │
+├──────────────────┼──────────────────┤
+│ gradle           │ git              │
+│ pane             │ pane             │
+└──────────────────┴──────────────────┘
+```
+
+### module-window (좌우 분할)
+
+```
+┌──────────────────┬──────────────────┐
+│ claude-pane      │ gradle-pane      │
+│                  │                  │
+│ Claude Code      │ 빌드/서버 실행   │
+│ 코드 작업        │                  │
+└──────────────────┴──────────────────┘
+```
+
+### test-window (좌우 분할)
+
+```
+┌──────────────────┬──────────────────┐
+│ unit-pane        │ integration-pane │
+│                  │                  │
+│ 단위 테스트      │ 통합 테스트      │
+│                  │                  │
+└──────────────────┴──────────────────┘
 ```
 
 ## 실행 방법
@@ -42,12 +61,9 @@ backend-session
 
 | 단축키 | 대상 윈도우 |
 |--------|-------------|
-| `Ctrl-b 0` | agent |
-| `Ctrl-b 1` | auth |
-| `Ctrl-b 2` | bookmark |
-| `Ctrl-b 3` | chatbot |
-| `Ctrl-b 4` | emerging |
-| `Ctrl-b 5` | gateway |
+| `Ctrl-b 0` | project |
+| `Ctrl-b 1` | module |
+| `Ctrl-b 2` | test |
 | `Ctrl-b n` | 다음 윈도우 |
 | `Ctrl-b p` | 이전 윈도우 |
 
@@ -55,35 +71,37 @@ backend-session
 
 | 단축키 | 동작 |
 |--------|------|
-| `Ctrl-b o` | claude-pane ↔ build-pane 전환 |
+| `Ctrl-b o` | 다음 pane으로 전환 |
+| `Ctrl-b 방향키` | 방향으로 pane 이동 |
 | `Ctrl-b z` | 현재 pane 전체화면 토글 (로그 확인 시 유용) |
 
 ## 활용 예시
 
-### 1. 모듈별 Claude Code + 빌드 병렬 작업
+### 1. 인프라 모니터링 (project-window)
 
 ```
-# agent 윈도우 (Ctrl-b 0)
-[claude-pane] Claude Code로 agent 모듈 코드 수정
-[build-pane]  ./gradlew :api-agent:build
+# project 윈도우 (Ctrl-b 0)
+[docker-compose-pane] docker compose up
+[redis-pane]          redis-cli monitor
+[gradle-pane]         ./gradlew clean build
+[git-pane]            git status / git log
 ```
 
-### 2. 모듈별 서버 실행 + 로그 모니터링
+### 2. 모듈 개발 (module-window)
 
 ```
-# gateway 윈도우 (Ctrl-b 5)
-[claude-pane] Claude Code 대기 또는 코드 확인
-[build-pane]  ./gradlew :api-gateway:bootRun
-
-# auth 윈도우 (Ctrl-b 1)
-[build-pane]  ./gradlew :api-auth:bootRun
+# module 윈도우 (Ctrl-b 1)
+[claude-pane]  Claude Code로 코드 수정
+[gradle-pane]  ./gradlew :api-auth:build
+               ./gradlew :api-gateway:bootRun
 ```
 
-### 3. 특정 모듈 테스트 실행
+### 3. 테스트 실행 (test-window)
 
 ```
-# auth 윈도우 (Ctrl-b 1)
-[build-pane]  ./gradlew :api-auth:test --tests "com.tech.n.ai.api.auth.service.AuthServiceTest"
+# test 윈도우 (Ctrl-b 2)
+[unit-pane]        ./gradlew :api-auth:test
+[integration-pane] ./gradlew :api-auth:test --tests "com.tech.n.ai.api.auth.service.AuthServiceTest"
 ```
 
 ## 세션 관리
@@ -101,22 +119,3 @@ tmux kill-session -t backend-session
 # 모든 세션 목록 확인
 tmux ls
 ```
-
-## 모듈 추가/제거 시 수정 방법
-
-스크립트 상단의 `MODULES` 배열을 편집한다.
-
-```bash
-declare -a MODULES=(
-    "agent:api/agent"
-    "auth:api/auth"
-    "bookmark:api/bookmark"
-    "chatbot:api/chatbot"
-    "emerging:api/emerging-tech"
-    "gateway:api/gateway"
-    # 새 모듈 추가 예시:
-    # "newmodule:api/new-module"
-)
-```
-
-형식: `"윈도우이름:모듈디렉토리상대경로"`
