@@ -97,63 +97,9 @@ Uses langchain4j 1.10.0 with MongoDB Atlas Vector Search and OpenAI GPT-4o-mini 
 
 ## tmux Development Environment
 
-`./scripts/tmux-backend.sh`로 사전 구성된 tmux 세션을 실행한다. 이미 세션이 존재하면 자동 attach.
+`./scripts/tmux-backend.sh`로 3개 윈도우(project, module, test) 구조의 tmux 세션을 실행한다.
 
-### 세션 구조 (backend-session)
-
-```
-backend-session
-├── project  [0]  ← 인프라/프로젝트 상태 모니터링 (2×2 격자, 4-pane)
-├── module   [1]  ← Claude Code + Gradle 빌드 (좌우 분할, 2-pane)
-└── test     [2]  ← 단위/통합 테스트 (좌우 분할, 2-pane)
-```
-
-**project-window (2×2 격자)**:
-```
-┌──────────────────┬──────────────────┐
-│ docker-compose   │ redis            │
-├──────────────────┼──────────────────┤
-│ gradle           │ git              │
-└──────────────────┴──────────────────┘
-```
-
-**module-window (좌우 분할)**:
-```
-┌──────────────────┬──────────────────┐
-│ claude-pane      │ gradle-pane      │
-│ Claude Code      │ 빌드/서버 실행   │
-└──────────────────┴──────────────────┘
-```
-
-**test-window (좌우 분할)**:
-```
-┌──────────────────┬──────────────────┐
-│ unit-pane        │ integration-pane │
-│ 단위 테스트      │ 통합 테스트      │
-└──────────────────┴──────────────────┘
-```
-
-### 주요 단축키
-
-| 단축키 | 동작 |
-|--------|------|
-| `Ctrl-b 0/1/2` | project / module / test 윈도우 이동 |
-| `Ctrl-b o` | 다음 pane 전환 |
-| `Ctrl-b 방향키` | 방향으로 pane 이동 |
-| `Ctrl-b z` | 현재 pane 전체화면 토글 |
-| `Ctrl-b d` | 세션 분리 (백그라운드 유지) |
-
-### 세션 관리
-
-```bash
-tmux attach -t backend-session      # 재연결
-tmux kill-session -t backend-session # 종료
-tmux ls                              # 세션 목록
-```
-
-### 참고 문서
-
-- `scripts/tmux-dev-guide.md` — 활용 가이드 및 예시
+- `scripts/tmux-dev-guide.md` — 세션 구조 및 활용 가이드
 - `scripts/tmux-recommended-layouts.md` — 대안 레이아웃 구조
 - `scripts/tmux-overview.md` — tmux 기본 개념
 
