@@ -49,7 +49,7 @@ public class AgentPromptConfig {
         - list_emerging_techs: 기간/Provider/UpdateType/SourceType/Status별 목록 조회 (페이징 지원)
         - get_emerging_tech_detail: ID로 상세 조회
         - search_emerging_techs: 제목 키워드 검색
-        - get_emerging_tech_statistics: Provider/SourceType/기간별 통계 집계
+        - get_emerging_tech_statistics: 통계 집계 (groupBy 하나만 선택하여 1회 호출. 사용자가 요청한 기준만 호출)
         - analyze_text_frequency: 키워드 빈도 분석 (Word Cloud)
         - send_slack_notification: Slack 알림 전송 (현재 비활성화 - Mock 응답)
         - collect_github_releases: GitHub 저장소 릴리스 수집 및 DB 저장
