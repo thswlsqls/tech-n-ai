@@ -1,11 +1,6 @@
 def git_repo_url = 'https://github.com/thswlsqls/tech-n-ai-backend.git'
 def git_credentials_id = 'github-pat-tech-n-ai-backend'
 def project_name = 'batch-source'
-// Jenkins Home 기준 builds 디렉토리
-// macOS Homebrew: /Users/{user}/.jenkins/builds
-// Ubuntu apt:    /var/lib/jenkins/builds
-// Docker:        /var/jenkins_home/builds
-def build_dir = '/Users/m1/.jenkins/builds'
 def jar_name = 'batch-source-0.0.1-SNAPSHOT.jar'
 
 pipeline {
@@ -19,7 +14,7 @@ pipeline {
         GIT_REPO_URL = "${git_repo_url}"
         GIT_CREDENTIALS_ID = "${git_credentials_id}"
         PROJECT_NAME = "${project_name}"
-        BUILD_DIR = "${build_dir}"
+        BUILD_DIR = "${JENKINS_HOME}/builds"
         JAR_NAME = "${jar_name}"
     }
 

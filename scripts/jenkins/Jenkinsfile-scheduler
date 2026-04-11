@@ -1,8 +1,3 @@
-// Jenkins Home 기준 builds 디렉토리
-// macOS Homebrew: /Users/{user}/.jenkins/builds
-// Ubuntu apt:    /var/lib/jenkins/builds
-// Docker:        /var/jenkins_home/builds
-def build_dir = '/Users/m1/.jenkins/builds'
 def project_name = 'batch-source'
 
 pipeline {
@@ -26,9 +21,9 @@ pipeline {
     }
 
     environment {
-        BUILD_DIR = "${build_dir}"
+        BUILD_DIR = "${JENKINS_HOME}/builds"
         PROJECT_NAME = "${project_name}"
-        JAR_PATH = "${build_dir}/${project_name}.jar"
+        JAR_PATH = "${JENKINS_HOME}/builds/${project_name}.jar"
     }
 
     // 기본 스케줄: 4시간마다 실행 (H 심볼로 부하 분산)
