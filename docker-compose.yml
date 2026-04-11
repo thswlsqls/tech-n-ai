@@ -72,6 +72,7 @@ services:
       --default-time-zone=+09:00
     volumes:
       - mysql-batch-data:/var/lib/mysql
+      - ./docker/init/batch:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
         limits:
@@ -101,6 +102,7 @@ services:
       --default-time-zone=+09:00
     volumes:
       - mysql-auth-data:/var/lib/mysql
+      - ./docker/init/auth:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
         limits:
@@ -130,6 +132,7 @@ services:
       --default-time-zone=+09:00
     volumes:
       - mysql-bookmark-data:/var/lib/mysql
+      - ./docker/init/bookmark:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
         limits:
@@ -159,6 +162,7 @@ services:
       --default-time-zone=+09:00
     volumes:
       - mysql-chatbot-data:/var/lib/mysql
+      - ./docker/init/chatbot:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
         limits:
