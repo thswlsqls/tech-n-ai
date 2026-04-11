@@ -60,9 +60,9 @@ pipeline {
                     def exitCode = sh(
                         returnStatus: true,
                         script: """
-                            java -jar ${env.JAR_PATH} \
-                                --job.name=${params.JOB_NAME} \
-                                --spring.profiles.active=${params.SPRING_PROFILE}
+                            java -Dspring.profiles.active=${params.SPRING_PROFILE} \
+                                -jar ${env.JAR_PATH} \
+                                --job.name=${params.JOB_NAME}
                         """
                     )
 
