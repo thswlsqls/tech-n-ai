@@ -1,0 +1,89 @@
+def git_repo_url = 'https://github.com/thswlsqls/tech-n-ai-backend.git'
+def git_credentials_id = 'github-pat-tech-n-ai-backend'
+def project_name = 'batch-source'
+def build_dir = '/var/jenkins_home/builds'
+def jar_name = 'batch-source-0.0.1-SNAPSHOT.jar'
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'BRANCH', choices: ['main', 'dev', 'beta'], description: '빌드 대상 브랜치')
+    }
+
+    environment {
+        GIT_REPO_URL = "${git_repo_url}"
+        GIT_CREDENTIALS_ID = "${git_credentials_id}"
+        PROJECT_NAME = "${project_name}"
+        BUILD_DIR = "${build_dir}"
+        JAR_NAME = "${jar_name}"
+    }
+
+    stages {
+        stage('Prepare Workspace') {
+            steps {
+                echo "Cleaning workspace..."
+                deleteDir()
+            }
+        }
+
+        stage('Git Checkout') {
+            steps {
+                git branch: "${params.BRANCH}",
+                    credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                    url: "${env.GIT_REPO_URL}"
+
+                script {
+                    env.commitHash = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    echo "Current Git Commit: ${env.commitHash}"
+                }
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                script {
+                    env.buildTimestamp = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
+
+                    sh '''
+                        chmod +x ./gradlew
+                        ./gradlew -x test :${PROJECT_NAME}:clean :${PROJECT_NAME}:build --info
+                    '''
+                }
+            }
+        }
+
+        stage('Archive & Link') {
+            steps {
+                script {
+                    def sourcePath = "batch/source/build/libs/${env.JAR_NAME}"
+                    def targetPath = "${env.BUILD_DIR}/${env.PROJECT_NAME}-${env.buildTimestamp}.jar"
+                    def linkPath = "${env.BUILD_DIR}/${env.PROJECT_NAME}.jar"
+
+                    sh """
+                        if [ ! -f ${sourcePath} ]; then
+                            echo "JAR file not found: ${sourcePath}"
+                            exit 1
+                        fi
+
+                        mkdir -p ${env.BUILD_DIR}
+                        cp ${sourcePath} ${targetPath}
+                        ln -sf ${targetPath} ${linkPath}
+                    """
+
+                    echo "JAR archived: ${targetPath}"
+                    echo "Symlink updated: ${linkPath}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build SUCCESS - Branch: ${params.BRANCH}, Commit: ${env.commitHash}"
+        }
+        failure {
+            echo "Build FAILED - Branch: ${params.BRANCH}"
+        }
+    }
+}
