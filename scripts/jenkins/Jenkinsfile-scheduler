@@ -54,22 +54,26 @@ pipeline {
 
         stage('Execute Batch Job') {
             steps {
-                script {
-                    echo "Executing: ${params.JOB_NAME} with profile ${params.SPRING_PROFILE}"
+                withCredentials([
+                    string(credentialsId: 'github-token-batch-source', variable: 'GITHUB_TOKEN')
+                ]) {
+                    script {
+                        echo "Executing: ${params.JOB_NAME} with profile ${params.SPRING_PROFILE}"
 
-                    def exitCode = sh(
-                        returnStatus: true,
-                        script: """
-                            java -Dspring.profiles.active=${params.SPRING_PROFILE} \
-                                -jar ${env.JAR_PATH} \
-                                --job.name=${params.JOB_NAME}
-                        """
-                    )
+                        def exitCode = sh(
+                            returnStatus: true,
+                            script: """
+                                java -Dspring.profiles.active=${params.SPRING_PROFILE} \
+                                    -jar ${env.JAR_PATH} \
+                                    --job.name=${params.JOB_NAME}
+                            """
+                        )
 
-                    env.batchExitCode = "${exitCode}"
+                        env.batchExitCode = "${exitCode}"
 
-                    if (exitCode != 0) {
-                        error "Batch Job failed with exit code: ${exitCode}"
+                        if (exitCode != 0) {
+                            error "Batch Job failed with exit code: ${exitCode}"
+                        }
                     }
                 }
             }
