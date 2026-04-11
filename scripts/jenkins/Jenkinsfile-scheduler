@@ -1,0 +1,97 @@
+// Jenkins Home 기준 builds 디렉토리
+// macOS Homebrew: /Users/{user}/.jenkins/builds
+// Ubuntu apt:    /var/lib/jenkins/builds
+// Docker:        /var/jenkins_home/builds
+def build_dir = '/Users/m1/.jenkins/builds'
+def project_name = 'batch-source'
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'JOB_NAME',
+            choices: [
+                'emerging-tech.scraper.job',
+                'emerging-tech.rss.job',
+                'emerging-tech.github.job'
+            ],
+            description: '실행할 Spring Batch Job 이름'
+        )
+        choice(
+            name: 'SPRING_PROFILE',
+            choices: ['local', 'dev', 'beta', 'prod'],
+            description: 'Spring 프로파일'
+        )
+    }
+
+    environment {
+        BUILD_DIR = "${build_dir}"
+        PROJECT_NAME = "${project_name}"
+        JAR_PATH = "${build_dir}/${project_name}.jar"
+    }
+
+    // 기본 스케줄: 4시간마다 실행 (H 심볼로 부하 분산)
+    // Job별 권장 스케줄:
+    //   emerging-tech.scraper.job : H */6 * * *   (6시간마다)
+    //   emerging-tech.rss.job    : H */4 * * *   (4시간마다)
+    //   emerging-tech.github.job : H H(0-6) * * * (매일 새벽 0~6시 사이 1회)
+    triggers {
+        cron('H */4 * * *')
+    }
+
+    stages {
+        stage('Validate JAR') {
+            steps {
+                script {
+                    if (!fileExists("${env.JAR_PATH}")) {
+                        error "JAR file not found: ${env.JAR_PATH}. Run CI/CD Pipeline first."
+                    }
+                    echo "JAR validated: ${env.JAR_PATH}"
+                }
+            }
+        }
+
+        stage('Execute Batch Job') {
+            steps {
+                script {
+                    echo "Executing: ${params.JOB_NAME} with profile ${params.SPRING_PROFILE}"
+
+                    def exitCode = sh(
+                        returnStatus: true,
+                        script: """
+                            java -jar ${env.JAR_PATH} \
+                                --job.name=${params.JOB_NAME} \
+                                --spring.profiles.active=${params.SPRING_PROFILE}
+                        """
+                    )
+
+                    env.batchExitCode = "${exitCode}"
+
+                    if (exitCode != 0) {
+                        error "Batch Job failed with exit code: ${exitCode}"
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo "Batch Job completed successfully."
+                echo "Job: ${params.JOB_NAME}"
+                echo "Profile: ${params.SPRING_PROFILE}"
+                echo "Exit Code: ${env.batchExitCode}"
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "=== BATCH JOB FAILURE ==="
+            echo "Job: ${params.JOB_NAME}"
+            echo "Profile: ${params.SPRING_PROFILE}"
+            echo "Exit Code: ${env.batchExitCode}"
+            echo "Check console output for detailed error logs."
+        }
+    }
+}
