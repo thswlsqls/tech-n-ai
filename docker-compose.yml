@@ -229,7 +229,7 @@ services:
       - "4318:4318"
     volumes:
       - ./monitoring/jaeger/jaeger-config.yml:/etc/jaeger/config.yaml:ro
-    command: ["--config-file=/etc/jaeger/config.yaml"]
+    command: ["--config", "/etc/jaeger/config.yaml"]
     networks:
       - monitoring-network
     restart: unless-stopped
