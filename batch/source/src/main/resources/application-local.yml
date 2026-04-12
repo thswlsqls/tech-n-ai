@@ -25,4 +25,4 @@ management:
           address: localhost:9095
           push-rate: 10s
           job: batch-source
-          shutdown-operation: push
+          shutdown-operation: POST

@@ -47,7 +47,7 @@ groups:
     rules:
       # ─── Jenkins JVM 메모리 부족 ───
       - alert: HighJvmMemoryUsage
-        expr: default_jenkins_vm_memory_heap_usage > 0.85
+        expr: jvm_memory_bytes_used{area="heap", job="jenkins"} / jvm_memory_bytes_max{area="heap", job="jenkins"} > 0.85
         for: 5m
         labels:
           severity: warning
