@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/admin/refresh").permitAll()
                 .requestMatchers("/api/v1/auth/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
