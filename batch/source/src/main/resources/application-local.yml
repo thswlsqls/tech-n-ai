@@ -9,7 +9,20 @@ spring:
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
 
+logging:
+  file:
+    path: ${user.home}/workspace/tech-n-ai/tech-n-ai-backend/logs
+
 management:
   health:
     redis:
       enabled: false
+  prometheus:
+    metrics:
+      export:
+        pushgateway:
+          enabled: true
+          address: localhost:9095
+          push-rate: 10s
+          job: batch-source
+          shutdown-operation: push

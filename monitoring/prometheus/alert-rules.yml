@@ -1,0 +1,66 @@
+groups:
+  - name: batch-source-alerts
+    rules:
+      # ─── Batch Job 실패 ───
+      - alert: BatchJobFailed
+        expr: increase(spring_batch_job_seconds_count{status="FAILURE"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Batch Job 실패: {{ $labels.spring_batch_job_name }}"
+          description: "Job {{ $labels.spring_batch_job_name }}이 FAILURE 상태로 종료."
+
+      # ─── Batch Job 장시간 실행 ───
+      - alert: BatchJobSlowExecution
+        expr: spring_batch_job_active_seconds_active_count > 0 and spring_batch_job_active_seconds_duration_sum > 1800
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Batch Job 장시간 실행: {{ $labels.spring_batch_job_name }}"
+          description: "Job {{ $labels.spring_batch_job_name }}이 30분 이상 실행 중."
+
+  - name: jenkins-alerts
+    rules:
+      # ─── Jenkins 다운 ───
+      - alert: JenkinsDown
+        expr: up{job="jenkins"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Jenkins 프로세스 다운"
+          description: "Jenkins 메트릭 수집이 2분 이상 실패. 프로세스 상태를 확인하세요."
+
+      # ─── Jenkins 빌드 연속 실패 ───
+      - alert: JenkinsBuildConsecutiveFailures
+        expr: increase(default_jenkins_builds_failed_build_count{jenkins_job=~"batch-source.*"}[1h]) >= 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jenkins 빌드 연속 실패: {{ $labels.jenkins_job }}"
+          description: "{{ $labels.jenkins_job }}이 최근 1시간 내 3회 이상 실패."
+
+  - name: resource-alerts
+    rules:
+      # ─── Jenkins JVM 메모리 부족 ───
+      - alert: HighJvmMemoryUsage
+        expr: default_jenkins_vm_memory_heap_usage > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jenkins JVM Heap 사용률 높음"
+          description: "Jenkins Heap 사용률이 85%를 초과하여 5분간 지속. 현재: {{ $value | humanizePercentage }}"
+
+      # ─── API 모듈 JVM 메모리 ───
+      - alert: HighAppMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} Heap 사용률 높음"
+          description: "{{ $labels.application }}의 Heap 사용률이 85% 초과. 현재: {{ $value | humanizePercentage }}"

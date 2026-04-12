@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager 연동
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# 알림 규칙 파일
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  # ─── Jenkins ───
+  - job_name: 'jenkins'
+    metrics_path: /prometheus/
+    scheme: http
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          instance: 'jenkins-master'
+
+  # ─── API 모듈 (Spring Boot Actuator) ───
+  - job_name: 'spring-boot-api'
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'host.docker.internal:8081'   # gateway
+          - 'host.docker.internal:8082'   # emerging-tech
+          - 'host.docker.internal:8083'   # auth
+          - 'host.docker.internal:8084'   # chatbot
+          - 'host.docker.internal:8085'   # bookmark
+          - 'host.docker.internal:8086'   # agent
+
+  # ─── Pushgateway (batch-source 메트릭) ───
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+
+  # ─── Prometheus 자체 메트릭 ───
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

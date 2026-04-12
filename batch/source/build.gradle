@@ -21,6 +21,8 @@ dependencies {
 
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 
+	runtimeOnly 'io.prometheus:prometheus-metrics-exporter-pushgateway'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-batch-test'

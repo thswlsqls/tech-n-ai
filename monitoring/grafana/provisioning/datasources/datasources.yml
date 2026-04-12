@@ -1,0 +1,36 @@
+apiVersion: 1
+
+datasources:
+  # ─── Metrics ───
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: '15s'
+
+  # ─── Traces ───
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    uid: jaeger
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: true
+
+  # ─── Logs ───
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    uid: loki
+    jsonData:
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: '"traceId"\s*:\s*"(\w+)"'
+          name: TraceID
+          url: '$${__value.raw}'

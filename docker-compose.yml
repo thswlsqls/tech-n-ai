@@ -175,8 +175,117 @@ services:
       retries: 5
       start_period: 30s
 
+  # ============================================================
+  # Monitoring Stack
+  # ============================================================
+
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  pushgateway:
+    image: prom/pushgateway:v1.11.0
+    container_name: pushgateway
+    ports:
+      - "9095:9091"
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    ports:
+      - "9094:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./monitoring/jaeger/jaeger-config.yml:/etc/jaeger/config.yaml:ro
+    command: ["--config-file=/etc/jaeger/config.yaml"]
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - ${HOME}/.jenkins:/jenkins-home:ro
+      - ${HOME}/workspace/tech-n-ai/tech-n-ai-backend/logs:/app-logs:ro
+    command: -config.file=/etc/promtail/config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: grafana
+    ports:
+      - "3002:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
 networks:
   kafka-network:
+    driver: bridge
+  monitoring-network:
     driver: bridge
 
 volumes:
@@ -189,4 +298,10 @@ volumes:
   mysql-bookmark-data:
     driver: local
   mysql-chatbot-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  loki-data:
+    driver: local
+  grafana-data:
     driver: local

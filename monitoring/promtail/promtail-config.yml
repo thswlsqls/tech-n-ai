@@ -1,0 +1,41 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ─── Jenkins 로그 ───
+  - job_name: jenkins
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: jenkins
+          __path__: /jenkins-home/logs/*.log
+
+  # ─── 애플리케이션 로그 (JSON 파일 출력) ───
+  - job_name: spring-boot-app
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: spring-boot
+          __path__: /app-logs/**/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            traceId: traceId
+            spanId: spanId
+            service: service
+      - labels:
+          level:
+          service:
+      - structured_metadata:
+          traceId:
+          spanId:
