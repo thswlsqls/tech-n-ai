@@ -1,0 +1,235 @@
+// 모듈별 포트 매핑
+def module_ports = [
+    'api-gateway'       : '8081',
+    'api-emerging-tech' : '8082',
+    'api-auth'          : '8083',
+    'api-chatbot'       : '8084',
+    'api-bookmark'      : '8085',
+    'api-agent'         : '8086'
+]
+
+// 모듈별 Credential 바인딩 정의
+def module_credentials = [
+    'api-gateway': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'jwt-secret-key', variable: 'JWT_SECRET_KEY')
+    ],
+    'api-emerging-tech': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'openai-api-key', variable: 'OPENAI_API_KEY'),
+        string(credentialsId: 'emerging-tech-internal-api-key', variable: 'EMERGING_TECH_INTERNAL_API_KEY'),
+        string(credentialsId: 'mongodb-atlas-connection-string', variable: 'MONGODB_ATLAS_CONNECTION_STRING')
+    ],
+    'api-auth': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'mysql-user', variable: 'MYSQL_USER'),
+        string(credentialsId: 'mysql-password', variable: 'MYSQL_PASSWORD'),
+        string(credentialsId: 'mail-password-auth', variable: 'MAIL_PASSWORD')
+    ],
+    'api-chatbot': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'openai-api-key', variable: 'OPENAI_API_KEY'),
+        string(credentialsId: 'cohere-api-key-chatbot', variable: 'COHERE_API_KEY'),
+        string(credentialsId: 'google-search-api-key-chatbot', variable: 'GOOGLE_SEARCH_API_KEY'),
+        string(credentialsId: 'google-search-engine-id-chatbot', variable: 'GOOGLE_SEARCH_ENGINE_ID'),
+        string(credentialsId: 'mysql-user', variable: 'MYSQL_USER'),
+        string(credentialsId: 'mysql-password', variable: 'MYSQL_PASSWORD'),
+        string(credentialsId: 'mongodb-atlas-connection-string', variable: 'MONGODB_ATLAS_CONNECTION_STRING')
+    ],
+    'api-bookmark': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'mysql-user', variable: 'MYSQL_USER'),
+        string(credentialsId: 'mysql-password', variable: 'MYSQL_PASSWORD'),
+        string(credentialsId: 'mongodb-atlas-connection-string', variable: 'MONGODB_ATLAS_CONNECTION_STRING')
+    ],
+    'api-agent': [
+        string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
+        string(credentialsId: 'openai-api-key', variable: 'OPENAI_API_KEY'),
+        string(credentialsId: 'emerging-tech-internal-api-key', variable: 'EMERGING_TECH_INTERNAL_API_KEY'),
+        string(credentialsId: 'slack-webhook-url-agent', variable: 'SLACK_WEBHOOK_URL'),
+        string(credentialsId: 'slack-bot-token-agent', variable: 'SLACK_BOT_TOKEN'),
+        string(credentialsId: 'mysql-user', variable: 'MYSQL_USER'),
+        string(credentialsId: 'mysql-password', variable: 'MYSQL_PASSWORD'),
+        string(credentialsId: 'mongodb-atlas-connection-string', variable: 'MONGODB_ATLAS_CONNECTION_STRING')
+    ]
+]
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'MODULE_NAME',
+            choices: [
+                'api-gateway',
+                'api-emerging-tech',
+                'api-auth',
+                'api-chatbot',
+                'api-bookmark',
+                'api-agent'
+            ],
+            description: '배포 대상 API 모듈'
+        )
+        choice(
+            name: 'SPRING_PROFILE',
+            choices: ['local', 'dev', 'beta', 'prod'],
+            description: 'Spring 프로파일'
+        )
+    }
+
+    environment {
+        BUILD_DIR = "${JENKINS_HOME}/builds"
+        PID_DIR = "${JENKINS_HOME}/pids"
+        LOG_DIR = "${HOME}/workspace/tech-n-ai/tech-n-ai-backend/logs"
+    }
+
+    stages {
+        stage('Validate JAR') {
+            steps {
+                script {
+                    env.jarPath = "${env.BUILD_DIR}/${params.MODULE_NAME}.jar"
+                    env.pidFile = "${env.PID_DIR}/${params.MODULE_NAME}.pid"
+                    env.modulePort = module_ports[params.MODULE_NAME]
+
+                    if (!fileExists("${env.jarPath}")) {
+                        error "JAR file not found: ${env.jarPath}. Run CI/CD Pipeline first."
+                    }
+                    echo "JAR validated: ${env.jarPath}"
+                }
+            }
+        }
+
+        stage('Stop Running Process') {
+            steps {
+                script {
+                    sh "mkdir -p ${env.PID_DIR}"
+
+                    if (fileExists("${env.pidFile}")) {
+                        def pid = sh(returnStdout: true, script: "cat ${env.pidFile}").trim()
+
+                        def isRunning = sh(
+                            returnStatus: true,
+                            script: "kill -0 ${pid} 2>/dev/null"
+                        )
+
+                        if (isRunning == 0) {
+                            echo "Stopping process ${pid} (${params.MODULE_NAME})..."
+
+                            // Graceful shutdown via SIGTERM
+                            sh "kill ${pid}"
+
+                            // 최대 30초 대기
+                            def stopped = false
+                            for (int i = 0; i < 30; i++) {
+                                def check = sh(
+                                    returnStatus: true,
+                                    script: "kill -0 ${pid} 2>/dev/null"
+                                )
+                                if (check != 0) {
+                                    stopped = true
+                                    break
+                                }
+                                sleep(time: 1, unit: 'SECONDS')
+                            }
+
+                            if (!stopped) {
+                                echo "Process ${pid} did not stop gracefully. Sending SIGKILL..."
+                                sh "kill -9 ${pid} 2>/dev/null || true"
+                            }
+
+                            echo "Process ${pid} stopped."
+                        } else {
+                            echo "PID file exists but process ${pid} is not running. Cleaning up stale PID file."
+                        }
+
+                        sh "rm -f ${env.pidFile}"
+                    } else {
+                        echo "No PID file found. No process to stop."
+                    }
+
+                    // 포트 점유 확인 — PID 파일 없이 프로세스가 실행 중인 경우 대비
+                    def portCheck = sh(
+                        returnStatus: true,
+                        script: "lsof -ti:${env.modulePort} > /dev/null 2>&1"
+                    )
+                    if (portCheck == 0) {
+                        echo "WARNING: Port ${env.modulePort} is still in use. Attempting to free it..."
+                        sh "lsof -ti:${env.modulePort} | xargs kill -9 2>/dev/null || true"
+                        sleep(time: 2, unit: 'SECONDS')
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                withCredentials(module_credentials[params.MODULE_NAME]) {
+                    script {
+                        sh "mkdir -p ${env.LOG_DIR}"
+
+                        // nohup으로 백그라운드 실행, PID 기록
+                        sh """
+                            nohup java \
+                                -Dspring.profiles.active=${params.SPRING_PROFILE} \
+                                -jar ${env.jarPath} \
+                                > ${env.LOG_DIR}/${params.MODULE_NAME}.log 2>&1 &
+                            echo \$! > ${env.pidFile}
+                        """
+
+                        env.deployedPid = sh(returnStdout: true, script: "cat ${env.pidFile}").trim()
+                        echo "Started ${params.MODULE_NAME} (PID: ${env.deployedPid})"
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    def healthUrl = "http://localhost:${env.modulePort}/actuator/health"
+                    def maxRetries = 30
+                    def retryInterval = 5
+                    def healthy = false
+
+                    echo "Waiting for ${params.MODULE_NAME} to be ready at ${healthUrl}..."
+
+                    for (int i = 1; i <= maxRetries; i++) {
+                        def exitCode = sh(
+                            returnStatus: true,
+                            script: "curl -sf ${healthUrl} > /dev/null 2>&1"
+                        )
+
+                        if (exitCode == 0) {
+                            healthy = true
+                            echo "Health check passed on attempt ${i}/${maxRetries}"
+                            break
+                        }
+
+                        echo "Attempt ${i}/${maxRetries} failed. Retrying in ${retryInterval}s..."
+                        sleep(time: retryInterval, unit: 'SECONDS')
+                    }
+
+                    if (!healthy) {
+                        // 헬스체크 실패 시 프로세스 정리
+                        echo "Health check failed after ${maxRetries * retryInterval}s. Stopping deployed process..."
+                        sh "kill ${env.deployedPid} 2>/dev/null || true"
+                        sh "rm -f ${env.pidFile}"
+                        error "Health check failed for ${params.MODULE_NAME} at ${healthUrl}"
+                    }
+
+                    echo "Deploy SUCCESS - Module: ${params.MODULE_NAME}, Port: ${env.modulePort}, PID: ${env.deployedPid}"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "=== DEPLOY FAILURE ==="
+            echo "Module: ${params.MODULE_NAME}"
+            echo "Profile: ${params.SPRING_PROFILE}"
+            echo "JAR: ${env.jarPath}"
+            echo "Check log: ${env.LOG_DIR}/${params.MODULE_NAME}.log"
+        }
+    }
+}

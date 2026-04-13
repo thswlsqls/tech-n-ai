@@ -1,0 +1,107 @@
+def git_repo_url = 'https://github.com/thswlsqls/tech-n-ai-backend.git'
+def git_credentials_id = 'github-pat-tech-n-ai-backend'
+
+// 모듈명 → JAR 소스 경로 매핑
+def module_source_path = [
+    'api-gateway'       : 'api/gateway/build/libs',
+    'api-emerging-tech' : 'api/emerging-tech/build/libs',
+    'api-auth'          : 'api/auth/build/libs',
+    'api-chatbot'       : 'api/chatbot/build/libs',
+    'api-bookmark'      : 'api/bookmark/build/libs',
+    'api-agent'         : 'api/agent/build/libs'
+]
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'MODULE_NAME',
+            choices: [
+                'api-gateway',
+                'api-emerging-tech',
+                'api-auth',
+                'api-chatbot',
+                'api-bookmark',
+                'api-agent'
+            ],
+            description: '빌드 대상 API 모듈'
+        )
+        choice(name: 'BRANCH', choices: ['main', 'dev', 'beta'], description: '빌드 대상 브랜치')
+    }
+
+    environment {
+        GIT_REPO_URL = "${git_repo_url}"
+        GIT_CREDENTIALS_ID = "${git_credentials_id}"
+        BUILD_DIR = "${JENKINS_HOME}/builds"
+    }
+
+    stages {
+        stage('Prepare Workspace') {
+            steps {
+                echo "Cleaning workspace..."
+                deleteDir()
+            }
+        }
+
+        stage('Git Checkout') {
+            steps {
+                git branch: "${params.BRANCH}",
+                    credentialsId: "${env.GIT_CREDENTIALS_ID}",
+                    url: "${env.GIT_REPO_URL}"
+
+                script {
+                    env.commitHash = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    echo "Current Git Commit: ${env.commitHash}"
+                }
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                script {
+                    env.buildTimestamp = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
+
+                    sh """
+                        chmod +x ./gradlew
+                        ./gradlew -x test :${params.MODULE_NAME}:clean :${params.MODULE_NAME}:build --info
+                    """
+                }
+            }
+        }
+
+        stage('Archive & Link') {
+            steps {
+                script {
+                    def jarName = "${params.MODULE_NAME}-0.0.1-SNAPSHOT.jar"
+                    def sourcePath = "${module_source_path[params.MODULE_NAME]}/${jarName}"
+                    def targetPath = "${env.BUILD_DIR}/${params.MODULE_NAME}-${env.buildTimestamp}.jar"
+                    def linkPath = "${env.BUILD_DIR}/${params.MODULE_NAME}.jar"
+
+                    sh """
+                        if [ ! -f ${sourcePath} ]; then
+                            echo "JAR file not found: ${sourcePath}"
+                            exit 1
+                        fi
+
+                        mkdir -p ${env.BUILD_DIR}
+                        cp ${sourcePath} ${targetPath}
+                        ln -sf ${targetPath} ${linkPath}
+                    """
+
+                    echo "JAR archived: ${targetPath}"
+                    echo "Symlink updated: ${linkPath}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build SUCCESS - Module: ${params.MODULE_NAME}, Branch: ${params.BRANCH}, Commit: ${env.commitHash}"
+        }
+        failure {
+            echo "Build FAILED - Module: ${params.MODULE_NAME}, Branch: ${params.BRANCH}"
+        }
+    }
+}
