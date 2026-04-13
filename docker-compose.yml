@@ -76,7 +76,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 1g
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysql", "-uroot", "-proot1234", "-e", "SELECT 1"]
@@ -106,7 +106,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 1g
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysql", "-uroot", "-proot1234", "-e", "SELECT 1"]
@@ -136,7 +136,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 1g
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysql", "-uroot", "-proot1234", "-e", "SELECT 1"]
@@ -166,7 +166,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 1g
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "mysql", "-uroot", "-proot1234", "-e", "SELECT 1"]
