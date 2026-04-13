@@ -186,8 +186,9 @@ pipeline {
                         sh "mkdir -p ${env.LOG_DIR}"
 
                         // nohup으로 백그라운드 실행, PID 기록
+                        // JENKINS_NODE_COOKIE 설정으로 Jenkins가 빌드 종료 시 자식 프로세스를 kill하지 않도록 방지
                         sh """
-                            nohup java \
+                            JENKINS_NODE_COOKIE=dontKillMe nohup java \
                                 -Dspring.profiles.active=${params.SPRING_PROFILE} \
                                 -jar ${env.jarPath} \
                                 > ${env.LOG_DIR}/${params.MODULE_NAME}.log 2>&1 &
