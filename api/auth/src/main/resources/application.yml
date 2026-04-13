@@ -6,5 +6,6 @@ spring:
       - auth-api
       - common-core
       - api-domain
+      - mongodb-domain
       - feign-oauth
       - mail

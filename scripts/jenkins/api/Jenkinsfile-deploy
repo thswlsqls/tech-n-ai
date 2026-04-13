@@ -24,7 +24,8 @@ def module_credentials = [
         string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
         string(credentialsId: 'mysql-user', variable: 'MYSQL_USER'),
         string(credentialsId: 'mysql-password', variable: 'MYSQL_PASSWORD'),
-        string(credentialsId: 'mail-password-auth', variable: 'MAIL_PASSWORD')
+        string(credentialsId: 'mail-password-auth', variable: 'MAIL_PASSWORD'),
+        string(credentialsId: 'mongodb-atlas-connection-string', variable: 'MONGODB_ATLAS_CONNECTION_STRING')
     ],
     'api-chatbot': [
         string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
