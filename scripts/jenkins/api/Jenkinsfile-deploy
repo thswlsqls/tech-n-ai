@@ -204,7 +204,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    def healthUrl = "http://localhost:${env.modulePort}/actuator/health"
+                    def healthUrl = "http://localhost:${env.modulePort}/actuator/health/readiness"
                     def maxRetries = 30
                     def retryInterval = 5
                     def healthy = false
