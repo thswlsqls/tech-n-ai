@@ -156,7 +156,24 @@ pipeline {
                     if (portCheck == 0) {
                         echo "WARNING: Port ${env.modulePort} is still in use. Attempting to free it..."
                         sh "lsof -ti:${env.modulePort} | xargs kill -9 2>/dev/null || true"
-                        sleep(time: 2, unit: 'SECONDS')
+
+                        // 포트 해제 대기 (최대 10초)
+                        def portFreed = false
+                        for (int i = 0; i < 10; i++) {
+                            sleep(time: 1, unit: 'SECONDS')
+                            def recheck = sh(
+                                returnStatus: true,
+                                script: "lsof -ti:${env.modulePort} > /dev/null 2>&1"
+                            )
+                            if (recheck != 0) {
+                                portFreed = true
+                                echo "Port ${env.modulePort} is now free."
+                                break
+                            }
+                        }
+                        if (!portFreed) {
+                            error "Port ${env.modulePort} is still in use after 10s. Manual intervention required."
+                        }
                     }
                 }
             }
