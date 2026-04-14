@@ -7,9 +7,9 @@ def project_name = 'batch-source'
 //   Configure(구성) > Build Triggers > 'Build periodically(주기적으로 빌드)' 체크 후 cron 표현식 입력
 //
 // 아이템별 권장 설정:
-//   batch-scraper : BATCH_JOB_NAME=emerging-tech.scraper.job, Schedule=H */6 * * *   (6시간마다)
-//   batch-rss     : BATCH_JOB_NAME=emerging-tech.rss.job,     Schedule=H */4 * * *   (4시간마다)
-//   batch-github  : BATCH_JOB_NAME=emerging-tech.github.job,  Schedule=H H(0-6) * * * (매일 새벽 1회)
+//   batch-scraper : BATCH_JOB_NAME=emerging-tech.scraper.job, Schedule=H H/6 * * *   (6시간마다)
+//   batch-rss     : BATCH_JOB_NAME=emerging-tech.rss.job,     Schedule=H H/4 * * *   (4시간마다)
+//   batch-github  : BATCH_JOB_NAME=emerging-tech.github.job,  Schedule=H 0-6 * * *   (매일 새벽 1회)
 def jobName = env.BATCH_JOB_NAME
 
 pipeline {
