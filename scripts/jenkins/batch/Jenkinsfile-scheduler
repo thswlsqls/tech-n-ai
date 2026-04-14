@@ -1,15 +1,16 @@
 def project_name = 'batch-source'
 
-// Jenkins 아이템별 환경변수로 주입 (GUI "This project is parameterised" 또는 EnvInject)
-//   BATCH_JOB_NAME      : 실행할 Spring Batch Job 이름
-//   BATCH_CRON_SCHEDULE  : cron 표현식
+// Jenkins 아이템별 환경변수로 주입 (GUI "This project is parameterised")
+//   BATCH_JOB_NAME : 실행할 Spring Batch Job 이름
+//
+// 스케줄은 Jenkins GUI에서 설정:
+//   Configure(구성) > Build Triggers > 'Build periodically(주기적으로 빌드)' 체크 후 cron 표현식 입력
 //
 // 아이템별 권장 설정:
-//   batch-scraper : BATCH_JOB_NAME=emerging-tech.scraper.job, BATCH_CRON_SCHEDULE=H */6 * * *
-//   batch-rss     : BATCH_JOB_NAME=emerging-tech.rss.job,     BATCH_CRON_SCHEDULE=H */4 * * *
-//   batch-github  : BATCH_JOB_NAME=emerging-tech.github.job,  BATCH_CRON_SCHEDULE=H H(0-6) * * *
-def jobName      = env.BATCH_JOB_NAME
-def cronSchedule = env.BATCH_CRON_SCHEDULE
+//   batch-scraper : BATCH_JOB_NAME=emerging-tech.scraper.job, Schedule=H */6 * * *   (6시간마다)
+//   batch-rss     : BATCH_JOB_NAME=emerging-tech.rss.job,     Schedule=H */4 * * *   (4시간마다)
+//   batch-github  : BATCH_JOB_NAME=emerging-tech.github.job,  Schedule=H H(0-6) * * * (매일 새벽 1회)
+def jobName = env.BATCH_JOB_NAME
 
 pipeline {
     agent any
@@ -28,10 +29,6 @@ pipeline {
         JAR_PATH = "${JENKINS_HOME}/builds/${project_name}.jar"
     }
 
-    triggers {
-        cron(cronSchedule)
-    }
-
     stages {
         stage('Validate Parameters') {
             steps {
@@ -48,19 +45,7 @@ pipeline {
    (예: emerging-tech.scraper.job, emerging-tech.rss.job, emerging-tech.github.job)
 """
                     }
-                    if (!cronSchedule) {
-                        error """BATCH_CRON_SCHEDULE 환경변수가 설정되지 않았습니다.
-
-[설정 방법]
-1. Jenkins 대시보드에서 이 아이템 클릭
-2. 좌측 메뉴 'Configure(구성)' 클릭
-3. 'This project is parameterised(이 빌드는 매개변수가 있습니다)' 체크
-4. 'Add Parameter(매개변수 추가)' > 'String Parameter(문자열 매개변수)' 선택
-5. Name: BATCH_CRON_SCHEDULE / Default Value: cron 표현식 입력
-   (예: H */6 * * * = 6시간마다, H */4 * * * = 4시간마다, H H(0-6) * * * = 매일 새벽 1회)
-"""
-                    }
-                    echo "Parameters validated - Job: ${jobName}, Schedule: ${cronSchedule}"
+                    echo "Parameters validated - Job: ${jobName}"
                 }
             }
         }
