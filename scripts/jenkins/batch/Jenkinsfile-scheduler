@@ -1,18 +1,20 @@
 def project_name = 'batch-source'
 
+// Jenkins 아이템별 환경변수로 주입 (GUI "This project is parameterised" 또는 EnvInject)
+//   BATCH_JOB_NAME      : 실행할 Spring Batch Job 이름
+//   BATCH_CRON_SCHEDULE  : cron 표현식
+//
+// 아이템별 권장 설정:
+//   batch-scraper : BATCH_JOB_NAME=emerging-tech.scraper.job, BATCH_CRON_SCHEDULE=H */6 * * *
+//   batch-rss     : BATCH_JOB_NAME=emerging-tech.rss.job,     BATCH_CRON_SCHEDULE=H */4 * * *
+//   batch-github  : BATCH_JOB_NAME=emerging-tech.github.job,  BATCH_CRON_SCHEDULE=H H(0-6) * * *
+def jobName      = env.BATCH_JOB_NAME
+def cronSchedule = env.BATCH_CRON_SCHEDULE
+
 pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'JOB_NAME',
-            choices: [
-                'emerging-tech.scraper.job',
-                'emerging-tech.rss.job',
-                'emerging-tech.github.job'
-            ],
-            description: '실행할 Spring Batch Job 이름'
-        )
         choice(
             name: 'SPRING_PROFILE',
             choices: ['local', 'dev', 'beta', 'prod'],
@@ -26,16 +28,43 @@ pipeline {
         JAR_PATH = "${JENKINS_HOME}/builds/${project_name}.jar"
     }
 
-    // 기본 스케줄: 4시간마다 실행 (H 심볼로 부하 분산)
-    // Job별 권장 스케줄:
-    //   emerging-tech.scraper.job : H */6 * * *   (6시간마다)
-    //   emerging-tech.rss.job    : H */4 * * *   (4시간마다)
-    //   emerging-tech.github.job : H H(0-6) * * * (매일 새벽 0~6시 사이 1회)
     triggers {
-        cron('H */4 * * *')
+        cron(cronSchedule)
     }
 
     stages {
+        stage('Validate Parameters') {
+            steps {
+                script {
+                    if (!jobName) {
+                        error """BATCH_JOB_NAME 환경변수가 설정되지 않았습니다.
+
+[설정 방법]
+1. Jenkins 대시보드에서 이 아이템 클릭
+2. 좌측 메뉴 'Configure(구성)' 클릭
+3. 'This project is parameterised(이 빌드는 매개변수가 있습니다)' 체크
+4. 'Add Parameter(매개변수 추가)' > 'String Parameter(문자열 매개변수)' 선택
+5. Name: BATCH_JOB_NAME / Default Value: 실행할 잡 이름 입력
+   (예: emerging-tech.scraper.job, emerging-tech.rss.job, emerging-tech.github.job)
+"""
+                    }
+                    if (!cronSchedule) {
+                        error """BATCH_CRON_SCHEDULE 환경변수가 설정되지 않았습니다.
+
+[설정 방법]
+1. Jenkins 대시보드에서 이 아이템 클릭
+2. 좌측 메뉴 'Configure(구성)' 클릭
+3. 'This project is parameterised(이 빌드는 매개변수가 있습니다)' 체크
+4. 'Add Parameter(매개변수 추가)' > 'String Parameter(문자열 매개변수)' 선택
+5. Name: BATCH_CRON_SCHEDULE / Default Value: cron 표현식 입력
+   (예: H */6 * * * = 6시간마다, H */4 * * * = 4시간마다, H H(0-6) * * * = 매일 새벽 1회)
+"""
+                    }
+                    echo "Parameters validated - Job: ${jobName}, Schedule: ${cronSchedule}"
+                }
+            }
+        }
+
         stage('Validate JAR') {
             steps {
                 script {
@@ -53,14 +82,14 @@ pipeline {
                     string(credentialsId: 'github-token-batch-source', variable: 'GITHUB_TOKEN')
                 ]) {
                     script {
-                        echo "Executing: ${params.JOB_NAME} with profile ${params.SPRING_PROFILE}"
+                        echo "Executing: ${jobName} with profile ${params.SPRING_PROFILE}"
 
                         def exitCode = sh(
                             returnStatus: true,
                             script: """
                                 java -Dspring.profiles.active=${params.SPRING_PROFILE} \
                                     -jar ${env.JAR_PATH} \
-                                    --job.name=${params.JOB_NAME}
+                                    --job.name=${jobName}
                             """
                         )
 
@@ -77,7 +106,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo "Batch Job completed successfully."
-                echo "Job: ${params.JOB_NAME}"
+                echo "Job: ${jobName}"
                 echo "Profile: ${params.SPRING_PROFILE}"
                 echo "Exit Code: ${env.batchExitCode}"
             }
@@ -87,7 +116,7 @@ pipeline {
     post {
         failure {
             echo "=== BATCH JOB FAILURE ==="
-            echo "Job: ${params.JOB_NAME}"
+            echo "Job: ${jobName}"
             echo "Profile: ${params.SPRING_PROFILE}"
             echo "Exit Code: ${env.batchExitCode}"
             echo "Check console output for detailed error logs."

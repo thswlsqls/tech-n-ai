@@ -7,7 +7,7 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'BRANCH', choices: ['main', 'dev', 'beta'], description: '빌드 대상 브랜치')
+        string(name: 'BRANCH', defaultValue: 'main', description: '빌드 대상 브랜치 (예: main, dev, beta, feature/xxx)')
     }
 
     environment {
