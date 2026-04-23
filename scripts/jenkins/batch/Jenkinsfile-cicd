@@ -1,18 +1,14 @@
-def git_repo_url = 'https://github.com/thswlsqls/tech-n-ai-backend.git'
-def git_credentials_id = 'github-pat-tech-n-ai-backend'
+// Jenkins GUI의 'Pipeline script from SCM' 설정을 재사용합니다.
+// - URL/Credentials/Branch: GUI SCM 설정 ('Branches to build' 포함) 을 그대로 사용
+// - 브랜치 변경은 Jenkins Job 구성 화면에서 수정
+
 def project_name = 'batch-source'
 def jar_name = 'batch-source-0.0.1-SNAPSHOT.jar'
 
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'BRANCH', defaultValue: 'main', description: '빌드 대상 브랜치 (예: main, dev, beta, feature/xxx)')
-    }
-
     environment {
-        GIT_REPO_URL = "${git_repo_url}"
-        GIT_CREDENTIALS_ID = "${git_credentials_id}"
         PROJECT_NAME = "${project_name}"
         BUILD_DIR = "${JENKINS_HOME}/builds"
         JAR_NAME = "${jar_name}"
@@ -28,9 +24,7 @@ pipeline {
 
         stage('Git Checkout') {
             steps {
-                git branch: "${params.BRANCH}",
-                    credentialsId: "${env.GIT_CREDENTIALS_ID}",
-                    url: "${env.GIT_REPO_URL}"
+                checkout scm
 
                 script {
                     env.commitHash = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
@@ -79,10 +73,10 @@ pipeline {
 
     post {
         success {
-            echo "Build SUCCESS - Branch: ${params.BRANCH}, Commit: ${env.commitHash}"
+            echo "Build SUCCESS - Commit: ${env.commitHash}"
         }
         failure {
-            echo "Build FAILED - Branch: ${params.BRANCH}"
+            echo "Build FAILED"
         }
     }
 }
