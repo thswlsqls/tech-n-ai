@@ -1,0 +1,111 @@
+# AWS Distro for OpenTelemetry Collector — ECS Fargate sidecar 설정
+# 08-observability.md 의 OTLP 표준 + AWS 백엔드(X-Ray + CloudWatch EMF) 매핑.
+# 사용:
+#   - ECS Task Definition 에 sidecar 컨테이너로 추가
+#   - 이미지: public.ecr.aws/aws-observability/aws-otel-collector:latest
+#   - 환경변수 AOT_CONFIG_CONTENT 에 본 YAML 인라인 또는 SSM Parameter 로 주입
+#   - 메인 컨테이너는 OTLP 엔드포인트로 localhost:4317(gRPC) / 4318(HTTP) 송신
+
+receivers:
+  # 메인 컨테이너 → 사이드카 (같은 task 네트워크 네임스페이스, 트래픽 외부 노출 X)
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # ECS Task / Container 메트릭 자동 수집 — CPU/Mem/Disk/Network
+  awsecscontainermetrics:
+    collection_interval: 60s
+
+processors:
+  # ECS 메타데이터(cluster, task, container)를 모든 텔레메트리에 자동 부착
+  resourcedetection/ecs:
+    detectors:
+      - env
+      - ecs
+    timeout: 5s
+    override: false
+
+  # 환경/서비스 식별자 강제
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${ENVIRONMENT}
+        action: upsert
+      - key: service.namespace
+        value: tech-n-ai
+        action: upsert
+
+  # 배치 송신으로 호출 횟수 절감
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  # 메모리 보호 — 사이드카가 OOM 으로 메인 영향 주지 않도록
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 100
+    spike_limit_mib: 30
+
+  # 컨테이너 메트릭 → 표준 OTel 메트릭으로 변환
+  filter/awsecscontainermetrics:
+    metrics:
+      include:
+        match_type: strict
+        metric_names:
+          - ecs.task.memory.utilized
+          - ecs.task.memory.reserved
+          - ecs.task.cpu.utilized
+          - ecs.task.cpu.reserved
+          - ecs.task.network.rate.rx
+          - ecs.task.network.rate.tx
+
+exporters:
+  # 트레이스 → AWS X-Ray
+  awsxray:
+    region: ${AWS_REGION}
+    no_verify_ssl: false
+    local_mode: false
+
+  # 메트릭 → CloudWatch EMF (CloudWatch Logs 에 임베드 메트릭 포맷)
+  awsemf:
+    region: ${AWS_REGION}
+    log_group_name: /aws/ecs/${ENVIRONMENT}/otel-metrics
+    log_stream_name: ${SERVICE_NAME}/${TASK_ID}
+    namespace: techai/${ENVIRONMENT}
+    dimension_rollup_option: NoDimensionRollup
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # 디버그용 — 운영에서는 제거
+  # logging:
+  #   loglevel: debug
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection/ecs, resource, batch]
+      exporters: [awsxray]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection/ecs, resource, batch]
+      exporters: [awsemf]
+
+    metrics/ecs:
+      receivers: [awsecscontainermetrics]
+      processors: [filter/awsecscontainermetrics, memory_limiter, resourcedetection/ecs, resource, batch]
+      exporters: [awsemf]
+
+  telemetry:
+    logs:
+      level: info

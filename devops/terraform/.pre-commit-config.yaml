@@ -1,0 +1,40 @@
+# Tech-N-AI Terraform pre-commit 설정
+# 설치: `pip install pre-commit && pre-commit install`
+# 실행: `pre-commit run --all-files`
+
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.92.0
+    hooks:
+      # fmt: 모든 .tf 파일 포맷 검사
+      - id: terraform_fmt
+      # validate: 문법·타입 정합성
+      - id: terraform_validate
+      # tflint: AWS 린트 (잘못된 인스턴스 타입 등)
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+      # tfsec: 보안 정적 분석 (Aqua Security)
+      - id: terraform_tfsec
+        args:
+          - --args=--exclude-downloaded-modules
+      # checkov: 추가 보안 룰
+      - id: terraform_checkov
+        args:
+          - --args=--quiet
+          - --args=--skip-check CKV_AWS_111  # IAM admin policies (예외 명시)
+      # docs 자동 생성
+      - id: terraform_docs
+        args:
+          - --hook-config=--path-to-file=README.md
+          - --hook-config=--add-to-existing-file=true
+          - --hook-config=--create-file-if-not-exist=true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
