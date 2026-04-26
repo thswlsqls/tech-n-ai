@@ -6,7 +6,7 @@
 CQRS 패턴, Kafka 이벤트 기반, Redis 활용 멱등성 보장, API Gateway 사용의 MSA 설계되었습니다.
 langchain4j 활용의 RAG 기반 LLM 멀티턴 챗봇과 Tool 기반 AI Agent 자율프로세싱 설계되었습니다.
 
-## 현재 개발 상황 데모
+## 초안 데모 영상
 
 <video src="https://github.com/user-attachments/assets/e2fc8fa9-26bb-48cb-acb4-3b3fde3e9c6d" controls width="100%"></video>
 
